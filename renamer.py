@@ -2,16 +2,14 @@
 
 import re
 import string
-import os
+from os import path
 
 symbolmap = {
     "dot": ".",
     "underscore": "_",
     "dash": "-",
     "space": " ",
-    "bar": "|",
-    "round": "()",
-    "square": "[]"
+    "bar": "|"
 }
 
 
@@ -25,9 +23,6 @@ def initfilters(args):
 
     if args.separator:
         if args.separator[0] != args.separator[1]:
-            sepr = symbolmap[args.separator[0]]
-            repl = symbolmap[args.separator[1]]
-
             lmbdaSeparator = lambda x: x.replace(sepr, repl)
             filters.append(lmbdaSeparator)
 
@@ -73,8 +68,8 @@ def filter(origname, filters):
 
 
 def renlist(args, filelist):
-    #   create table of status -> oldname -> newname
-    renlist = []
+    #   create table of status, original, newname
+    rentable = []
 
     #   Initialise counter for enumerating files
     count = 1
@@ -85,30 +80,37 @@ def renlist(args, filelist):
     filters = initfilters(args)
     for count, f in enumerate(filelist, count):
 
-        dirpath = os.path.dirname(f)
-        nametpl = os.path.splitext(os.path.basename(f))
-        
+        dirpath = path.dirname(f)
+        nametpl = path.splitext(path.basename(f))
         bname = nametpl[0]
         ext   = nametpl[1]
 
         bname = filter(bname, filters)
 
         #   apply enumerator to end of filename
+        #   0 padded format for single digits
         if args.enumerate:
-            bname += count
+            bname += '{:02d}'.format(count)
 
-        #   apply additional filters
+        #   apply extension
         if args.extension:
             ext = args.extension
 
         #   Recombine all strings
+        #   Join non-null ext with file name
         if ext:
             bname += ext
-        dirpath = "/".join([dirpath, bname])
 
-        diff = 1 if f != dirpath else 0
+        #   Join non-null dirpath with file name
+        if dirpath:
+            dirpath = "/".join([dirpath, bname])
+        #   Otherwise, the dirpath is just the file itself
+        else:
+            dirpath = bname
 
-        nentry = [diff, f, dirpath]
-        renlist.append(nentry)
+        # status = 1 if f != dirpath else 0
+        # nentry = [status, f, dirpath]
+        nentry = [f, dirpath]
+        rentable.append(nentry)
 
-    return renlist
+    return rentable
