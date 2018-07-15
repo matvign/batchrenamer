@@ -3,7 +3,6 @@
 import argparse
 import os
 import glob
-
 from collections import deque, OrderedDict
 
 from _version import __version__
@@ -18,47 +17,8 @@ def expanddir(dir):
     return dir
 
 
-#   give information about what to rename
-#   return the things that can be renamed
-def printinfotable(infotable):
-    ren  = infotable['renames']
-    conf = infotable['conflicts']
-
-    sconf = OrderedDict(sorted(ren.items(), key=lambda x:x[0]))
-    for n in sconf:
-        sconf[n].sort()
-        if len(sconf[n]) == 1:
-            print('[{}] no filters applied'.format(n))
-        else:
-            print('[{}] conflicting rename with {}'.format())
-
-    sren = sorted(ren.items(), key=lambda x:x[1])
-    for n in sren:
-        print('[{}] rename to [{}]'.format(n[1], n[0]))
-
-    return sren
-
-
-def main(args):
-    #   set of affirmative inputs
-    confirmset = set(['yes', 'ye', 'y', ''])
-
-    print("searching files...", ' ')
-    #   exclude directories
-    filelist = [f for f in glob.glob(args.dir) if os.path.isfile(f)]
-    filelist = sorted(filelist)
-
-    if args.debug:
-        print(args)
-
-    #   table of original -> rename
-    rentable = renamer.renlist(args, filelist)
-
-    #   summarise things to rename, conflicts, etc
-    infotable = geninfotable(rentable)
-
-
 def geninfotable(rentable):
+    #   note that dest is what we rename to
     infotable = {
         'renames': {
             #   dest: src
@@ -75,7 +35,7 @@ def geninfotable(rentable):
             infotable['conflicts'][n[1]].extend([n[0]])
 
         elif n[1] in infotable['renames']:
-            #   if something else wants this name already
+            #   if something else wants this name
             #   invalidate both
             temp = infotable['renames'][n[1]]
             del infotable['renames'][n[1]]
@@ -90,6 +50,57 @@ def geninfotable(rentable):
                 infotable['renames'][n[1]] = [n[0]]
 
     return infotable
+
+
+#   give information about what to rename/conflicts
+#   return what can be renamed
+def printinfotable(infotable):
+    ren  = infotable['renames']
+    conf = infotable['conflicts']
+
+    #   use an ordereddict so that we can sort naming conflicts
+    #   i.e. c,b,a --> a,b,c want to be renamed to d
+    sconf = OrderedDict(sorted(ren.items(), key=lambda x:x[0]))
+    for n in sconf:
+        sconf[n].sort()
+        if len(sconf[n]) == 1:
+            print('{} no filters applied'.format(sconf[n]))
+        else:
+            print('{} conflicting rename with [{}]'.format(sconf[n], n))
+
+    #   sort by values. note that values are original filenames
+    sren = sorted(ren.items(), key=lambda x:x[1])
+    for n in sren:
+        print('{} rename to [{}]'.format(n[1], n[0]))
+
+    return sren
+
+
+def main(args):
+    #   set of affirmative inputs
+    confirmset = set(['yes', 'ye', 'y', ''])
+
+    #   exclude directories
+    filelist = [f for f in glob.glob(args.dir) if os.path.isfile(f)]
+    filelist = sorted(filelist)
+
+    if args.debug:
+        print(vars(args))
+
+    #   get table of original -> rename
+    rentable = renamer.renlist(args, filelist)
+
+    #   analyse to find rename and conflicts
+    infotable = geninfotable(rentable)
+
+    #   print contents of infotable and create a queue from it
+    d = deque(printinfotable(infotable))
+    if not d:
+        print("there is nothing that can be renamed")
+    else:
+        #   get prompt
+        #   start renaming
+        pass
 
 
 '''
