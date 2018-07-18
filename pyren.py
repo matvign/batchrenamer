@@ -56,7 +56,7 @@ def gen_infotable(rentable):
     for src, dest in rentable:
         if dest in infotable['conflicts']:
             #   if this name is in conflict already
-            #   add n[0] to infotable['conflicts'][n[1]]
+            #   add src to infotable['conflicts'][dest]
             infotable['conflicts'][dest].extend([src])
 
         elif dest in infotable['renames']:
@@ -71,7 +71,7 @@ def gen_infotable(rentable):
                 infotable['conflicts'][dest] = [src]
             else:
                 #   add to renames (until potentially removed)
-                infotable['renames'][dest] = [src]
+                infotable['renames'][dest] = src
 
     return infotable
 
