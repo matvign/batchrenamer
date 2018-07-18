@@ -5,15 +5,48 @@ import string
 from os import path
 
 symbolmap = {
-    "dot": ".",
-    "underscore": "_",
-    "dash": "-",
-    "space": " ",
-    "bar": "|"
+    'dot': '.',
+    'underscore': '_',
+    'dash': '-',
+    'space': ' ',
+    'bar': '|'
 }
 
 
-#   filters in a list
+#   function to run filters
+def runfilters(filters, filename):
+    newname = filename
+    for runf in filters:
+        newname = runf(newname)
+
+    return newname
+
+
+#   split filepath into dir, basename and extension
+def splitfilepath(filename):
+        dirpath = path.dirname(filename)
+        nametpl = path.splitext(path.basename(filename))
+
+        return (dirpath, *nametpl)
+
+
+#   recombine dir, basename and extension
+def combinepaths(dirpath, bname, ext):
+    newname = bname
+
+    #   join non-null ext with file name
+    if ext:
+        newname += ext
+
+    #   join non-null dirpath with file name
+    #   otherwise, the new name is just the file itself
+    if dirpath:
+        newname = "/".join([dirpath, newname])
+
+    return newname
+
+
+#   create lambda filters in a list
 def initfilters(args):
     filters = []
 
@@ -57,60 +90,42 @@ def initfilters(args):
     return filters
 
 
-def filter(origname, filters):
-    newname = origname
-
-    #   run each filter on file
-    for runf in filters:
-        newname = runf(newname)
-
-    return newname
-
-
 def renlist(args, filelist):
     #   create table of status, original, newname
     rentable = []
 
-    #   Initialise counter for enumerating files
+    #   initialise counter for enumerating files
     count = 1
     if args.enumerate:
         count = args.enumerate
 
-    #   Initialise and run filters
+    #   initialise and run filters
     filters = initfilters(args)
     for count, f in enumerate(filelist, count):
 
-        dirpath = path.dirname(f)
-        nametpl = path.splitext(path.basename(f))
-        bname = nametpl[0]
-        ext   = nametpl[1]
+        #   split filepath into dir, basename and extension
+        nametpl = splitfilepath(f)
+        (dirpath, bname, ext) = nametpl
 
-        bname = filter(bname, filters)
+        #   run filters on the basename
+        for runf in filters:
+            bname = runf(bname)
 
         #   apply enumerator to end of filename
-        #   0 padded format for single digits
+        #   0 padded numbers if single digit
         if args.enumerate:
             bname += '{:02d}'.format(count)
 
-        #   apply extension
+        #   Always remove whitespace on left and right
+        bname = bname.strip()
+
+        #   change extension
         if args.extension:
             ext = args.extension
 
-        #   Recombine all strings
-        #   Join non-null ext with file name
-        if ext:
-            bname += ext
-
-        #   Join non-null dirpath with file name
-        if dirpath:
-            dirpath = "/".join([dirpath, bname])
-        #   Otherwise, the dirpath is just the file itself
-        else:
-            dirpath = bname
-
-        # status = 1 if f != dirpath else 0
-        # nentry = [status, f, dirpath]
-        nentry = [f, dirpath]
+        #   recombine file names and add to table
+        newname = combinepaths(dirpath, bname, ext)
+        nentry = [f, newname]
         rentable.append(nentry)
 
     return rentable
