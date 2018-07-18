@@ -17,8 +17,33 @@ def expanddir(dir):
     return dir
 
 
-def geninfotable(rentable):
-    #   note that dest is what we rename to
+def query_yes_no(default="yes"):
+    question = 'Proceed with renaming?'
+    valid = {"yes": True, "y": True, "ye": True,
+             "no": False, "n": False, "q": False }
+
+    if default is None:
+        prompt = " [y/n] "
+    elif default == "yes":
+        prompt = " [Y/n] "
+    elif default == "no":
+        prompt = " [y/N] "
+    else:
+        raise ValueError('invalid default answer: {}'.format(default))
+
+    while True:
+        print(question, prompt)
+        choice = input().lower()
+        if default is not None and choice == '':
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
+        else:
+            print("Please respond with 'yes' or 'no'")
+
+
+def gen_infotable(rentable):
+    #   dest is what we rename to
     infotable = {
         'renames': {
             #   dest: src
@@ -28,77 +53,99 @@ def geninfotable(rentable):
         }
     }
 
-    for n in rentable:
-        if n[1] in infotable['conflicts']:
+    for src, dest in rentable:
+        if dest in infotable['conflicts']:
             #   if this name is in conflict already
             #   add n[0] to infotable['conflicts'][n[1]]
-            infotable['conflicts'][n[1]].extend([n[0]])
+            infotable['conflicts'][dest].extend([src])
 
-        elif n[1] in infotable['renames']:
-            #   if something else wants this name
-            #   invalidate both
-            temp = infotable['renames'][n[1]]
-            del infotable['renames'][n[1]]
-            infotable['conflicts'][n[1]] = [temp, n[0]]
+        elif dest in infotable['renames']:
+            #   if something else wants this name invalidate both
+            temp = infotable['renames'][dest]
+            del infotable['renames'][dest]
+            infotable['conflicts'][dest] = [temp, src]
 
         else:
-            if n[0] == n[1]:
+            if src == dest:
                 #   no change, move it to conflicts
-                infotable['conflicts'][n[1]] = [n[0]]
+                infotable['conflicts'][dest] = [src]
             else:
-                #   move to renames (until potentially removed)
-                infotable['renames'][n[1]] = [n[0]]
+                #   add to renames (until potentially removed)
+                infotable['renames'][dest] = [src]
 
     return infotable
 
 
-#   give information about what to rename/conflicts
-#   return what can be renamed
-def printinfotable(infotable):
+'''
+show naming conflicts and things that can be renamed
+return what can be renamed
+'''
+def print_infotable(infotable, quiet):
     ren  = infotable['renames']
     conf = infotable['conflicts']
 
-    #   use an ordereddict so that we can sort naming conflicts
+    #   do not show if quiet
+    #   use an ordereddict to sort naming conflicts
     #   i.e. c,b,a --> a,b,c want to be renamed to d
-    sconf = OrderedDict(sorted(ren.items(), key=lambda x:x[0]))
-    for n in sconf:
-        sconf[n].sort()
-        if len(sconf[n]) == 1:
-            print('{} no filters applied'.format(sconf[n]))
-        else:
-            print('{} conflicting rename with [{}]'.format(sconf[n], n))
+    if not quiet:
+        print('\n{:-^30}\nThe following files will not be renamed:'\
+            .format('issues/conflicts'))
+        sconf = OrderedDict(sorted(conf.items(), key=lambda x:x[0]))
+        for n in sconf:
+            sconf[n].sort()
+            if len(sconf[n]) == 1:
+                print('{} no filters applied'.format(sconf[n]))
+            else:
+                print('{} conflicting rename with [{}]'.format(sconf[n], n))
+        print()
 
+    #   always show this
     #   sort by values. note that values are original filenames
+    #   produces a tuple
+    print('{:-^30}\nThe following files will be renamed:'.format('rename'))
     sren = sorted(ren.items(), key=lambda x:x[1])
     for n in sren:
         print('{} rename to [{}]'.format(n[1], n[0]))
+    print()
 
     return sren
 
 
 def main(args):
-    #   set of affirmative inputs
-    confirmset = set(['yes', 'ye', 'y', ''])
-
     #   exclude directories
     filelist = [f for f in glob.glob(args.dir) if os.path.isfile(f)]
     filelist = sorted(filelist)
+        
+    #   show arguments used
+    if args.verbose:
+        print('{:-^30}'.format('arguments'))
+        argdict = sorted(vars(args).items())
+        for k, v in argdict:
+            if v:
+                print('{:4}{}: {}'.format('', k, v))
+        print()
 
-    if args.debug:
-        print(vars(args))
+    #   do not show this if args.quiet
+    #   i.e. everything else sees this except quiet
+    if not args.quiet:
+        print('{:-^30}'.format('files found'))
+        for n in filelist:
+            print('{:4}{}'.format('',n))
 
     #   get table of original -> rename
+    #   analyse to find things that have to be renamed and conflicts
     rentable = renamer.renlist(args, filelist)
-
-    #   analyse to find rename and conflicts
-    infotable = geninfotable(rentable)
+    infotable = gen_infotable(rentable)
 
     #   print contents of infotable and create a queue from it
-    d = deque(printinfotable(infotable))
+    d = deque(print_infotable(infotable, args.quiet))
+
     if not d:
-        print("there is nothing that can be renamed")
+        print('nothing to rename\nexiting...')
     else:
         #   get prompt
+        query_yes_no()
+
         #   start renaming
         pass
 
@@ -112,10 +159,11 @@ prefix_chars='-', only allow arguments with minus (default)
 parser = argparse.ArgumentParser(
     prog='pyren',
     usage='%(prog)s [options]',
-    description='PyRen - a script for renaming files',
+    description='Python Batch Renamer - a script for renaming files',
     epilog='Current version: v' + __version__,
     prefix_chars='-'
 )
+group = parser.add_mutually_exclusive_group()
 
 parser.add_argument('-sp', '--spaces', nargs='?', const='.', metavar='REPL',
                     help='replace whitespaces with specified (default: .)')
@@ -141,14 +189,12 @@ parser.add_argument('-ext', '--extension', metavar='EXT',
                     help="change last file extension (e.g. mp4, '')")
 parser.add_argument('-re', '--regex', action='store_true',
                     help='specify regex for renaming')
-parser.add_argument('-q', '--quiet', action='store_true',
+group.add_argument('-q', '--quiet', action='store_true',
                     help='skip output, but show confirmations')
-parser.add_argument('-v', '--verbose', action='store_true',
+group.add_argument('-v', '--verbose', action='store_true',
                     help='show detailed output')
 parser.add_argument('--console', action='store_true',
                     help='use interactive console')
-parser.add_argument('--debug', action='store_true',
-                    help='show simulated output without renaming')
 parser.add_argument('--version', action='version', version=__version__)
 parser.add_argument('dir', nargs='?', default='*', type=expanddir,
                     help='target directory (use quotes if using wildcards)')
