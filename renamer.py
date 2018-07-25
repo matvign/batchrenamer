@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import re
-import string
 from os import path
 
 symbolmap = {
@@ -13,7 +12,7 @@ symbolmap = {
 }
 
 
-#   function to run filters
+# function to run filters
 def runfilters(filters, filename):
     newname = filename
     for runf in filters:
@@ -22,31 +21,29 @@ def runfilters(filters, filename):
     return newname
 
 
-#   split filepath into dir, basename and extension
-def splitfilepath(filename):
-        dirpath = path.dirname(filename)
-        nametpl = path.splitext(path.basename(filename))
-
-        return (dirpath, *nametpl)
+# split filepath into dir, basename and extension
+def partfile(filename):
+        dirpath, dirname = path.split(filename)
+        return (dirpath, *path.splitext(dirname))
 
 
-#   recombine dir, basename and extension
-def combinepaths(dirpath, bname, ext):
+# recombine dir, basename and extension
+def combinepart(dirpath, bname, ext):
     newname = bname
 
-    #   join non-null ext with file name
+    # join non-null extension with file name
     if ext:
         newname += ext
 
-    #   join non-null dirpath with file name
-    #   otherwise, the new name is just the file itself
+    # join non-null dirpath with file name
+    # otherwise, the new name is just the file itself
     if dirpath:
-        newname = "/".join([dirpath, newname])
+        newname = path.join(dirpath, newname)
 
     return newname
 
 
-#   create lambda filters in a list
+# create lambda filters in a list
 def initfilters(args):
     filters = []
 
@@ -74,58 +71,93 @@ def initfilters(args):
         elif args.case == 'swap':
             lmdaCase = lambda x: x.swapcase()
         elif args.case == 'cap':
-            #   capitalise every word
-            #   e.g. hello world -> Hello World
-            lmdaCase = lambda x: string.capwords(x)
+            # capitalise every word
+            # e.g. hello world -> Hello World
+            lmdaCase = lambda x: str.title(x)
         filters.append(lmdaCase)
 
-    if args.append:
-        lmdaAppend = lambda x: x+args.append
+    if args.prefix:
+        lmdaPrepend = lambda x: args.prefix+x
+        filters.append(lmdaPrepend)
+
+    if args.postfix:
+        lmdaAppend = lambda x: x+args.postfix
         filters.append(lmdaAppend)
 
-    if args.prepend:
-        lmdaPrepend = lambda x: args.prepend+x
-        filters.append(lmdaPrepend)
 
     return filters
 
 
-def renlist(args, filelist):
-    #   create table of status, original, newname
-    rentable = []
+def renfilter(args, fileset):
+    # create table of renames/conflicts
+    rentable = {
+        'renames': {
+            # dest: src
+        },
+        'conflicts': {
+            # dest: [srcs]
+        }
+    }
 
-    #   initialise counter for enumerating files
-    count = 1
+    # initialise counter for enumerating files
+    counter = 1
     if args.enumerate:
-        count = args.enumerate
+        counter = args.enumerate
 
-    #   initialise and run filters
+    # initialise and run filters
     filters = initfilters(args)
-    for count, f in enumerate(filelist, count):
+    for count, src in enumerate(fileset, counter):
 
-        #   split filepath into dir, basename and extension
-        nametpl = splitfilepath(f)
-        (dirpath, bname, ext) = nametpl
+        # split filepath into dir, basename and extension
+        (dirpath, bname, ext) = partfile(src)
 
-        #   run filters on the basename
+        # run filters on the basename
         for runf in filters:
             bname = runf(bname)
 
-        #   apply enumerator to end of filename
-        #   0 padded numbers if single digit
+        # apply enumerator to end of filename
+        # 0 padded numbers if single digit
         if args.enumerate:
             bname += '{:02d}'.format(count)
 
-        #   Always remove whitespace on left and right
-        bname = bname.strip()
-
-        #   change extension
+        # change extension
         if args.extension:
             ext = args.extension
 
-        #   recombine file names and add to table
-        newname = combinepaths(dirpath, bname, ext)
-        nentry = [f, newname]
-        rentable.append(nentry)
+        # always remove whitespace on left and right
+        bname = bname.strip()
+        ext   = ext.strip()
+
+        # recombine file names
+        dest = combinepart(dirpath, bname, ext)
+
+        # place entry into the right place
+        if dest in rentable['conflicts']:
+            # this name is already in conflict
+            # add src to rentable conflicts
+            rentable['conflicts'][dest].extend([src])
+
+        elif dest in rentable['renames']:
+            # this name is taken, invalidate both names
+            temp = rentable['renames'][dest]
+            del rentable['renames'][dest]
+            rentable['conflicts'][dest] = [temp, src]
+
+        else:
+            if src == dest:
+                # no filters applied, move it to conflicts
+                rentable['conflicts'][dest] = [src]
+            else:
+                if path.isfile(dest) and dest not in fileset:
+                        # name already exists and not in files found
+                        # dirs are never included in fileset
+                        # so files will never be renamed to dirs
+                        # since file won't be renamed, auto conflict
+                        rentable['conflicts'][dest] = [src]
+                else:
+                    # if file exists, then we haven't processed it yet
+                    # just move it to renames and let the above handle it
+                    # file doesn't exist, add to renames (until removed)
+                    rentable['renames'][dest] = src
 
     return rentable
