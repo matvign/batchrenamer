@@ -14,16 +14,16 @@ def query_yes_no(question, default="yes"):
              "no": False, "n": False, "q": False }
 
     if default is None:
-        prompt = " [y/n] "
+        prompt = "[y/n] "
     elif default == "yes":
-        prompt = " [Y/n] "
+        prompt = "[Y/n] "
     elif default == "no":
-        prompt = " [y/N] "
+        prompt = "[y/N] "
     else:
         raise ValueError('invalid default answer: {}'.format(default))
 
     while True:
-        print(question, prompt)
+        print(question, prompt, end='')
         choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
@@ -82,18 +82,28 @@ def display_rentable(rentable, quiet):
 def run_rename(queue):
     q = queue
     while q:
-        (dest, src) = q.popleft()
+        dest, src = q.popleft()
         if os.path.exists(dest):
+            if args.verbose:
+                print('conflict detected... ', end='')
             count = 1
             while(True):
                 if os.path.exists(dest+'_'+str(count)):
                     count += 1
                 else:
-                    os.rename(src, dest+'_'+str(count))
-                    q.append((dest+'_'+str(count), dest))
+                    temp = dest + '_' + str(count)
+                    if args.verbose:
+                        print('temporarily renaming {} to {}'.format(src, temp))
+                    os.rename(src, temp)
+                    q.append((dest, temp))
+                    break
         else:
             # no conflict, just rename
+            if args.verbose and not \
+                query_yes_no('rename [{}] to [{}]?'.format(src, dest)):
+                next
             os.rename(src, dest)
+
     print('rename complete!')
 
 
@@ -137,6 +147,15 @@ def expanddir(dir):
     return dir
 
 
+def uniq_separator(separator):
+    sepr, repl = separator[0], separator[1]
+    if sepr == repr:
+        msg = 'both choices must be unique'
+        raise argparse.ArgumentTypeError(msg)
+
+    return separator
+
+
 '''
 Argparse options
 fromfile_prefix_chars='@', allow arguments from file input
@@ -171,8 +190,8 @@ parser.add_argument('-pre', '--prefix', metavar='STR',
                     help='prepend string to filename')
 parser.add_argument('-post', '--postfix', metavar='STR',
                     help='append string to filename')
-parser.add_argument('-enum', '--enumerate', nargs=1,
-                    help='append number to end of file')
+parser.add_argument('-enum', '--enumerate', nargs='?', type=int, const=1,
+                    help='append number to end of files')
 parser.add_argument('-ext', '--extension', metavar='EXT',
                     help="change last file extension (e.g. mp4, '')")
 parser.add_argument('-re', '--regex', action='store_true',

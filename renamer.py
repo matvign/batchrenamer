@@ -12,19 +12,11 @@ symbolmap = {
 }
 
 
-# function to run filters
-def runfilters(filters, filename):
-    newname = filename
-    for runf in filters:
-        newname = runf(newname)
-
-    return newname
-
-
 # split filepath into dir, basename and extension
-def partfile(filename):
-        dirpath, dirname = path.split(filename)
-        return (dirpath, *path.splitext(dirname))
+def partfile(filepath):
+    dirpath, filename = path.split(filepath)
+    bname, ext = path.splitext(filename)
+    return (dirpath, bname, ext[1:])
 
 
 # recombine dir, basename and extension
@@ -33,7 +25,7 @@ def combinepart(dirpath, bname, ext):
 
     # join non-null extension with file name
     if ext:
-        newname += ext
+        newname += '.' + ext
 
     # join non-null dirpath with file name
     # otherwise, the new name is just the file itself
@@ -43,47 +35,66 @@ def combinepart(dirpath, bname, ext):
     return newname
 
 
-# create lambda filters in a list
+# function to run filters
+def runfilters(filters, filename):
+    newname = filename
+    for runf in filters:
+        newname = runf(newname)
+
+    return newname
+
+
+# create filters in a list
 def initfilters(args):
+    def bracr(x):
+        # remove enclosed brackets
+        # use translate to remove potential leftovers
+        # on complex patterns
+        x = re.sub(r'[\{\[\(].*?[\{\]\)]', '', x)
+        trantab = str.maketrans('', '', '{}[]()')
+        return x.translate(trantab)
+
     filters = []
 
     if args.spaces:
-        lmdaSpace = lambda x: x.replace(' ', args.spaces)
-        filters.append(lmdaSpace)
+        space = lambda x: x.replace(' ', args.spaces)
+        filters.append(space)
 
     if args.separator:
-        if args.separator[0] != args.separator[1]:
-            lmbdaSeparator = lambda x: x.replace(sepr, repl)
-            filters.append(lmbdaSeparator)
+        (sepr, repl) = args.separator
+        separator = lambda x: x.replace(sepr, repl)
+        filters.append(separator)
 
     if args.bracket_style:
         if args.bracket_style == 'round':
-            lmdaBracStyle = lambda x: (x.replace('[', '(')).replace(']', '')
+            bracStyle = lambda x: (x.replace('[', '(')).replace(']', '')
         elif args.bracket_style == 'square':
-            lmdaBracStyle = lambda x: (x.replace('(', '[')).replace(')', ']')
-        filters.append(lmdaBracStyle)
+            bracStyle = lambda x: (x.replace('(', '[')).replace(')', ']')
+        filters.append(bracStyle)
+
+    if args.bracket_remove:
+        filters.append(bracr)
 
     if args.case:
         if args.case == 'upper':
-            lmdaCase = lambda x: x.upper()
+            case = lambda x: x.upper()
         elif args.case == 'lower':
-            lmdaCase = lambda x: x.lower()
+            case = lambda x: x.lower()
         elif args.case == 'swap':
-            lmdaCase = lambda x: x.swapcase()
+            case = lambda x: x.swapcase()
         elif args.case == 'cap':
             # capitalise every word
             # e.g. hello world -> Hello World
-            lmdaCase = lambda x: str.title(x)
-        filters.append(lmdaCase)
+            case = lambda x: str.title(x)
+        filters.append(case)
 
     if args.prefix:
-        lmdaPrepend = lambda x: args.prefix+x
-        filters.append(lmdaPrepend)
+        prefix = lambda x: args.prefix+x
+        filters.append(prefix)
 
     if args.postfix:
-        lmdaAppend = lambda x: x+args.postfix
-        filters.append(lmdaAppend)
-
+        postfix = lambda x: x+args.postfix
+        filters.append(postfix)
 
     return filters
 
@@ -106,10 +117,10 @@ def renfilter(args, fileset):
 
     # initialise and run filters
     filters = initfilters(args)
-    for count, src in enumerate(fileset, counter):
+    for count, src in enumerate(sorted(fileset), counter):
 
         # split filepath into dir, basename and extension
-        (dirpath, bname, ext) = partfile(src)
+        dirpath, bname, ext = partfile(src)
 
         # run filters on the basename
         for runf in filters:
@@ -121,7 +132,8 @@ def renfilter(args, fileset):
             bname += '{:02d}'.format(count)
 
         # change extension
-        if args.extension:
+        # allow empty extension
+        if args.extension is not None:
             ext = args.extension
 
         # always remove whitespace on left and right
@@ -149,15 +161,15 @@ def renfilter(args, fileset):
                 rentable['conflicts'][dest] = [src]
             else:
                 if path.isfile(dest) and dest not in fileset:
-                        # name already exists and not in files found
-                        # dirs are never included in fileset
-                        # so files will never be renamed to dirs
-                        # since file won't be renamed, auto conflict
-                        rentable['conflicts'][dest] = [src]
+                    # name already exists and not in files found
+                    # dirs are never included in fileset
+                    # so files will never be renamed to dirs
+                    # since file won't be renamed, auto conflict
+                    rentable['conflicts'][dest] = [src]
                 else:
                     # if file exists, then we haven't processed it yet
                     # just move it to renames and let the above handle it
-                    # file doesn't exist, add to renames (until removed)
+                    # if file doesn't exist, add to renames
                     rentable['renames'][dest] = src
 
     return rentable

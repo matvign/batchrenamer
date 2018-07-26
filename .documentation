@@ -1,5 +1,5 @@
 documentation
-v0.3
+v0.3.1
 pyren - a batch renamer
 
 pyren is a command line batch renamer written in python. pyren uses 
@@ -188,7 +188,7 @@ is the same as the windows os system. we use a number and incase it in
 brackets. if the file already exists, then we continue generating upwards.
 
 
-planned updates
+changelog
 v0.3
 -   generate rentable in renamer
 -   use str.title over string.capwords
@@ -202,7 +202,13 @@ v0.3
 
 v0.3.1
 -   more verbose display
--   any bug fixes/code cleanup
+-   added filter for bracket remove
+-   bug fixes/code cleanup
+
+
+planned updates
+v0.3.2
+-   add translate filter
 
 v0.4
 -   implement regex based filters
@@ -210,11 +216,14 @@ v0.4
 -   implement complex enumerate filter
 
 v0.4.1
--   introduce more filters
--   any bug fixes/code cleanup
+-   bug fixes/code cleanup
 
 
-changelog:
+documentation changelog:
 25/07/2018
 -   updated documentation to include planned updates
 -   updated to reflect current code
+
+26/07/2018
+-   updated documentation to v0.3.1
+-   updated planned updates
