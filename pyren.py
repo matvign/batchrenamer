@@ -147,13 +147,14 @@ def expanddir(dir):
     return dir
 
 
-def uniq_separator(separator):
-    sepr, repl = separator[0], separator[1]
-    if sepr == repr:
-        msg = 'both choices must be unique'
-        raise argparse.ArgumentTypeError(msg)
-
-    return separator
+# custom action for translate
+class TranslateAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        msg = 'argument -tr/--translate: arguments must be equal length'
+        print(values)
+        if len(values[0]) != len(values[1]):
+            parser.error(msg)
+        namespace.translate = values
 
 
 '''
@@ -172,12 +173,14 @@ parser = argparse.ArgumentParser(
 outgroup = parser.add_mutually_exclusive_group()
 bracgroup = parser.add_mutually_exclusive_group()
 
-parser.add_argument('-sp', '--spaces', nargs='?', const='.', metavar='REPL',
-                    help='replace whitespaces with specified (default: .)')
-parser.add_argument('-sep', '--separator', nargs=2, 
-                    choices=['space', 'dot', 'underscore', 'dash', 'bar'],
-                    metavar='',
-                    help="replace dot, space, underscore, dash or bar with another")
+parser.add_argument('-sp', '--spaces', nargs='?', const='_', metavar='REPL',
+                    help='replace whitespaces with specified (default: _)')
+parser.add_argument('-tr', '--translate', nargs=2, action=TranslateAction,
+                    metavar='CHARS',
+                    help='translate characters from one to another')
+parser.add_argument('-sl', '--slice', nargs=1, 
+                    metavar='start:end:step',
+                    help='slice a portion of the filename')
 parser.add_argument('-c', '--case', choices=['upper', 'lower', 'swap', 'cap'],
                     metavar='',
                     help='convert filename case (upper/lower/swap/cap)')

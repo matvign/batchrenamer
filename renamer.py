@@ -3,14 +3,6 @@
 import re
 from os import path
 
-symbolmap = {
-    'dot': '.',
-    'underscore': '_',
-    'dash': '-',
-    'space': ' ',
-    'bar': '|'
-}
-
 
 # split filepath into dir, basename and extension
 def partfile(filepath):
@@ -46,6 +38,8 @@ def runfilters(filters, filename):
 
 # create filters in a list
 def initfilters(args):
+    rex = re.compile(r'[\{\[\(].*?[\{\]\)]')
+
     def bracr(x):
         # remove enclosed brackets
         # use translate to remove potential leftovers
@@ -60,16 +54,18 @@ def initfilters(args):
         space = lambda x: x.replace(' ', args.spaces)
         filters.append(space)
 
-    if args.separator:
-        (sepr, repl) = args.separator
-        separator = lambda x: x.replace(sepr, repl)
-        filters.append(separator)
+    if args.translate:
+        inpart = args.translate[0]
+        outpart = args.translate[1]
+        tranpart = str.maketrans(inpart, outpart)
+        transOb = lambda x: x.translate(tranpart)
+        filters.append(transOb)
 
     if args.bracket_style:
         if args.bracket_style == 'round':
-            bracStyle = lambda x: (x.replace('[', '(')).replace(']', '')
+            bracStyle = lambda x: x.replace('[', '(').replace(']', '')
         elif args.bracket_style == 'square':
-            bracStyle = lambda x: (x.replace('(', '[')).replace(')', ']')
+            bracStyle = lambda x: x.replace('(', '[').replace(')', ']')
         filters.append(bracStyle)
 
     if args.bracket_remove:
