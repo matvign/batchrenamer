@@ -1,5 +1,5 @@
 # Documentation
-## v0.3.1
+## v0.3.2
 pyren - a batch renamer  
 pyren is a command line batch renamer written in python. pyren uses 
 unix style pattern matching to look for files and uses a number of 
@@ -246,6 +246,7 @@ brackets. If the file already exists, then we continue generating upwards.
 28/07/2018
 * updated to markdown
 * changed contents of planned updates
+* updated missing version number
 
 26/07/2018
 * updated documentation to v0.3.1
