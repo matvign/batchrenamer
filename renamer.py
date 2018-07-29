@@ -44,6 +44,7 @@ def initfilters(args):
     # note to self: find better re for bracket removing
     def bracr_re(x):
         rex = re.compile(x)
+        trans = str.maketrans('', '', '{}[]()')
         def _clos_re(y):
             z = re.sub(rex, '', y)
             return z.translate(str.maketrans(trans))

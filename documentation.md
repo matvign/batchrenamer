@@ -1,5 +1,5 @@
 # Documentation
-## v0.3.3
+## v0.3.4
 batchren - a batch renamer  
 batchren is a command line batch renamer written in python. batchren 
 uses unix style pattern matching to look for files and uses a number 
@@ -240,6 +240,9 @@ then we continue generating upwards.
 * add more conflict conditions (no empty, no . or ..)
 * add dialog for added conflict conditions
 * move slice and translate up in order
+
+## v0.3.4
+* quick fix for missing variable
 
 # Planned updates
 ## v0.4
