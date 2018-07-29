@@ -54,13 +54,18 @@ def display_rentable(rentable, quiet):
             print('the following files will not be renamed')
         else:
             print('no conflicts found')
+        
 
-        for n in sconf:
-            sconf[n].sort()
-            if len(sconf[n]) == 1:
-                print('{} no filters applied'.format(sconf[n]))
+        for dest, srcs in sconf.items():
+            if dest == '':
+                print('cannot rename {} to empty string'.format(srcs.sort()))
+            elif dest == '.' or dest == '..':
+                print('cannot rename {} to dot files'.format(srcs.sort()))
             else:
-                print('{} conflicting rename with [{}]'.format(sconf[n], n))
+                if len(srcs) == 1:
+                    print('{} no filters applied'.format(srcs))
+                else:
+                    print('{} conflicting rename with [{}]'.format(srcs.sort(), dest))
         print()
 
     # always show this
@@ -147,14 +152,31 @@ def expanddir(dir):
     return dir
 
 
-# custom action for translate
+# enforce length of translate must be equal
 class TranslateAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         msg = 'argument -tr/--translate: arguments must be equal length'
-        print(values)
         if len(values[0]) != len(values[1]):
             parser.error(msg)
         namespace.translate = values
+
+
+# produce slice object from string
+class SplitAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        err1 = 'argument -sl/--slice: too many arguments for slicing'
+        err2 = 'argument -sl/--slice: non-numeric character in slice'
+        # to keep it simple, have '::' as our format
+        try:
+            sl = slice(*map
+                (lambda x: int(x.strip()) if x.strip() else None, values.split(':'))
+            )
+        except TypeError:
+            parser.error(err1)
+        except ValueError:
+            parser.error(err2)
+
+        namespace.slice = sl
 
 
 '''
@@ -178,7 +200,7 @@ parser.add_argument('-sp', '--spaces', nargs='?', const='_', metavar='REPL',
 parser.add_argument('-tr', '--translate', nargs=2, action=TranslateAction,
                     metavar='CHARS',
                     help='translate characters from one to another')
-parser.add_argument('-sl', '--slice', nargs=1, 
+parser.add_argument('-sl', '--slice', action=SplitAction,
                     metavar='start:end:step',
                     help='slice a portion of the filename')
 parser.add_argument('-c', '--case', choices=['upper', 'lower', 'swap', 'cap'],

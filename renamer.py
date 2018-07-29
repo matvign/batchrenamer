@@ -38,28 +38,34 @@ def runfilters(filters, filename):
 
 # create filters in a list
 def initfilters(args):
-    rex = re.compile(r'[\{\[\(].*?[\{\]\)]')
 
-    def bracr(x):
-        # remove enclosed brackets
-        # use translate to remove potential leftovers
-        # on complex patterns
-        x = re.sub(r'[\{\[\(].*?[\{\]\)]', '', x)
-        trantab = str.maketrans('', '', '{}[]()')
-        return x.translate(trantab)
+    # use a closure to retain scope of compiled re
+    # use an additional translate to remove trailing brackets
+    # note to self: find better re for bracket removing
+    def bracr_re(x):
+        rex = re.compile(x)
+        def _clos_re(y):
+            z = re.sub(rex, '', y)
+            return z.translate(str.maketrans(trans))
+        return _clos_re
 
     filters = []
 
-    if args.spaces:
-        space = lambda x: x.replace(' ', args.spaces)
-        filters.append(space)
+    if args.slice:
+        sl = args.slice
+        slash = lambda x: x[sl]
+        filters.append(slash)
 
     if args.translate:
         inpart = args.translate[0]
         outpart = args.translate[1]
         tranpart = str.maketrans(inpart, outpart)
         transOb = lambda x: x.translate(tranpart)
-        filters.append(transOb)
+        filters.append(transOb)        
+
+    if args.spaces:
+        space = lambda x: x.replace(' ', args.spaces)
+        filters.append(space)
 
     if args.bracket_style:
         if args.bracket_style == 'round':
@@ -69,6 +75,7 @@ def initfilters(args):
         filters.append(bracStyle)
 
     if args.bracket_remove:
+        bracr = bracr_re(r'[\{\[\(].*?[\{\]\)]')
         filters.append(bracr)
 
     if args.case:
@@ -143,7 +150,7 @@ def renfilter(args, fileset):
         if dest in rentable['conflicts']:
             # this name is already in conflict
             # add src to rentable conflicts
-            rentable['conflicts'][dest].extend([src])
+            rentable['conflicts'][dest].append(src)
 
         elif dest in rentable['renames']:
             # this name is taken, invalidate both names
@@ -152,11 +159,17 @@ def renfilter(args, fileset):
             rentable['conflicts'][dest] = [temp, src]
 
         else:
-            if src == dest:
+            if dest == '':
+                # filename is empty, move to conflicts
+                rentable['conflicts'][dest] = [src]
+            elif dest == '.' or dest == '..':
+                # filename is . or .., move to conflicts
+                rentable['conflicts'][dest] = [src]
+            elif dest == src:
                 # no filters applied, move it to conflicts
                 rentable['conflicts'][dest] = [src]
             else:
-                if path.isfile(dest) and dest not in fileset:
+                if path.exists(dest) and dest not in fileset:
                     # name already exists and not in files found
                     # dirs are never included in fileset
                     # so files will never be renamed to dirs

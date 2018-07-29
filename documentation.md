@@ -1,15 +1,15 @@
 # Documentation
-## v0.3.2
-pyren - a batch renamer  
-pyren is a command line batch renamer written in python. pyren uses 
-unix style pattern matching to look for files and uses a number of 
-optional arguments to be applied to the set of files found.  
+## v0.3.3
+batchren - a batch renamer  
+batchren is a command line batch renamer written in python. batchren 
+uses unix style pattern matching to look for files and uses a number 
+of optional arguments to be applied to the set of files found.  
 Files are placed into a set with glob, then renamed based on 
 the optional args. 
 
 # 1. Implementation detail
 
-## 1.1 pyren argument parsing
+## 1.1 batchren argument parsing
 argparse is the module used to implement argument parsing from the
 command line. The following is enabled:
 * epilog: prints version after help
@@ -22,10 +22,11 @@ Expands file pattern into directories. Only works for file patterns ending with 
 e.g. testdir/ -> testdir/\*
 
 ### Optional arguments:  
-spaces:     removes all whitespaces. replaces with underscores by default.  
+spaces:     removes all whitespaces. replaces with underscores by default  
 translate:  replaces specified characters with opposing characters. Argument lengths must be equal  
-case:       changes case of file   upper/lower/swap/capitalise word  
-bracs:      replace brackets with round or square exclusive with bracr  
+slice:      slices a portion of the file. Must follow 'start:end:step' format (can have missing values)  
+case:       changes case of file to upper/lower/swap/capitalise word  
+bracs:      replace brackets with round or square. exclusive with bracr  
 bracr:      remove brackets and text. exclusive with bracs  
 append:     append text to file  
 prepend:    prepend text to file  
@@ -33,7 +34,7 @@ enumerate:  use numbers and append
 extension:  change extension of file  
 regex:      use regex to replace  
 quiet:      suppress output. only shows what will be renamed and prompt  
-verbose:    show what args were invoked  
+verbose:    show what args were invoked and prompts for every file rename   
 version:    show version  
 
 
@@ -48,12 +49,12 @@ glob.iglob()
 
 pathlib
 * full blown directory management
+* supports many os
 * has its own implementation of glob
 * hashable
 * complex
 
-At the moment we're using glob. pathlib is an option if we want less 
-imports.
+At the moment we're using glob. pathlib is an option if we want less imports or want os compatability.
 
 
 ## 1.3.1 File renaming filters
@@ -62,22 +63,19 @@ general idea is that we want to change/remove before adding
 characters. It wouldn't make sense to change things that the user 
 wants to add.
 
-Low priority:
-* spaces
-* translate
-* bracket remove (exclusive group)
-* bracket style  (exclusive group)
-* case
-
-Normal priority:
-* append
-* prepend
-
-High priority
-* extension (only applies to extension)
-* enumerate
-* regex
-* str.strip (always applied to basename and ext)
+Filters are run in the following order:
+1. slice
+2. translate
+3. spaces
+4. bracket remove (exclusive group)
+5. bracket style  (exclusive group)
+6. case
+7. append
+8. prepend
+9. enumerate
+10. regex
+11. extension (only applies to extension)
+12. str.strip (always applied to basename and ext)
 
 
 ## 1.3.2 Filter implementation
@@ -94,24 +92,7 @@ if it is safe to rename.
 
 
 ## 1.4.1 Processing rename information
-If we rename a file to an existing filename the existing file will be 
-overwritten. This is undesired behaviour so we need to ensure that it 
-doesn't happen.
-
-There are three conflicts that can occur:
-1. two files are trying to rename itself to the same name
-2. file tries to rename itself to a file that won't be renamed
-3. file tries to rename itself to a file that will be renamed
-
-note: the third conflict is a potential cycle (see 1.4.1.2)
-
-
-## 1.4.1.1 Conflict resolution
-Checking for a cycle is expensive and complicated. For that reason,
-we only consider conflict checking for the first two cases above and
-handle cycles with another method.
-
-After filtering filenames, we categorise them into a nested dict
+After filtering filenames, we categorise them into a nested dict:
 ```python
 rentable = {
     'renames': { 
@@ -126,17 +107,37 @@ The renames field contains dest to src mappings. These are the files
 that can be renamed safely. Using the sorted method, we can create a 
 queue of (src, dest) files to rename.
 
-The conflicts field contains dest to a list of srcs. The list of srcs 
-are all in conflict over the filename dest.
-For convenience we also place files that were found but unchanged by 
-filters into conflicts. 
+The conflicts field contains dest to a list of srcs. The list of srcs
+are files that should not be renamed because of an issue with dest.
 The following is used to distinguish the conflicts:
 ```
-if length(dest) == 1
-    no filters applied
+if dest == ''
+    cannot rename to empty file
+if dest == '.' or '..'
+    cannot rename to dot files
 else
-    name conflict over multiple files
+    if len(dest) == 1
+        no filters applied
+    else
+        conflicting rename with multiple files
 ```
+
+## 1.4.1.1 Conflict resolution
+The final portion of processing filenames is checking for renaming conflicts.
+Renaming a file to an existing filename will overwrite the existing file.  
+This is undesired behaviour so we need to ensure that it doesn't happen.
+
+There are three renaming conflicts that can occur:
+1. two files are trying to rename itself to the same name
+2. file tries to rename itself to a file (or dir) that won't be renamed
+3. file tries to rename itself to a file that will be renamed
+
+note: the third conflict is a potential cycle (see 1.4.1.2)
+
+Checking for a cycle is expensive and complicated. For that reason,
+we only consider conflict checking for the first two cases above and
+handle cycles with another method.
+
 The following applies:
 ```python
 for every src, dest
@@ -148,15 +149,20 @@ for every src, dest
     else
         if src == dest
             no filters applied, move to conflicts
+        elif dest == ''
+            empty string, move to conflicts
+        elif dest == '.' or dest == '..'
+            cannot rename to dot files, move to conflicts
         else
-            if dest isfile and not in fileset
+            if dest exists and not in fileset
                 add to conflicts[dest]
             else
                 add src to renames[dest]
-
-# a file not found by the file pattern will not be renamed, hence why
-# it is immediately invalid. if a file exists and is in fileset, then we 
-# haven't encountered it yet and can be handled by our cases later.
+'''
+a file/dir not found by the file pattern will not be renamed, hence why
+it is immediately invalid. if a file exists and is in fileset, then we 
+haven't encountered it yet and can be handled by our cases later.
+'''
 ```
 
 ```
@@ -182,7 +188,7 @@ dir
 ```
 
 filex -> filey will cause an overwrite. However, it is possible to delay
-filex and rename filey first. This way the conflict resolves itself.
+filex and rename filey first. This way the conflict resolves itself.  
 However, in the case of filea, fileb, filec and filed a cycle will be
 formed and cannot be resolved.
 The best way to resolve this is to use two pass renaming.
@@ -202,8 +208,8 @@ In this case, filea - filed is a cycle, so we have to use two pass for
 every conflict we find.
 
 For simplicity we generate numbers instead of random strings. The idea
-is the same as the windows os system. We use a number and incase it in
-brackets. If the file already exists, then we continue generating upwards.
+is to append an underscore and a number. If the file already exists, 
+then we continue generating upwards.
 
 
 # Changelog
@@ -228,11 +234,14 @@ brackets. If the file already exists, then we continue generating upwards.
 * remove separator filter in favor of translate filter
 * rename .documentation (why was it hidden to begin with?)
 
-# Planned updates
 ## v0.3.3
 * add slice filter
-* review filter priority
+* add closure function for bracr filter
+* add more conflict conditions (no empty, no . or ..)
+* add dialog for added conflict conditions
+* move slice and translate up in order
 
+# Planned updates
 ## v0.4
 * implement regex based filters
 * implement high priority filters
@@ -243,6 +252,10 @@ brackets. If the file already exists, then we continue generating upwards.
 
 
 # Documentation changelog
+29/07/2018
+* added more conflict conditions
+* updated documentation to v0.3.3
+
 28/07/2018
 * updated to markdown
 * changed contents of planned updates
