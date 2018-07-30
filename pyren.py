@@ -49,23 +49,21 @@ def display_rentable(rentable, quiet):
     if not quiet:
         print('\n{:-^30}'.format('issues/conflicts'))
         sconf = OrderedDict(sorted(conf.items(), key=lambda x:x[0]))
-        
         if sconf:
             print('the following files will not be renamed')
         else:
             print('no conflicts found')
         
-
         for dest, srcs in sconf.items():
             if dest == '':
-                print('cannot rename {} to empty string'.format(srcs.sort()))
+                print('cannot rename {} to empty string'.format(sorted(srcs)))
             elif dest == '.' or dest == '..':
-                print('cannot rename {} to dot files'.format(srcs.sort()))
+                print('cannot rename {} to dot files'.format(sorted(srcs)))
             else:
                 if len(srcs) == 1:
                     print('{} no filters applied'.format(srcs))
                 else:
-                    print('{} conflicting rename with [{}]'.format(srcs.sort(), dest))
+                    print('{} conflicting rename with [\'{}\']'.format(sorted(srcs), dest))
         print()
 
     # always show this
@@ -78,7 +76,7 @@ def display_rentable(rentable, quiet):
         print('no files to rename')
 
     for dest, src in sren:
-        print('[{}] rename to [{}]'.format(src, dest))
+        print('[\'{}\'] rename to [\'{}\']'.format(src, dest))
     print()
 
     return sren
@@ -93,12 +91,12 @@ def run_rename(queue):
                 print('conflict detected... ', end='')
             count = 1
             while(True):
-                if os.path.exists(dest+'_'+str(count)):
+                temp = dest + ' ' + str(count)
+                if os.path.exists(temp):
                     count += 1
                 else:
-                    temp = dest + '_' + str(count)
                     if args.verbose:
-                        print('temporarily renaming {} to {}'.format(src, temp))
+                        print('temporarily renaming \'{}\' to \'{}\''.format(src, temp))
                     os.rename(src, temp)
                     q.append((dest, temp))
                     break
@@ -158,7 +156,7 @@ class TranslateAction(argparse.Action):
         msg = 'argument -tr/--translate: arguments must be equal length'
         if len(values[0]) != len(values[1]):
             parser.error(msg)
-        namespace.translate = values
+        namespace.translate = tuple(values)
 
 
 # produce slice object from string
@@ -215,7 +213,7 @@ parser.add_argument('-pre', '--prefix', metavar='STR',
                     help='prepend string to filename')
 parser.add_argument('-post', '--postfix', metavar='STR',
                     help='append string to filename')
-parser.add_argument('-enum', '--enumerate', nargs='?', type=int, const=1,
+parser.add_argument('-seq', '--sequence', nargs='?', type=int, const=1,
                     help='append number to end of files')
 parser.add_argument('-ext', '--extension', metavar='EXT',
                     help="change last file extension (e.g. mp4, '')")

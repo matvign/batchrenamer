@@ -12,7 +12,7 @@ def partfile(filepath):
 
 
 # recombine dir, basename and extension
-def combinepart(dirpath, bname, ext):
+def joinpart(dirpath, bname, ext):
     newname = bname
 
     # join non-null extension with file name
@@ -38,31 +38,16 @@ def runfilters(filters, filename):
 
 # create filters in a list
 def initfilters(args):
-
-    # use a closure to retain scope of compiled re
-    # use an additional translate to remove trailing brackets
-    # note to self: find better re for bracket removing
-    def bracr_re(x):
-        rex = re.compile(x)
-        trans = str.maketrans('', '', '{}[]()')
-        def _clos_re(y):
-            z = re.sub(rex, '', y)
-            return z.translate(str.maketrans(trans))
-        return _clos_re
-
     filters = []
 
     if args.slice:
-        sl = args.slice
-        slash = lambda x: x[sl]
+        slash = lambda x: x[args.slice]
         filters.append(slash)
 
     if args.translate:
-        inpart = args.translate[0]
-        outpart = args.translate[1]
-        tranpart = str.maketrans(inpart, outpart)
-        transOb = lambda x: x.translate(tranpart)
-        filters.append(transOb)        
+        translmap = str.maketrans(*args.translate)
+        translate = lambda x: x.translate(translmap)
+        filters.append(translate)
 
     if args.spaces:
         space = lambda x: x.replace(' ', args.spaces)
@@ -70,13 +55,15 @@ def initfilters(args):
 
     if args.bracket_style:
         if args.bracket_style == 'round':
-            bracStyle = lambda x: x.replace('[', '(').replace(']', '')
+            bracs = lambda x: x.replace('[', '(').replace(']', '')
         elif args.bracket_style == 'square':
-            bracStyle = lambda x: x.replace('(', '[').replace(')', ']')
-        filters.append(bracStyle)
+            bracs = lambda x: x.replace('(', '[').replace(')', ']')
+        filters.append(bracs)
 
     if args.bracket_remove:
-        bracr = bracr_re(r'[\{\[\(].*?[\{\]\)]')
+        brac_re = re.compile(r'[\{\[\(].*?[\{\]\)]')
+        brac_trans = str.maketrans('', '', '{}[]()')
+        bracr = lambda x: re.sub(brac_re, '', x).translate(brac_trans)
         filters.append(bracr)
 
     if args.case:
@@ -116,8 +103,8 @@ def renfilter(args, fileset):
 
     # initialise counter for enumerating files
     counter = 1
-    if args.enumerate:
-        counter = args.enumerate
+    if args.sequence:
+        counter = args.sequence
 
     # initialise and run filters
     filters = initfilters(args)
@@ -130,9 +117,9 @@ def renfilter(args, fileset):
         for runf in filters:
             bname = runf(bname)
 
-        # apply enumerator to end of filename
+        # apply seq to end of filename
         # 0 padded numbers if single digit
-        if args.enumerate:
+        if args.sequence:
             bname += '{:02d}'.format(count)
 
         # change extension
@@ -145,7 +132,7 @@ def renfilter(args, fileset):
         ext   = ext.strip()
 
         # recombine file names
-        dest = combinepart(dirpath, bname, ext)
+        dest = joinpart(dirpath, bname, ext)
 
         # place entry into the right place
         if dest in rentable['conflicts']:

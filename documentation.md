@@ -1,5 +1,5 @@
 # Documentation
-## v0.3.4
+## v0.3.5
 batchren - a batch renamer  
 batchren is a command line batch renamer written in python. batchren 
 uses unix style pattern matching to look for files and uses a number 
@@ -30,13 +30,15 @@ bracs:      replace brackets with round or square. exclusive with bracr
 bracr:      remove brackets and text. exclusive with bracs  
 append:     append text to file  
 prepend:    prepend text to file  
-enumerate:  use numbers and append  
+sequence:   use numbers and append  
 extension:  change extension of file  
 regex:      use regex to replace  
 quiet:      suppress output. only shows what will be renamed and prompt  
 verbose:    show what args were invoked and prompts for every file rename   
 version:    show version  
 
+note: arguments that require special argument characters should be encased in quotes  
+e.g. `python3 pyren.py 'testdir/*' -tr '[]' '()'`
 
 ## 1.2 File and pattern matching
 Unix style pattern matching can be implemented using a number of
@@ -72,7 +74,7 @@ Filters are run in the following order:
 6. case
 7. append
 8. prepend
-9. enumerate
+9. sequence
 10. regex
 11. extension (only applies to extension)
 12. str.strip (always applied to basename and ext)
@@ -244,17 +246,28 @@ then we continue generating upwards.
 ## v0.3.4
 * quick fix for missing variable
 
+## v0.3.5
+* produce tuple from args.translate
+* switch to lambda expression for bracr filter
+* rename enumerate filter to sequence
+* fix bug involving srcs.sort, should be sorted(srcs)
+* make code smaller
+
+
 # Planned updates
 ## v0.4
 * implement regex based filters
 * implement high priority filters
-* implement a more complex enumerate filter
+* implement a more complex sequence filter
 
 ## v0.4.1
 * bug fixes/code cleanup
 
 
 # Documentation changelog
+30/07/2018
+* updated documentation to v0.3.5
+
 29/07/2018
 * added more conflict conditions
 * updated documentation to v0.3.3
