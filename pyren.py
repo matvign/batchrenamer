@@ -185,13 +185,12 @@ prefix_chars='-', only allow arguments with minus (default)
 parser = argparse.ArgumentParser(
     prog='pyren',
     usage='%(prog)s [options]',
-    description='Python Batch Renamer - a script for renaming files',
-    epilog='Current version: v' + __version__,
+    description='Batch Renamer - a script for renaming files',
+    epilog='note: you must use quotes to escape special characters',
     prefix_chars='-',
     fromfile_prefix_chars='@'
 )
 outgroup = parser.add_mutually_exclusive_group()
-bracgroup = parser.add_mutually_exclusive_group()
 
 parser.add_argument('-sp', '--spaces', nargs='?', const='_', metavar='REPL',
                     help='replace whitespaces with specified (default: _)')
@@ -204,19 +203,16 @@ parser.add_argument('-sl', '--slice', action=SplitAction,
 parser.add_argument('-c', '--case', choices=['upper', 'lower', 'swap', 'cap'],
                     metavar='',
                     help='convert filename case (upper/lower/swap/cap)')
-bracgroup.add_argument('-bracs', '--bracket-style', choices=['round', 'square'],
-                    metavar='',
-                    help='convert bracket style (round/square)')
-bracgroup.add_argument('-bracr', '--bracket-remove', action='store_true',
+parser.add_argument('-bracr', '--bracket-remove', action='store_true',
                     help='remove brackets and their contents')
 parser.add_argument('-pre', '--prefix', metavar='STR',
                     help='prepend string to filename')
 parser.add_argument('-post', '--postfix', metavar='STR',
                     help='append string to filename')
-parser.add_argument('-seq', '--sequence', nargs='?', type=int, const=1,
-                    help='append number to end of files')
 parser.add_argument('-ext', '--extension', metavar='EXT',
                     help="change last file extension (e.g. mp4, '')")
+parser.add_argument('-seq', '--sequence', nargs='?', type=int, const=1,
+                    help='append number to end of files')
 parser.add_argument('-re', '--regex', action='store_true',
                     help='specify regex for renaming')
 outgroup.add_argument('-q', '--quiet', action='store_true',

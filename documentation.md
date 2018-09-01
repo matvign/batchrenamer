@@ -1,5 +1,5 @@
 # Documentation
-## v0.3.5
+## v0.3.6
 batchren - a batch renamer  
 batchren is a command line batch renamer written in python. batchren 
 uses unix style pattern matching to look for files and uses a number 
@@ -27,8 +27,7 @@ spaces:     removes all whitespaces. replaces with underscores by default
 translate:  replaces specified characters with opposing characters. argument lengths must be equal  
 slice:      slices a portion of the file. must follow 'start:end:step' format (can have missing values)  
 case:       changes case of file to upper/lower/swap/capitalise word  
-bracs:      replace brackets with round or square. exclusive with bracr  
-bracr:      remove brackets and text. exclusive with bracs  
+bracr:      remove brackets and text.  
 append:     append text to file  
 prepend:    prepend text to file  
 sequence:   use numbers and append  
@@ -67,18 +66,17 @@ characters. It wouldn't make sense to change things that the user
 wants to add.
 
 Filters are run in the following order:
-1. slice
-2. translate
-3. spaces
-4. bracket remove (exclusive group)
-5. bracket style  (exclusive group)
-6. case
-7. append
-8. prepend
-9. sequence
-10. regex
-11. extension (only applies to extension)
-12. str.strip (always applied to basename and ext)
+1. regex
+2. slice
+3. sequence
+4. translate
+5. spaces
+6. bracket remove
+7. case
+8. append
+9. prepend
+10. extention (only applies to extension)
+11. str.strip (always applied to basename and ext)
 
 
 ## 1.3.2 Filter implementation
@@ -251,12 +249,15 @@ then we continue generating upwards.
 * fix bug involving srcs.sort, should be sorted(srcs)
 * make code smaller
 
-
-# Planned updates
 ## v0.3.6
 * give help text about wild cards in --help
 * change filter order
 * remove bracket style in favor of tr
+
+
+# Planned updates
+## v0.4.0
+* change directory structure
 
 ## v0.4.1
 * implement regex filter
@@ -270,7 +271,7 @@ then we continue generating upwards.
 
 # Documentation changelog
 1/9/2018
-* Changed planned updates for 0.3.6 - 0.4.2
+* changed planned updates for 0.3.6 - 0.4.2
 
 30/07/2018
 * updated documentation to v0.3.5

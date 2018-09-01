@@ -40,9 +40,13 @@ def runfilters(filters, filename):
 def initfilters(args):
     filters = []
 
+    # args.regex
+
     if args.slice:
         slash = lambda x: x[args.slice]
         filters.append(slash)
+
+    # args.sequence
 
     if args.translate:
         translmap = str.maketrans(*args.translate)
@@ -52,13 +56,6 @@ def initfilters(args):
     if args.spaces:
         space = lambda x: x.replace(' ', args.spaces)
         filters.append(space)
-
-    if args.bracket_style:
-        if args.bracket_style == 'round':
-            bracs = lambda x: x.replace('[', '(').replace(']', '')
-        elif args.bracket_style == 'square':
-            bracs = lambda x: x.replace('(', '[').replace(')', ']')
-        filters.append(bracs)
 
     if args.bracket_remove:
         brac_re = re.compile(r'[\{\[\(].*?[\{\]\)]')
@@ -79,13 +76,13 @@ def initfilters(args):
             case = lambda x: str.title(x)
         filters.append(case)
 
-    if args.prefix:
-        prefix = lambda x: args.prefix+x
-        filters.append(prefix)
-
     if args.postfix:
         postfix = lambda x: x+args.postfix
         filters.append(postfix)
+
+    if args.prefix:
+        prefix = lambda x: args.prefix+x
+        filters.append(prefix)
 
     return filters
 
