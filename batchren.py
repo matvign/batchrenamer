@@ -51,9 +51,13 @@ def expanddir(dir):
 # enforce length of translate must be equal
 class TranslateAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        msg = 'argument -tr/--translate: arguments must be equal length'
+        err1 = 'argument -tr/--translate: expected two arguments'
+        err2 = 'argument -tr/--translate: arguments must be equal length'
+        if (len(values) != 2):
+            parser.error(err1)
+
         if len(values[0]) != len(values[1]):
-            parser.error(msg)
+            parser.error(err2)
         namespace.translate = tuple(values)
 
 
@@ -75,6 +79,19 @@ class SplitAction(argparse.Action):
         namespace.slice = sl
 
 
+# custom action, accept one or two arguments
+class RegexAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        err1 = 'argument -re/--regex: expected one or two arguments'
+        # combined with nargs='+', means one or two arguments
+        if (len(values) > 2):
+            parser.error(msg)
+
+        if (len(values) == 1):
+            values.append('');
+        namespace.regex = values
+
+
 '''
 Argparse options
 fromfile_prefix_chars='@', allow arguments from file input
@@ -92,7 +109,7 @@ outgroup = parser.add_mutually_exclusive_group()
 
 parser.add_argument('-sp', '--spaces', nargs='?', const='_', metavar='REPL',
                     help='replace whitespaces with specified (default: _)')
-parser.add_argument('-tr', '--translate', nargs=2, action=TranslateAction,
+parser.add_argument('-tr', '--translate', nargs='*', action=TranslateAction,
                     metavar='CHARS',
                     help='translate characters from one to another')
 parser.add_argument('-sl', '--slice', action=SplitAction,
@@ -111,7 +128,7 @@ parser.add_argument('-ext', '--extension', metavar='EXT',
                     help="change last file extension (e.g. mp4, '')")
 parser.add_argument('-seq', '--sequence', nargs='?', type=int, const=1,
                     help='append number to end of files')
-parser.add_argument('-re', '--regex', nargs=2,
+parser.add_argument('-re', '--regex', nargs='+', action=RegexAction,
                     help='specify regex for renaming')
 outgroup.add_argument('-q', '--quiet', action='store_true',
                     help='skip output, but show confirmations')

@@ -1,14 +1,13 @@
-# Documentation
-## v0.3.6
+# Documentation - v0.4.1
 batchren - a batch renamer  
-batchren is a command line batch renamer written in python. batchren 
-uses unix style pattern matching to look for files and uses a number 
-of optional arguments to be applied to the set of files found.  
+batchren is a python script for batch renaming files. batchren uses unix style 
+pattern matching to look for files and uses a number of optional arguments to 
+be applied to the set of files found.  
 Files are placed into a set with glob, then renamed based on 
 the optional args. 
 
-# 1. Implementation detail
 
+# 1. Implementation detail
 ## 1.1 batchren argument parsing
 argparse is the module used to implement argument parsing from the
 command line. The following is enabled:
@@ -32,13 +31,14 @@ append:     append text to file
 prepend:    prepend text to file  
 sequence:   use numbers and append  
 extension:  change extension of file  
-regex:      use regex to replace  
+regex:      use regex to replace. one argument removes that sequence  
 quiet:      suppress output. only shows what will be renamed and prompt  
 verbose:    show what args were invoked and prompts for every file rename   
 version:    show version  
 ```
 note: arguments that require special characters should be encased in quotes  
-e.g. `python3 pyren.py 'testdir/*' -tr '[]' '()'`
+e.g. `python3 batchren.py 'testdir/*' -tr '[]' '()'`
+
 
 ## 1.2 File and pattern matching
 Unix style pattern matching can be implemented using a number of
@@ -56,14 +56,15 @@ pathlib
 * hashable
 * complex
 
-At the moment we're using glob. pathlib is an option if we want less imports or want os compatability.
+At the moment we're using glob. pathlib is an option if we want less imports or
+want os compatability.
 
 
-## 1.3.1 File renaming filters
-Filters have an order used to preserve intent of the user. The 
-general idea is that we want to change/remove before adding 
-characters. It wouldn't make sense to change things that the user 
-wants to add.
+# 1.3 File renaming filters
+## 1.3.1 Filters and order
+Filters have a order that they are applied in. The general idea is that we want 
+to change/remove before adding characters. It wouldn't make sense to change 
+things that we want to add.
 
 Filters are run in the following order:
 1. regex
@@ -78,7 +79,6 @@ Filters are run in the following order:
 10. extention (only applies to extension)
 11. str.strip (always applied to basename and ext)
 
-
 ## 1.3.2 Filter implementation
 Filenames are passed in from file pattern matching and split into
 directory, basename and ext. Each basename is run against a list 
@@ -89,7 +89,8 @@ The resulting filename is then recombined and processed to determine
 if it is safe to rename.
 
 
-## 1.4.1 Processing rename information
+# 1.4 Processing rename information
+## 1.4.1 Processing renamed strings
 After filtering filenames, we categorise them into a nested dict:
 ```python
 rentable = {
@@ -120,7 +121,7 @@ else
         conflicting rename with multiple files
 ```
 
-## 1.4.1.1 Conflict resolution
+## 1.4.2 Conflict resolution
 The final portion of processing filenames is checking for renaming conflicts.
 Renaming a file to an existing filename will overwrite the existing file.  
 This is undesired behaviour so we need to ensure that it doesn't happen.
@@ -173,7 +174,7 @@ dir
   fileF   -> fileE (conflict with fileE, unresolvable)
 ```
 
-## 1.4.1.2 Cycle resolution
+## 1.4.3 Cycle resolution
 Cycles happen when each file wants to be renamed to the next.
 ```
 dir
@@ -254,14 +255,18 @@ then we continue generating upwards.
 * change filter order
 * remove bracket style in favor of tr
 
-
-# Planned updates
 ## v0.4.0
 * change directory/file structure
 * use natsort for sorting file names
 * implement regex filter
 
 ## v0.4.1
+* regex filter: one argument removes that word
+* translate filter: better argument parsing
+
+
+# Planned updates
+## v0.4.2
 * implement directory sensitive renaming
 * implement complex sequence filter
 * bug fixes/code cleanup
@@ -270,6 +275,7 @@ then we continue generating upwards.
 # Documentation changelog
 1/9/2018
 * changed planned updates for 0.3.6 - 0.4.1
+* added proper category for 1.3 and 1.4
 
 30/07/2018
 * updated documentation to v0.3.5
