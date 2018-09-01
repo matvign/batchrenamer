@@ -257,21 +257,19 @@ then we continue generating upwards.
 
 # Planned updates
 ## v0.4.0
-* change directory structure
-
-## v0.4.1
+* change directory/file structure
+* use natsort for sorting file names
 * implement regex filter
 
-## v0.4.2
+## v0.4.1
 * implement directory sensitive renaming
-* implement natural sorting on files
 * implement complex sequence filter
 * bug fixes/code cleanup
 
 
 # Documentation changelog
 1/9/2018
-* changed planned updates for 0.3.6 - 0.4.2
+* changed planned updates for 0.3.6 - 0.4.1
 
 30/07/2018
 * updated documentation to v0.3.5

@@ -1,13 +1,39 @@
 #!/usr/bin/env python3
 
+import os
 import re
-from os import path
+from collections import deque, OrderedDict
+
+from natsort import natsorted, ns
+
+def query_yes_no(question, default="yes"):
+    valid = {"yes": True, "y": True, "ye": True,
+             "no": False, "n": False, "q": False }
+
+    if default is None:
+        prompt = "[y/n] "
+    elif default == "yes":
+        prompt = "[Y/n] "
+    elif default == "no":
+        prompt = "[y/N] "
+    else:
+        raise ValueError('invalid default answer: {}'.format(default))
+
+    while True:
+        print(question, prompt, end='')
+        choice = input().lower()
+        if default is not None and choice == '':
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
+        else:
+            print("Please respond with 'yes' or 'no'")
 
 
 # split filepath into dir, basename and extension
 def partfile(filepath):
-    dirpath, filename = path.split(filepath)
-    bname, ext = path.splitext(filename)
+    dirpath, filename = os.path.split(filepath)
+    bname, ext = os.path.splitext(filename)
     return (dirpath, bname, ext[1:])
 
 
@@ -22,7 +48,7 @@ def joinpart(dirpath, bname, ext):
     # join non-null dirpath with file name
     # otherwise, the new name is just the file itself
     if dirpath:
-        newname = path.join(dirpath, newname)
+        newname = os.path.join(dirpath, newname)
 
     return newname
 
@@ -41,6 +67,10 @@ def initfilters(args):
     filters = []
 
     # args.regex
+    if args.regex:
+        regex_re = re.compile(args.regex[0])
+        reg_expr = lambda x: re.sub(regex_re, args.regex[1], x)
+        filters.append(reg_expr)
 
     if args.slice:
         slash = lambda x: x[args.slice]
@@ -57,6 +87,7 @@ def initfilters(args):
         space = lambda x: x.replace(' ', args.spaces)
         filters.append(space)
 
+    # note: find better method to remove brackets
     if args.bracket_remove:
         brac_re = re.compile(r'[\{\[\(].*?[\{\]\)]')
         brac_trans = str.maketrans('', '', '{}[]()')
@@ -105,7 +136,7 @@ def renfilter(args, fileset):
 
     # initialise and run filters
     filters = initfilters(args)
-    for count, src in enumerate(sorted(fileset), counter):
+    for count, src in enumerate(natsorted(fileset, alg=ns.PATH), counter):
 
         # split filepath into dir, basename and extension
         dirpath, bname, ext = partfile(src)
@@ -154,7 +185,7 @@ def renfilter(args, fileset):
                 # no filters applied, move it to conflicts
                 rentable['conflicts'][dest] = [src]
             else:
-                if path.exists(dest) and dest not in fileset:
+                if os.path.exists(dest) and dest not in fileset:
                     # name already exists and not in files found
                     # dirs are never included in fileset
                     # so files will never be renamed to dirs
@@ -167,3 +198,78 @@ def renfilter(args, fileset):
                     rentable['renames'][dest] = src
 
     return rentable
+'''
+print out contents of rentable, showing files that can be
+safely renamed and files that are in conflict.
+sort contents for display reasons.
+return sorted contents of what can be renamed (produces tuples)
+'''
+def display_rentable(rentable, quiet):
+    ren  = rentable['renames']
+    conf = rentable['conflicts']
+
+    # do not show if quiet
+    # use an ordereddict to sort naming conflicts
+    # i.e. c,b,a --> a,b,c want to be renamed to d
+    if not quiet:
+        print('\n{:-^30}'.format('issues/conflicts'))
+        sconf = OrderedDict(natsorted(conf.items(), key=lambda x:x[0], alg=ns.PATH))
+        if sconf:
+            print('the following files will not be renamed')
+        else:
+            print('no conflicts found')
+        
+        for dest, srcs in sconf.items():
+            if dest == '':
+                print('cannot rename {} to empty string'.format(natsorted(srcs, alg=ns.PATH)))
+            elif dest == '.' or dest == '..':
+                print('cannot rename {} to dot files'.format(natsorted(srcs, alg=ns.PATH)))
+            else:
+                if len(srcs) == 1:
+                    print('{} no filters applied'.format(srcs))
+                else:
+                    print('{} conflicting rename with [\'{}\']'.format(natsorted(srcs, alg=ns.PATH), dest))
+        print()
+
+    # always show this
+    # produce tuples sorted by original names (src)
+    print('{:-^30}'.format('rename'))
+    sren = natsorted(ren.items(), key=lambda x:x[1], alg=ns.PATH)
+    if sren:
+        print('the following files can be renamed:')
+    else:
+        print('no files to rename')
+
+    for dest, src in sren:
+        print('[\'{}\'] rename to [\'{}\']'.format(src, dest))
+    print()
+
+    return sren
+
+
+def run_rename(queue, args):
+    q = queue
+    while q:
+        dest, src = q.popleft()
+        if os.path.exists(dest):
+            if args.verbose:
+                print('conflict detected... ', end='')
+            count = 1
+            while(True):
+                temp = dest + ' ' + str(count)
+                if os.path.exists(temp):
+                    count += 1
+                else:
+                    if args.verbose:
+                        print('temporarily renaming \'{}\' to \'{}\''.format(src, temp))
+                    os.rename(src, temp)
+                    q.append((dest, temp))
+                    break
+        else:
+            # no conflict, just rename
+            if args.verbose and not \
+                query_yes_no('rename [{}] to [{}]?'.format(src, dest)):
+                next
+            os.rename(src, dest)
+
+    print('rename complete!')
