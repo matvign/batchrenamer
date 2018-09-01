@@ -22,9 +22,10 @@ Expands file pattern into directories. Only works for file patterns ending with 
 e.g. testdir/ -> testdir/\*
 
 ### Optional arguments:  
+```
 spaces:     removes all whitespaces. replaces with underscores by default  
-translate:  replaces specified characters with opposing characters. Argument lengths must be equal  
-slice:      slices a portion of the file. Must follow 'start:end:step' format (can have missing values)  
+translate:  replaces specified characters with opposing characters. argument lengths must be equal  
+slice:      slices a portion of the file. must follow 'start:end:step' format (can have missing values)  
 case:       changes case of file to upper/lower/swap/capitalise word  
 bracs:      replace brackets with round or square. exclusive with bracr  
 bracr:      remove brackets and text. exclusive with bracs  
@@ -36,8 +37,8 @@ regex:      use regex to replace
 quiet:      suppress output. only shows what will be renamed and prompt  
 verbose:    show what args were invoked and prompts for every file rename   
 version:    show version  
-
-note: arguments that require special argument characters should be encased in quotes  
+```
+note: arguments that require special characters should be encased in quotes  
 e.g. `python3 pyren.py 'testdir/*' -tr '[]' '()'`
 
 ## 1.2 File and pattern matching
@@ -81,12 +82,9 @@ Filters are run in the following order:
 
 
 ## 1.3.2 Filter implementation
-Filters are implemented as lambda expressions in a list. The
-exception to this is high priority filters which are applied
-external to the list of filters.
 Filenames are passed in from file pattern matching and split into
-directory, basename and ext. Each basename is run against the list 
-of filters. Final processing occurs with high priority filters. 
+directory, basename and ext. Each basename is run against a list 
+of filters. Filters are implemented as lambda expressions in a list.  
 A list of supported filters can be found above (1.3.1).
 
 The resulting filename is then recombined and processed to determine
@@ -255,16 +253,25 @@ then we continue generating upwards.
 
 
 # Planned updates
-## v0.4
-* implement regex based filters
-* implement high priority filters
-* implement a more complex sequence filter
+## v0.3.6
+* give help text about wild cards in --help
+* change filter order
+* remove bracket style in favor of tr
 
 ## v0.4.1
+* implement regex filter
+
+## v0.4.2
+* implement directory sensitive renaming
+* implement natural sorting on files
+* implement complex sequence filter
 * bug fixes/code cleanup
 
 
 # Documentation changelog
+1/9/2018
+* Changed planned updates for 0.3.6 - 0.4.2
+
 30/07/2018
 * updated documentation to v0.3.5
 
