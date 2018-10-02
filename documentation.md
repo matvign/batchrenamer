@@ -1,4 +1,4 @@
-# Documentation - v0.4.1
+# Documentation - v0.4.2
 batchren - a batch renamer  
 batchren is a python script for batch renaming files. batchren uses unix style 
 pattern matching to look for files and uses a number of optional arguments to 
@@ -74,8 +74,8 @@ Filters are run in the following order:
 5. spaces
 6. bracket remove
 7. case
-8. append
-9. prepend
+8. prefix
+9. postfix
 10. extention (only applies to extension)
 11. str.strip (always applied to basename and ext)
 
@@ -264,15 +264,22 @@ then we continue generating upwards.
 * regex filter: one argument removes that word
 * translate filter: better argument parsing
 
-
-# Planned updates
 ## v0.4.2
+* move code from batchren.py to renamer.py
+* update __version variable in _version.py
 * implement directory sensitive renaming
-* implement complex sequence filter
+* implement sequence filter
 * bug fixes/code cleanup
 
 
+# Planned updates
+???
+
+
 # Documentation changelog
+3/9/2018
+* changed planned updates for v0.4.2
+
 1/9/2018
 * changed planned updates for 0.3.6 - 0.4.1
 * added proper category for 1.3 and 1.4

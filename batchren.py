@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import glob
 import os
@@ -9,33 +10,32 @@ from _version import __version__
 import renamer
 
 
+def printArgs(args):
+    print('{:-^30}'.format('arguments found'))
+    for argname, argval in sorted(vars(args).items()):
+        if argval:
+            print('    {}: {}'.format(argname, argval))
+    print()
+
+
+def printFound(fileset):
+    print('{:-^30}'.format('files found'))
+    for n in natsorted(fileset, alg=ns.PATH):
+        print('    {}'.format(n))
+
+
 def main(args):
+    if args.verbose:
+        printArgs(args)
+
     # exclude directories
     fileset = {f for f in glob.iglob(args.dir) if os.path.isfile(f)}
 
-    # show arguments used
-    if args.verbose:
-        print('{:-^30}'.format('arguments'))
-        for argname, argval in sorted(vars(args).items()):
-            if argval:
-                print('    {}: {}'.format(argname, argval))
-        print()
-
-    # do not show if quiet
-    # i.e. everything sees this except quiet
     if not args.quiet:
-        print('{:-^30}'.format('files found'))
-        for n in natsorted(fileset, alg=ns.PATH):
-            print('    {}'.format(n))
+        # always show unless quiet
+        printFound(fileset)
 
-    # run filters and get output in form of a table
-    rentable = renamer.renfilter(args, fileset)
-
-    # print contents of rentable and create a queue from it
-    q = deque(renamer.display_rentable(rentable, args.quiet))
-    if q and renamer.query_yes_no('Proceed with renaming?'):
-        # start renaming if q non-empty and answer is yes
-        renamer.run_rename(q, args)
+    renamer.start_rename(args, fileset)
 
 
 # glob into directories e.g. dir/ -> dir/*
@@ -83,8 +83,8 @@ class SplitAction(argparse.Action):
 class RegexAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         err1 = 'argument -re/--regex: expected one or two arguments'
-        # combined with nargs='+', means one or two arguments
         if (len(values) > 2):
+            # one or two args when used with nargs='+'
             parser.error(msg)
 
         if (len(values) == 1):
@@ -98,7 +98,7 @@ fromfile_prefix_chars='@', allow arguments from file input
 prefix_chars='-', only allow arguments with minus (default)
 '''
 parser = argparse.ArgumentParser(
-    prog='pyren',
+    prog='batchren',
     usage='%(prog)s [options]',
     description='Batch Renamer - a script for renaming files',
     epilog='note: you must use quotes to escape special characters',

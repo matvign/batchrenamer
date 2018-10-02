@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-
 import os
 import re
 from collections import deque, OrderedDict
 
 from natsort import natsorted, ns
+
 
 def query_yes_no(question, default="yes"):
     valid = {"yes": True, "y": True, "ye": True,
@@ -66,11 +66,10 @@ def runfilters(filters, filename):
 def initfilters(args):
     filters = []
 
-    # args.regex
     if args.regex:
-        regex_re = re.compile(args.regex[0])
-        reg_expr = lambda x: re.sub(regex_re, args.regex[1], x)
-        filters.append(reg_expr)
+        reg_expr = re.compile(args.regex[0])
+        regex_re = lambda x: re.sub(reg_expr, args.regex[1], x)
+        filters.append(regex_re)
 
     if args.slice:
         slash = lambda x: x[args.slice]
@@ -107,13 +106,13 @@ def initfilters(args):
             case = lambda x: str.title(x)
         filters.append(case)
 
-    if args.postfix:
-        postfix = lambda x: x+args.postfix
-        filters.append(postfix)
-
     if args.prefix:
         prefix = lambda x: args.prefix+x
         filters.append(prefix)
+
+    if args.postfix:
+        postfix = lambda x: x+args.postfix
+        filters.append(postfix)
 
     return filters
 
@@ -129,14 +128,9 @@ def renfilter(args, fileset):
         }
     }
 
-    # initialise counter for enumerating files
-    counter = 1
-    if args.sequence:
-        counter = args.sequence
-
     # initialise and run filters
     filters = initfilters(args)
-    for count, src in enumerate(natsorted(fileset, alg=ns.PATH), counter):
+    for src in natsorted(fileset, alg=ns.PATH):
 
         # split filepath into dir, basename and extension
         dirpath, bname, ext = partfile(src)
@@ -145,17 +139,11 @@ def renfilter(args, fileset):
         for runf in filters:
             bname = runf(bname)
 
-        # apply seq to end of filename
-        # 0 padded numbers if single digit
-        if args.sequence:
-            bname += '{:02d}'.format(count)
-
-        # change extension
-        # allow empty extension
+        # change extension, allow empty extensions
         if args.extension is not None:
             ext = args.extension
 
-        # always remove whitespace on left and right
+        # remove whitespace on left and right
         bname = bname.strip()
         ext   = ext.strip()
 
@@ -164,8 +152,8 @@ def renfilter(args, fileset):
 
         # place entry into the right place
         if dest in rentable['conflicts']:
-            # this name is already in conflict
-            # add src to rentable conflicts
+            # this name is already in conflicts
+            # add src to conflicts
             rentable['conflicts'][dest].append(src)
 
         elif dest in rentable['renames']:
@@ -178,12 +166,15 @@ def renfilter(args, fileset):
             if dest == '':
                 # filename is empty, move to conflicts
                 rentable['conflicts'][dest] = [src]
+
             elif dest == '.' or dest == '..':
                 # filename is . or .., move to conflicts
                 rentable['conflicts'][dest] = [src]
+
             elif dest == src:
-                # no filters applied, move it to conflicts
+                # no filters applied, move to conflicts
                 rentable['conflicts'][dest] = [src]
+
             else:
                 if os.path.exists(dest) and dest not in fileset:
                     # name already exists and not in files found
@@ -198,13 +189,15 @@ def renfilter(args, fileset):
                     rentable['renames'][dest] = src
 
     return rentable
+
+
 '''
 print out contents of rentable, showing files that can be
 safely renamed and files that are in conflict.
 sort contents for display reasons.
 return sorted contents of what can be renamed (produces tuples)
 '''
-def display_rentable(rentable, quiet):
+def print_rentable(rentable, quiet):
     ren  = rentable['renames']
     conf = rentable['conflicts']
 
@@ -268,8 +261,16 @@ def run_rename(queue, args):
         else:
             # no conflict, just rename
             if args.verbose and not \
-                query_yes_no('rename [{}] to [{}]?'.format(src, dest)):
+                query_yes_no('rename [\'{}\'] to [\'{}\']?'.format(src, dest)):
                 next
             os.rename(src, dest)
 
     print('rename complete!')
+
+
+def start_rename(args, fileset):
+    rentable = renfilter(args, fileset)
+    q = deque(print_rentable(rentable, args.quiet))
+
+    if q and query_yes_no('Proceed with renaming?'):
+        run_rename(q, args)
