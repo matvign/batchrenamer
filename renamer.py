@@ -128,7 +128,6 @@ def renfilter(args, fileset):
         }
     }
 
-    # initialise and run filters
     filters = initfilters(args)
     for src in natsorted(fileset, alg=ns.PATH):
 
@@ -206,13 +205,13 @@ def print_rentable(rentable, quiet):
     # i.e. c,b,a --> a,b,c want to be renamed to d
     if not quiet:
         print('{:-^30}'.format('issues/conflicts'))
-        sconf = OrderedDict(natsorted(conf.items(), key=lambda x:x[0], alg=ns.PATH))
-        if sconf:
+        conflicts = OrderedDict(natsorted(conf.items(), key=lambda x:x[0], alg=ns.PATH))
+        if conflicts:
             print('the following files will not be renamed')
         else:
             print('no conflicts found')
         
-        for dest, srcs in sconf.items():
+        for dest, srcs in conflicts.items():
             if dest == '':
                 print('cannot rename {} to empty string'.format(natsorted(srcs, alg=ns.PATH)))
             elif dest == '.' or dest == '..':
@@ -225,19 +224,19 @@ def print_rentable(rentable, quiet):
         print()
 
     # always show this
-    # produce tuples sorted by original names (src)
+    # produces tuples sorted by original names (src)
     print('{:-^30}'.format('rename'))
-    sren = natsorted(ren.items(), key=lambda x:x[1], alg=ns.PATH)
-    if sren:
+    renames = natsorted(ren.items(), key=lambda x:x[1], alg=ns.PATH)
+    if renames:
         print('the following files can be renamed:')
     else:
         print('no files to rename')
 
-    for dest, src in sren:
+    for dest, src in renames:
         print('[\'{}\'] rename to [\'{}\']'.format(src, dest))
     print()
 
-    return sren
+    return renames
 
 
 def run_rename(queue, args):

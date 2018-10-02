@@ -2,7 +2,6 @@
 import argparse
 import glob
 import os
-from collections import deque
 
 from natsort import natsorted, ns
 
@@ -31,7 +30,6 @@ def main(args):
 
     # exclude directories
     fileset = {f for f in glob.iglob(args.dir) if os.path.isfile(f)}
-
     if not args.quiet:
         # always show unless quiet
         printFound(fileset)
@@ -76,17 +74,15 @@ class SplitAction(argparse.Action):
             parser.error(err1)
         except ValueError:
             parser.error(err2)
-
         namespace.slice = sl
 
 
-# custom action, accept one or two arguments
+# custom action, only accept one or two arguments
 class RegexAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         err1 = 'argument -re/--regex: expected one or two arguments'
         if (len(values) > 2):
-            # one or two args when used with nargs='+'
-            parser.error(msg)
+            parser.error(err1)
 
         if (len(values) == 1):
             values.append('');
