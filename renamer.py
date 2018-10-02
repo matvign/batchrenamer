@@ -205,7 +205,7 @@ def print_rentable(rentable, quiet):
     # use an ordereddict to sort naming conflicts
     # i.e. c,b,a --> a,b,c want to be renamed to d
     if not quiet:
-        print('\n{:-^30}'.format('issues/conflicts'))
+        print('{:-^30}'.format('issues/conflicts'))
         sconf = OrderedDict(natsorted(conf.items(), key=lambda x:x[0], alg=ns.PATH))
         if sconf:
             print('the following files will not be renamed')

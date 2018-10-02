@@ -22,6 +22,7 @@ def printFound(fileset):
     print('{:-^30}'.format('files found'))
     for n in natsorted(fileset, alg=ns.PATH):
         print('    {}'.format(n))
+    print()
 
 
 def main(args):
