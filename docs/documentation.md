@@ -4,7 +4,7 @@ batchren is a python script for batch renaming files. batchren uses unix style
 pattern matching to look for files and uses a number of optional arguments to 
 be applied to the set of files found.  
 Files are placed into a set with glob, then renamed based on 
-the optional args. 
+the optional arguments. 
 
 
 # 1. Implementation detail
@@ -17,12 +17,12 @@ command line. The following is enabled:
 
 ### Arguments:
 dir: specifies the file pattern to search for.  
-Expands file pattern into directories. Only works for file patterns ending with a slash. Doesn't work if special characters present.  
+Expands file pattern into directories. Only works for file patterns ending with a slash. Doesn't apply to paths using special characters.  
 e.g. testdir/ -> testdir/\*
 
 ### Optional arguments:  
 ```
-spaces:     removes all whitespaces. replaces with underscores by default  
+spaces:     replace whitespace with specified char. replace with underscore by default  
 translate:  replaces specified characters with opposing characters. argument lengths must be equal  
 slice:      slices a portion of the file. must follow 'start:end:step' format (can have missing values)  
 case:       changes case of file to upper/lower/swap/capitalise word  
@@ -31,9 +31,9 @@ append:     append text to file
 prepend:    prepend text to file  
 sequence:   use numbers and append  
 extension:  change extension of file  
-regex:      use regex to replace. one argument removes that sequence  
+regex:      use regex to replace. one argument removes that instance  
 quiet:      suppress output. only shows what will be renamed and prompt  
-verbose:    show what args were invoked and prompts for every file rename   
+verbose:    show what args were invoked and prompts for every file rename  
 version:    show version  
 ```
 note: arguments that require special characters should be encased in quotes  
@@ -47,17 +47,15 @@ different modules.
 glob.iglob()
 * simplest with the most support
 * treats hidden files as special
-* supports recursion, not that it should ever be used
+* supports recursion, not that it should be used
 
 pathlib
-* full blown directory management
-* supports many os
+* full directory management
 * has its own implementation of glob
 * hashable
 * complex
 
-At the moment we're using glob. pathlib is an option if we want less imports or
-want os compatability.
+At the moment we're using glob. pathlib is an option if we want less imports.
 
 
 # 1.3 File renaming filters
@@ -98,7 +96,10 @@ rentable = {
         # dest: src 
     },
     'conflicts': {
-        # dest: [srcs]
+        # dest: {
+        #   srcs: [srcs]
+        #   err: { error codes}
+        # }
     }
 }
 ```
@@ -106,20 +107,13 @@ The renames field contains dest to src mappings. These are the files
 that can be renamed safely. Using the sorted method, we can create a 
 queue of (src, dest) files to rename.
 
-The conflicts field contains dest to a list of srcs. The list of srcs
-are files that should not be renamed because of an issue with dest.
-The following is used to distinguish the conflicts:
-```
-if dest == ''
-    cannot rename to empty file
-if dest == '.' or '..'
-    cannot rename to dot files
-else
-    if len(dest) == 1
-        no filters applied
-    else
-        conflicting rename with multiple files
-```
+The conflicts field contains dest to an object. 
+The object contains a list of source names as well as an error field.
+When printing the conflicts, we provide a few options.
+1. If normal, only list the files with conflicts
+2. If verbose, show list of files and reason for conflict
+3. If quiet, don't show any information about conflicts
+
 
 ## 1.4.2 Conflict resolution
 The final portion of processing filenames is checking for renaming conflicts.
@@ -133,12 +127,12 @@ There are three renaming conflicts that can occur:
 
 note: the third conflict is a potential cycle (see 1.4.1.2)
 
-Checking for a cycle is expensive and complicated. For that reason,
+Checking for a cycle is expensive and complicated. For this reason
 we only consider conflict checking for the first two cases above and
 handle cycles with another method.
 
 The following applies:
-```python
+```
 for every src, dest
     if dest is in conflict
         add src into conflicts[dest]
@@ -146,12 +140,14 @@ for every src, dest
         invalidate all dest in rentable
         add all dest to conflicts[dest]
     else
-        if src == dest
+        if dest == src
             no filters applied, move to conflicts
         elif dest == ''
             empty string, move to conflicts
-        elif dest == '.' or dest == '..'
-            cannot rename to dot files, move to conflicts
+        elif dest[0] == '.'
+            files should not start with ., move to conflicts
+        elif dest[0] == '/'
+            files should not start with /, move to conflicts
         else
             if dest exists and not in fileset
                 add to conflicts[dest]
@@ -173,6 +169,7 @@ dir
   fileE   -> fileE (not picked up by glob)
   fileF   -> fileE (conflict with fileE, unresolvable)
 ```
+
 
 ## 1.4.3 Cycle resolution
 Cycles happen when each file wants to be renamed to the next.
@@ -268,9 +265,10 @@ then we continue generating upwards.
 * proper package structure
 * update __version variable in _version.py
 * move code from batchren.py to renamer.py
-* implement directory sensitive renaming
 * conflict condition: cannot rename to something starting with '/'
-* except permissions/oserror from os module
+* conflict condition: cannot rename to something starting with '.'
+* except all errors from os module
+* new scheme for conflict printing
 * bug fixes/code cleanup
 
 

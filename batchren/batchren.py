@@ -10,7 +10,7 @@ import renamer
 
 
 def printArgs(args):
-    print('{:-^30}'.format('arguments found'))
+    print('{:-^30}'.format('arguments'))
     for argname, argval in sorted(vars(args).items()):
         if argval:
             print('    {}: {}'.format(argname, argval))
@@ -19,6 +19,8 @@ def printArgs(args):
 
 def printFound(fileset):
     print('{:-^30}'.format('files found'))
+    if not fileset:
+        print('no files found')
     for n in natsorted(fileset, alg=ns.PATH):
         print('    {}'.format(n))
     print()
@@ -28,24 +30,31 @@ def main(args):
     if args.verbose:
         printArgs(args)
 
-    # exclude directories
-    fileset = {f for f in glob.iglob(args.dir) if os.path.isfile(f)}
+    try:
+        # exclude directories
+        fileset = {f for f in glob.iglob(args.dir) if os.path.isfile(f)}
+    except Exception as e:
+        print(e)
+        return
 
     if not args.quiet:
         # always show unless quiet
         printFound(fileset)
 
+    if not fileset:
+        return
+
     renamer.start_rename(args, fileset)
 
 
 # glob into directories e.g. dir/ -> dir/*
-def expanddir(dir):
-    if dir[-1] == '/':
-        return dir + '*'
-    elif os.path.isdir(dir):
-        return os.path.join(dir, '*')
+def expanddir(path):
+    if path[-1] == '/':
+        return path + '*'
+    elif os.path.isdir(path):
+        return os.path.join(path, '*')
 
-    return dir
+    return path
 
 
 # enforce length of translate must be equal
@@ -124,8 +133,6 @@ parser.add_argument('-post', '--postfix', metavar='STR',
                     help='append string to filename')
 parser.add_argument('-ext', '--extension', metavar='EXT',
                     help="change last file extension (e.g. mp4, '')")
-# parser.add_argument('-seq', '--sequence', nargs='?', type=int, const=1,
-#                     help='append number to end of files')
 parser.add_argument('-re', '--regex', nargs='+', action=RegexAction,
                     help='specify regex for renaming')
 outgroup.add_argument('-q', '--quiet', action='store_true',
