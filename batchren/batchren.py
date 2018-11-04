@@ -109,6 +109,45 @@ class SequenceAction(argparse.Action):
     ...
 
 
+class CustomFormatter(argparse.HelpFormatter):
+    # ugly hack to override specific arguments
+    def _hack_metavar(self, option_string, args_string):
+        if option_string == '--translate':
+            return 'CHARS CHARS'
+        elif option_string == '--spaces':
+            return 'CHARS'
+        elif option_string == '--regex':
+            return 'REGEX [REGEX]'
+        else:
+            return args_string
+
+    def _format_action_invocation(self, action):
+        if not action.option_strings:
+            metavar, = self._metavar_formatter(action, action.dest)(1)
+            return metavar
+        else:
+            parts = []
+            # if the Optional doesn't take a value, format is:
+            #    -s, --long
+            if action.nargs == 0:
+                parts.extend(action.option_strings)
+
+            # if the Optional takes a value, format is:
+            #    -s ARGS, --long ARGS
+            # change to 
+            #    -s, --long ARGS
+            else:
+                default = action.dest.upper()
+                args_string = self._format_args(action, default)
+                for option_string in action.option_strings:
+                    if option_string[:2] == '--':
+                        continue
+                    parts.append('%s' % option_string)
+                args_string = self._hack_metavar(option_string, args_string)
+                parts[-1] += ' %s'%args_string
+            return ', '.join(parts)
+
+
 '''
 Argparse options
 fromfile_prefix_chars='@', allow arguments from file input
@@ -117,6 +156,7 @@ prefix_chars='-', only allow arguments with minus (default)
 parser = argparse.ArgumentParser(
     prog='batchren',
     usage='python3 %(prog)s.py dir [options]',
+    formatter_class=CustomFormatter,
     description='Batch Renamer - a script for renaming files',
     epilog='note: all special characters should be escaped using quotes',
     prefix_chars='-',
@@ -132,10 +172,10 @@ parser.add_argument('-tr', '--translate', nargs='*', action=TranslateAction,
 parser.add_argument('-sl', '--slice', action=SliceAction,
                     metavar='start:end:step',
                     help='slice a portion of the filename')
-parser.add_argument('-c', '--case', choices=['upper', 'lower', 'swap', 'cap'],
-                    metavar='',
-                    help='convert filename case (upper/lower/swap/cap)')
-parser.add_argument('-bracr', '--bracket-remove', action='store_true',
+parser.add_argument('-c', '--case', 
+                    choices=['upper', 'lower', 'swap', 'cap'], 
+                    help='convert filename case')
+parser.add_argument('-bracr', action='store_true',
                     help='remove brackets and their contents')
 parser.add_argument('-pre', '--prefix', metavar='STR',
                     help='prepend string to filename')

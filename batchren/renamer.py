@@ -124,11 +124,11 @@ def initfilters(args):
         filters.append(space)
 
     # note: find better method to remove brackets
-    if args.bracket_remove:
+    if args.bracr:
         brac_re = re.compile(r'[\{\[\(].*?[\{\]\)]')
         brac_trans = str.maketrans('', '', '{}[]()')
-        bracr = lambda x: re.sub(brac_re, '', x).translate(brac_trans)
-        filters.append(bracr)
+        bracrf = lambda x: re.sub(brac_re, '', x).translate(brac_trans)
+        filters.append(bracrf)
 
     if args.case:
         if args.case == 'upper':
