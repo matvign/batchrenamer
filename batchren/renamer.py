@@ -17,6 +17,27 @@ issues = {
 }
 
 
+class seqObj:
+    def __init__(self, curdir='', optstr='', minval=1, mode=1):
+        self.min = int(minval)
+        self.count = minval
+        self.curdir = curdir
+        self.optstr = optstr
+        self.mode = mode
+
+    def __call__(self, inputdir, bname):
+        if inputdir != self.curdir:
+            self.curdir = inputdir
+            self.count = self.min
+
+        if self.mode:
+            new_name = '{}{}{:02d}'.format(bname, self.optstr, self.count)
+        else:
+            new_name = '{:02d}{}{}'.format(self.count, self.optstr, bname)
+        self.count += 1
+        return new_name
+
+
 def askQuery(question, default="yes"):
     valid = {"yes": True, "y": True, "ye": True,
              "no": False, "n": False, "q": False }
@@ -65,10 +86,13 @@ def joinpart(dirpath, bname, ext):
 
 
 # function to run filters
-def runfilters(filters, filename):
+def runfilters(filters, dirpath, filename):
     newname = filename
     for runf in filters:
-        newname = runf(newname)
+        if isinstanceof(runf, seqObj):
+            newname = runf(dirpath, filename)
+        else:
+            newname = runf(filename)
 
     return newname
 
@@ -85,6 +109,8 @@ def initfilters(args):
     if args.slice:
         slash = lambda x: x[args.slice]
         filters.append(slash)
+
+    # args.shave
 
     # args.sequence
 
@@ -194,15 +220,16 @@ def renfilter(args, fileset):
 
         else:
             if os.path.exists(dest) and dest not in fileset:
-                # name already exists and not in files found
-                # dirs are never included in fileset
-                # so files will never be renamed to dirs
-                # since file won't be renamed, auto conflict
+                # name already exists and not in files found.
+                # this is is an unresolvable conflict
+                # dirs and hidden files aren't included in fileset
                 rentable['conflicts'][dest] = { 'srcs': [src], 'err':[5]}
             else:
-                # if file exists, then we haven't processed it yet
-                # just move it to renames and let the above handle it
-                # if file doesn't exist, add to renames
+                # if file doesn't exist, then safe to rename
+                # if file exists, but is in fileset, then this could
+                # be a resolvable renaming conflict.
+                # i.e. if file "dest" is being renamed to something else,
+                # this operation should be safe.
                 rentable['renames'][dest] = src
 
     return rentable
@@ -218,10 +245,8 @@ def print_rentable(rentable, quiet, verbose):
     ren  = rentable['renames']
     conf = rentable['conflicts']
 
-    # do not show if quiet
-    # use an ordereddict to sort naming conflicts
-    # i.e. c,b,a --> a,b,c want to be renamed to d
     if not quiet:
+        # skip this if quiet
         print('{:-^30}'.format('issues/conflicts'))
         conflicts = OrderedDict(natsorted(conf.items(), key=lambda x:x[0], alg=ns.PATH))
         if conflicts:
@@ -235,18 +260,19 @@ def print_rentable(rentable, quiet, verbose):
             for s in srcOut:
                 print("'{}'".format(s), end=' ')
                 if verbose:
+                    # show the erroneous dest file
                     print(" --> '{}'".format(dest))
                 else:
                     print()
 
             if verbose:
-                # give additional details for why this can't be renamed
+                # give reasons for why this can't be renamed
                 errLst = ', '.join([issues[e] for e in obj['err']])
                 print('    {}'.format(errLst))
         print()
 
-    # always show this
-    # produces tuples sorted by original names (src)
+    # always show this output
+    # produces tuples (dest, src) sorted by src
     print('{:-^30}'.format('rename'))
     renames = natsorted(ren.items(), key=lambda x:x[1], alg=ns.PATH)
     if renames:
@@ -299,7 +325,7 @@ def rename_file(src, dest):
     except Exception as err:
         # continue renaming other files if error
         # print(err)
-        print('An error occurred while renaming, skipping this file...')
+        print('An error, skipping this file...')
         return False
     else:
         return True

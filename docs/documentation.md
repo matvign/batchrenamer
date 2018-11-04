@@ -1,4 +1,4 @@
-# Documentation - v0.4.2
+# Documentation - v0.5.0
 batchren - a batch renamer  
 batchren is a python script for batch renaming files. batchren uses unix style 
 pattern matching to look for files and uses a number of optional arguments to 
@@ -77,6 +77,7 @@ Filters are run in the following order:
 10. extention (only applies to extension)
 11. str.strip (always applied to basename and ext)
 
+
 ## 1.3.2 Filter implementation
 Filenames are passed in from file pattern matching and split into
 directory, basename and ext. Each basename is run against a list 
@@ -116,8 +117,10 @@ When printing the conflicts, we provide a few options.
 
 
 ## 1.4.2 Conflict resolution
-The final portion of processing filenames is checking for renaming conflicts.
-Renaming a file to an existing filename will overwrite the existing file.  
+The final portion of processing filenames is checking for renaming 
+conflicts. Renaming a file using python to an existing filename will 
+overwrite the existing file.
+ 
 This is undesired behaviour so we need to ensure that it doesn't happen.
 
 There are three renaming conflicts that can occur:
@@ -203,9 +206,9 @@ dir:
 In this case, filea - filed is a cycle, so we have to use two pass for
 every conflict we find.
 
-For simplicity we generate numbers instead of random strings. The idea
-is to append an underscore and a number. If the file already exists, 
-then we continue generating upwards.
+For simplicity generate numbers instead of random strings. Files are
+appended with an underscore and a number. If the file already exists 
+then continue generating upwards.
 
 
 # Changelog
@@ -273,12 +276,23 @@ then we continue generating upwards.
 
 
 # Planned updates
-v0.4.3
-* implement sequence filter
+## v0.5.0
+* change help display for metavars
+* new scheme for conflicts
+* implement sequence: add a sequence to a file
+* implement shave: remove slices from a file
+* cycle and conflict detection
+* add tests
 * bug fixes/code cleanup
 
 
 # Documentation changelog
+4/11/2018
+* updated planned updates for v0.5
+
+7/10/2018
+* updated planned updates for v0.4.3
+
 3/10/2018
 * updated v0.4.2 and planned updates
 

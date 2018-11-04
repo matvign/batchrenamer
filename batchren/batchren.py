@@ -71,7 +71,7 @@ class TranslateAction(argparse.Action):
 
 
 # produce slice object from string
-class SplitAction(argparse.Action):
+class SliceAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         err1 = 'argument -sl/--slice: too many arguments for slicing'
         err2 = 'argument -sl/--slice: non-numeric character in slice'
@@ -99,6 +99,16 @@ class RegexAction(argparse.Action):
         namespace.regex = values
 
 
+# shave action, remove indexes split from a file
+class ShaveAction(argparse.Action):
+    ...
+
+
+# sequence action, store some format for sequences
+class SequenceAction(argparse.Action):
+    ...
+
+
 '''
 Argparse options
 fromfile_prefix_chars='@', allow arguments from file input
@@ -119,7 +129,7 @@ parser.add_argument('-sp', '--spaces', nargs='?', const='_', metavar='REPL',
 parser.add_argument('-tr', '--translate', nargs='*', action=TranslateAction,
                     metavar='CHARS',
                     help='translate characters from one to another')
-parser.add_argument('-sl', '--slice', action=SplitAction,
+parser.add_argument('-sl', '--slice', action=SliceAction,
                     metavar='start:end:step',
                     help='slice a portion of the filename')
 parser.add_argument('-c', '--case', choices=['upper', 'lower', 'swap', 'cap'],
