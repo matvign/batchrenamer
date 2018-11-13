@@ -110,7 +110,7 @@ class SequenceAction(argparse.Action):
 
 
 class CustomFormatter(argparse.HelpFormatter):
-    # ugly hack to override specific arguments
+    # ugly hack to override specific metavars
     def _hack_metavar(self, option_string, args_string):
         if option_string == '--translate':
             return 'CHARS CHARS'
@@ -177,14 +177,16 @@ parser.add_argument('-c', '--case',
                     help='convert filename case')
 parser.add_argument('-bracr', action='store_true',
                     help='remove brackets and their contents')
-parser.add_argument('-pre', '--prefix', metavar='STR',
+parser.add_argument('-pre', '--prepend', metavar='STR',
                     help='prepend string to filename')
-parser.add_argument('-post', '--postfix', metavar='STR',
+parser.add_argument('-app', '--append', metavar='STR',
                     help='append string to filename')
 parser.add_argument('-ext', '--extension', metavar='EXT',
                     help="change last file extension (e.g. mp4, '')")
 parser.add_argument('-re', '--regex', nargs='+', action=RegexAction,
                     help='specify regex for renaming')
+# parser.add_argument('-seq', '--sequence', action=SequenceAction,
+#                     help='apply a sequence to files')
 outgroup.add_argument('-q', '--quiet', action='store_true',
                     help='skip output, but show confirmations')
 outgroup.add_argument('-v', '--verbose', action='store_true',

@@ -5,15 +5,14 @@ from collections import deque, OrderedDict
 
 from natsort import natsorted, ns
 
-
-# errorcodes for printing rentable
+# issuecodes for printing rentable
 issues = {
     0: 'no filters applied',
     1: 'name cannot be empty',
     2: 'name cannot start with .',
-    3: 'name cannot start with /',
-    4: 'multiple names conflicting',
-    5: 'file already exists'
+    3: 'name cannot contain /',
+    4: 'shared name conflict',
+    5: 'chain conflict'
 }
 
 
@@ -71,18 +70,14 @@ def partfile(filepath):
 
 # recombine dir, basename and extension
 def joinpart(dirpath, bname, ext):
-    newname = bname
-
-    # join truthy extension with file name
+    fname = bname.strip()
     if ext:
-        newname += '.' + ext
-
-    # join truthy dirpath with file name
-    # otherwise, the new name is just the file itself
+        fname += '.' + ext.strip()
+    newname = fname
     if dirpath:
-        newname = os.path.join(dirpath, newname)
+        newname = os.path.join(dirpath, fname)
 
-    return newname
+    return (fname, newname)
 
 
 # function to run filters
@@ -100,7 +95,6 @@ def runfilters(filters, dirpath, filename):
 # create filters in a list
 def initfilters(args):
     filters = []
-
     if args.regex:
         reg_expr = re.compile(args.regex[0])
         regex_re = lambda x: re.sub(reg_expr, args.regex[1], x)
@@ -110,9 +104,12 @@ def initfilters(args):
         slash = lambda x: x[args.slice]
         filters.append(slash)
 
-    # args.shave
-
-    # args.sequence
+    # note: find better method to remove brackets
+    if args.bracr:
+        brac_re = re.compile(r'[\{\[\(].*?[\{\]\)]')
+        brac_trans = str.maketrans('', '', '{}[]()')
+        bracrf = lambda x: re.sub(brac_re, '', x).translate(brac_trans)
+        filters.append(bracrf)
 
     if args.translate:
         translmap = str.maketrans(*args.translate)
@@ -123,13 +120,6 @@ def initfilters(args):
         space = lambda x: x.replace(' ', args.spaces)
         filters.append(space)
 
-    # note: find better method to remove brackets
-    if args.bracr:
-        brac_re = re.compile(r'[\{\[\(].*?[\{\]\)]')
-        brac_trans = str.maketrans('', '', '{}[]()')
-        bracrf = lambda x: re.sub(brac_re, '', x).translate(brac_trans)
-        filters.append(bracrf)
-
     if args.case:
         if args.case == 'upper':
             case = lambda x: x.upper()
@@ -138,18 +128,18 @@ def initfilters(args):
         elif args.case == 'swap':
             case = lambda x: x.swapcase()
         elif args.case == 'cap':
-            # capitalise every word
-            # e.g. hello world -> Hello World
             case = lambda x: str.title(x)
         filters.append(case)
 
-    if args.prefix:
-        prefix = lambda x: args.prefix+x
-        filters.append(prefix)
+    if args.prepend:
+        prepend = lambda x: args.prepend+x
+        filters.append(prepend)
 
-    if args.postfix:
-        postfix = lambda x: x+args.postfix
-        filters.append(postfix)
+    if args.append:
+        append = lambda x: x+args.append
+        filters.append(append)
+
+    # args.sequence
 
     return filters
 
@@ -157,24 +147,16 @@ def initfilters(args):
 def renfilter(args, fileset):
     # create table of renames/conflicts
     rentable = {
-        'renames': {
-            # dest: src
-        },
+        'renames': { # dest: src },
         'conflicts': {
-            # dest: {
-            #   srcs: [src]
-            #   err: {} set of issue codes
-            # }
+            # dest: { srcs: [src], err: set() }
         }
     }
 
     filters = initfilters(args)
     for src in natsorted(fileset, alg=ns.PATH):
-
         # split filepath into dir, basename and extension
         dirpath, bname, ext = partfile(src)
-
-        # run filters on the basename
         for runf in filters:
             bname = runf(bname)
 
@@ -182,55 +164,58 @@ def renfilter(args, fileset):
         if args.extension is not None:
             ext = args.extension
 
-        # remove whitespace on left and right
-        bname = bname.strip()
-        ext   = ext.strip()
+        # recombine as file+ext, path+file+ext
+        bname, dest = joinpart(dirpath, bname, ext)
 
-        # recombine file names
-        dest = joinpart(dirpath, bname, ext)
-
-        # place entry into the right place
+        errset = set()
         if dest in rentable['conflicts']:
             # this name is already in conflict
-            # add src to conflicts
             rentable['conflicts'][dest]['srcs'].append(src)
-            rentable['conflicts'][dest]['err'].add(4)
+            errset.add(4)
 
         elif dest in rentable['renames']:
             # this name is taken, invalidate both names
             temp = rentable['renames'][dest]
             del rentable['renames'][dest]
-            rentable['conflicts'][dest] = {'srcs': [temp, src], 'err': {4}}
-
-        elif dest == src:
-            # no filters applied, move to conflicts
-            rentable['conflicts'][dest] = {'srcs': [src], 'err': {0}}
-
-        elif bname == '':
-            # disallow empty names
-            rentable['conflicts'][dest] = {'srcs': [src], 'err': {1}}
-
-        elif bname[0] == '.':
-            # disallow names starting with '.'
-            rentable['conflicts'][dest] = {'srcs': [src], 'err': {2}}
-
-        elif bname[0] == '/':
-            # disallow names starting with '/'
-            rentable['conflicts'][dest] = {'srcs': [src], 'err': {3}}
-
+            rentable['conflicts'][dest]['srcs'] = [temp, src]
+            errset.add(4);
+            
         else:
             if os.path.exists(dest) and dest not in fileset:
-                # name already exists and not in files found.
-                # this is is an unresolvable conflict
-                # dirs and hidden files aren't included in fileset
-                rentable['conflicts'][dest] = { 'srcs': [src], 'err':[5]}
-            else:
-                # if file doesn't exist, then safe to rename
-                # if file exists, but is in fileset, then this could
-                # be a resolvable renaming conflict.
-                # i.e. if file "dest" is being renamed to something else,
-                # this operation should be safe.
-                rentable['renames'][dest] = src
+                # name already exists and not in files found
+                # which means it won't be renamed
+                rentable['conflicts'][dest]['srcs'] = [src]
+                errset.add(4)
+
+            if dest == src:
+                errset.add(0);
+            elif bname == '':
+                errset.add(1);
+            if bname[0] == '.':
+                errset.add(2);
+            if '/' in bname:
+                errset.add(3);
+
+        if errset:
+            ndest = src
+            while True:
+                if ndest in renames['renames']:
+                    errset.add(5)
+                    nsrc = rentable['renames'][ndest]
+                    del rentable['renames'][ndest]
+                    rentable['conflicts'][ndest] = {
+                        'srcs': [nsrc],
+                        'err': {5}
+                    }
+                    ndest = nsrc
+                else:
+                    break
+
+            rentable['conflicts'][dest]['err'].union(errset)
+
+        else:
+            rentable['renames'][dest] = src
+
 
     return rentable
 
@@ -247,29 +232,34 @@ def print_rentable(rentable, quiet, verbose):
 
     if not quiet:
         # skip this if quiet
-        print('{:-^30}'.format('issues/conflicts'))
         conflicts = OrderedDict(natsorted(conf.items(), key=lambda x:x[0], alg=ns.PATH))
-        if conflicts:
-            print('the following files will NOT be renamed')
-        else:
+
+        if not conflicts and verbose:
+            print('{:-^30}'.format('issues/conflicts'))
             print('no conflicts found')
+            print()
 
-        for dest, obj in conflicts.items():
-            srcOut = natsorted(obj['srcs'], alg=ns.PATH)
+        if conflicts:
+            print('{:-^30}'.format('issues/conflicts'))
+            print('the following files will NOT be renamed')
 
-            for s in srcOut:
-                print("'{}'".format(s), end=' ')
+            for dest, obj in conflicts.items():
+                srcOut = natsorted(obj['srcs'], alg=ns.PATH)
+
+                for s in srcOut:
+                    print("'{}'".format(s), end=' ')
+                    if verbose:
+                        # show the erroneous dest file
+                        print(" --> '{}'".format(dest))
+                    else:
+                        print()
+
                 if verbose:
-                    # show the erroneous dest file
-                    print(" --> '{}'".format(dest))
-                else:
-                    print()
+                    # give reasons for why this can't be renamed
+                    errLst = ', '.join([issues[e] for e in obj['err']])
+                    print('    {}'.format(errLst))
+            print()
 
-            if verbose:
-                # give reasons for why this can't be renamed
-                errLst = ', '.join([issues[e] for e in obj['err']])
-                print('    {}'.format(errLst))
-        print()
 
     # always show this output
     # produces tuples (dest, src) sorted by src
@@ -277,11 +267,10 @@ def print_rentable(rentable, quiet, verbose):
     renames = natsorted(ren.items(), key=lambda x:x[1], alg=ns.PATH)
     if renames:
         print('the following files can be renamed:')
+        for dest, src in renames:
+            print("'{}' rename to '{}'".format(src, dest))
     else:
         print('no files to rename')
-
-    for dest, src in renames:
-        print("'{}' rename to '{}'".format(src, dest))
     print()
 
     return renames
@@ -325,7 +314,7 @@ def rename_file(src, dest):
     except Exception as err:
         # continue renaming other files if error
         # print(err)
-        print('An error, skipping this file...')
+        print('An error occurred, skipping this file...')
         return False
     else:
         return True

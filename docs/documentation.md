@@ -111,22 +111,21 @@ queue of (src, dest) files to rename.
 The conflicts field contains dest to an object. 
 The object contains a list of source names as well as an error field.
 When printing the conflicts, we provide a few options.
-1. If normal, only list the files with conflicts
-2. If verbose, show list of files and reason for conflict
+1. If normal, only show conflicts if they existed. Don't show reasons.
+2. If verbose, always show conflict section. Show files and reason for conflict.
 3. If quiet, don't show any information about conflicts
 
 
 ## 1.4.2 Conflict resolution
-The final portion of processing filenames is checking for renaming 
-conflicts. Renaming a file using python to an existing filename will 
-overwrite the existing file.
- 
+Filenames need to be checked for renaming conflicts. This is because
+renaming a file to an existing file will overwrite the file.  
 This is undesired behaviour so we need to ensure that it doesn't happen.
 
-There are three renaming conflicts that can occur:
-1. two files are trying to rename itself to the same name
-2. file tries to rename itself to a file (or dir) that won't be renamed
-3. file tries to rename itself to a file that will be renamed
+There are different renaming conflicts that can occur:
+1. a file had no filters applied
+2. two files are trying to rename itself to the same name
+3. file tries to rename itself to a file (or dir) that won't be renamed
+4. file tries to rename itself to a file that will be renamed
 
 note: the third conflict is a potential cycle (see 1.4.1.2)
 
@@ -162,7 +161,6 @@ it is immediately invalid. if a file exists and is in fileset, then we
 haven't encountered it yet and can be handled by our cases later.
 '''
 ```
-
 ```
 dir
   fileA   -> filea  
@@ -274,16 +272,19 @@ then continue generating upwards.
 * new scheme for conflict printing
 * bug fixes/code cleanup
 
-
-# Planned updates
 ## v0.5.0
 * change help display for metavars
+* cycle and conflict detection
 * new scheme for conflicts
 * implement sequence: add a sequence to a file
 * implement shave: remove slices from a file
-* cycle and conflict detection
+* implement whole: treat whole string as filename
 * add tests
 * bug fixes/code cleanup
+
+
+# Planned updates
+
 
 
 # Documentation changelog
