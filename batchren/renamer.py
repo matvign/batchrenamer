@@ -8,9 +8,9 @@ from natsort import natsorted, ns
 # issuecodes for printing rentable
 issues = {
     0: 'no filters applied',
-    1: 'name cannot be empty',
-    2: 'name cannot start with .',
-    3: 'name cannot contain /',
+    1: 'new name cannot be empty',
+    2: 'new name cannot start with .',
+    3: 'new name cannot contain /',
     4: 'shared name conflict',
     5: 'chain conflict'
 }
@@ -87,8 +87,8 @@ def runfilters(filters, dirpath, filename):
 def initfilters(args):
     filters = []
     if args.regex:
-        reg_expr = re.compile(args.regex[0])
-        regex_re = lambda x: re.sub(reg_expr, args.regex[1], x)
+        reg = re.compile(args.regex[0])
+        regex_re = lambda x: re.sub(reg, args.regex[1], x)
         filters.append(regex_re)
 
     if args.slice:
@@ -122,6 +122,8 @@ def initfilters(args):
             case = lambda x: str.title(x)
         filters.append(case)
 
+    # args.sequence
+
     if args.prepend:
         prepend = lambda x: args.prepend+x
         filters.append(prepend)
@@ -129,8 +131,6 @@ def initfilters(args):
     if args.postpend:
         postpend = lambda x: x+args.postpend
         filters.append(postpend)
-
-    # args.sequence
 
     return filters
 

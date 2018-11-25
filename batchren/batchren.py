@@ -27,19 +27,25 @@ def printFound(fileset):
 
 
 def main(args):
+    if args.verbose:
+        printArgs(args)
+
     try:
-        # only include files
+        # exclude directories
         fileset = {f for f in glob.iglob(args.path) if os.path.isfile(f)}
     except Exception as e:
         print(e)
         return
 
-    if args.verbose:
-        printArgs(args)
-        printFound(fileset)
-
     if not fileset:
-        return
+        print('{:-^30}'.format('files found'))
+        print('no files found\n')
+
+    elif args.verbose:
+        print('{:-^30}'.format('files found'))
+        for n in natsorted(fileset, alg=ns.PATH):
+            print('    ', n)
+        print()
 
     renamer.start_rename(args, fileset)
 
