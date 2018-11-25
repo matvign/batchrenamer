@@ -27,18 +27,15 @@ def printFound(fileset):
 
 
 def main(args):
-    if args.verbose:
-        printArgs(args)
-
     try:
-        # exclude directories
-        fileset = {f for f in glob.iglob(args.dir) if os.path.isfile(f)}
+        # only include files
+        fileset = {f for f in glob.iglob(args.path) if os.path.isfile(f)}
     except Exception as e:
         print(e)
         return
 
-    if not args.quiet:
-        # always show unless quiet
+    if args.verbose:
+        printArgs(args)
         printFound(fileset)
 
     if not fileset:
@@ -97,11 +94,6 @@ class RegexAction(argparse.Action):
         if (len(values) == 1):
             values.append('');
         namespace.regex = values
-
-
-# shave action, remove indexes split from a file
-class ShaveAction(argparse.Action):
-    ...
 
 
 # sequence action, store some format for sequences
@@ -179,12 +171,12 @@ parser.add_argument('-bracr', action='store_true',
                     help='remove brackets and their contents')
 parser.add_argument('-pre', '--prepend', metavar='STR',
                     help='prepend string to filename')
-parser.add_argument('-app', '--append', metavar='STR',
+parser.add_argument('-post', '--postpend', metavar='STR',
                     help='append string to filename')
 parser.add_argument('-ext', '--extension', metavar='EXT',
                     help="change last file extension (e.g. mp4, '')")
 parser.add_argument('-re', '--regex', nargs='+', action=RegexAction,
-                    help='specify regex for renaming')
+                    help='specify pattern to replace')
 # parser.add_argument('-seq', '--sequence', action=SequenceAction,
 #                     help='apply a sequence to files')
 outgroup.add_argument('-q', '--quiet', action='store_true',
@@ -192,7 +184,7 @@ outgroup.add_argument('-q', '--quiet', action='store_true',
 outgroup.add_argument('-v', '--verbose', action='store_true',
                     help='show detailed output')
 parser.add_argument('--version', action='version', version=__version__)
-parser.add_argument('dir', nargs='?', default='*', type=expanddir,
+parser.add_argument('path', nargs='?', default='*', type=expanddir,
                     help='target directory')
 args = parser.parse_args()
 

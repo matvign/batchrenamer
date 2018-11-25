@@ -37,24 +37,15 @@ class seqObj:
         return new_name
 
 
-def askQuery(question, default="yes"):
+def askQuery(question):
     valid = {"yes": True, "y": True, "ye": True,
              "no": False, "n": False, "q": False }
 
-    if default is None:
-        prompt = "[y/n] "
-    elif default == "yes":
-        prompt = "[Y/n] "
-    elif default == "no":
-        prompt = "[y/N] "
-    else:
-        raise ValueError('invalid default answer: {}'.format(default))
-
     while True:
-        print(question, prompt, end='')
+        print(question, "[y/n] ", end='')
         choice = input().lower()
-        if default is not None and choice == '':
-            return valid[default]
+        if choice == '':
+            return True
         elif choice in valid:
             return valid[choice]
         else:
@@ -135,9 +126,9 @@ def initfilters(args):
         prepend = lambda x: args.prepend+x
         filters.append(prepend)
 
-    if args.append:
-        append = lambda x: x+args.append
-        filters.append(append)
+    if args.postpend:
+        postpend = lambda x: x+args.postpend
+        filters.append(postpend)
 
     # args.sequence
 
@@ -147,7 +138,9 @@ def initfilters(args):
 def renfilter(args, fileset):
     # create table of renames/conflicts
     rentable = {
-        'renames': { # dest: src },
+        'renames': { 
+            # dest: src 
+        },
         'conflicts': {
             # dest: { srcs: [src], err: set() }
         }
@@ -171,20 +164,20 @@ def renfilter(args, fileset):
         if dest in rentable['conflicts']:
             # this name is already in conflict
             rentable['conflicts'][dest]['srcs'].append(src)
-            errset.add(4)
+            rentable['conflicts'][dest]['err'].add(4)
+            errset = rentable['conflicts'][dest]['err']
 
         elif dest in rentable['renames']:
             # this name is taken, invalidate both names
             temp = rentable['renames'][dest]
             del rentable['renames'][dest]
-            rentable['conflicts'][dest]['srcs'] = [temp, src]
-            errset.add(4);
-            
+            rentable['conflicts'][dest] = { 'srcs':[temp,src], 'err': {4} }
+            errset = rentable['conflicts'][dest]['err']
+
         else:
             if os.path.exists(dest) and dest not in fileset:
-                # name already exists and not in files found
+                # name exists and not in files found
                 # which means it won't be renamed
-                rentable['conflicts'][dest]['srcs'] = [src]
                 errset.add(4)
 
             if dest == src:
@@ -196,28 +189,29 @@ def renfilter(args, fileset):
             if '/' in bname:
                 errset.add(3);
 
+            if errset:
+                rentable['conflicts'][dest] = { 'srcs': [src], 'err': errset }
+
         if errset:
-            ndest = src
-            while True:
-                if ndest in renames['renames']:
-                    errset.add(5)
-                    nsrc = rentable['renames'][ndest]
-                    del rentable['renames'][ndest]
-                    rentable['conflicts'][ndest] = {
-                        'srcs': [nsrc],
-                        'err': {5}
-                    }
-                    ndest = nsrc
-                else:
-                    break
-
-            rentable['conflicts'][dest]['err'].union(errset)
-
+            cascade(rentable, dest)
         else:
             rentable['renames'][dest] = src
 
-
     return rentable
+
+
+def cascade(rentable, dest):
+    ndest = dest
+    while True:
+        if ndest in rentable['renames']:
+            temp = rentable['renames'][ndest]
+            del rentable['renames'][ndest]
+            rentable['conflicts'][ndest] = {
+                'srcs': [temp], 'err': {5}
+            }
+            ndest = temp
+            continue
+        return
 
 
 '''
@@ -234,32 +228,23 @@ def print_rentable(rentable, quiet, verbose):
         # skip this if quiet
         conflicts = OrderedDict(natsorted(conf.items(), key=lambda x:x[0], alg=ns.PATH))
 
-        if not conflicts and verbose:
-            print('{:-^30}'.format('issues/conflicts'))
-            print('no conflicts found')
-            print()
-
         if conflicts:
             print('{:-^30}'.format('issues/conflicts'))
             print('the following files will NOT be renamed')
-
             for dest, obj in conflicts.items():
                 srcOut = natsorted(obj['srcs'], alg=ns.PATH)
-
-                for s in srcOut:
-                    print("'{}'".format(s), end=' ')
-                    if verbose:
-                        # show the erroneous dest file
-                        print(" --> '{}'".format(dest))
-                    else:
-                        print()
-
                 if verbose:
-                    # give reasons for why this can't be renamed
-                    errLst = ', '.join([issues[e] for e in obj['err']])
-                    print('    {}'.format(errLst))
+                    print(', '.join([repr(str(e)) for e in srcOut]))
+                    print("--> '{}'\nerrors: ".format(dest), end='')
+                    print(', '.join([issues[e] for e in obj['err']]))
+                else:
+                    print(*["'{}'".format(s) for s in srcOut], sep='\n')
             print()
 
+        elif verbose:
+            print('{:-^30}'.format('issues/conflicts'))
+            print('no conflicts found')
+            print()
 
     # always show this output
     # produces tuples (dest, src) sorted by src
