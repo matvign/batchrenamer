@@ -159,45 +159,49 @@ def renfilter(args, fileset):
 
         # recombine as file+ext, path+file+ext
         bname, dest = joinpart(dirpath, bname, ext)
-
-        errset = set()
-        if dest in rentable['conflicts']:
-            # this name is already in conflict
-            rentable['conflicts'][dest]['srcs'].append(src)
-            rentable['conflicts'][dest]['err'].add(4)
-            errset = rentable['conflicts'][dest]['err']
-
-        elif dest in rentable['renames']:
-            # this name is taken, invalidate both names
-            temp = rentable['renames'][dest]
-            del rentable['renames'][dest]
-            rentable['conflicts'][dest] = { 'srcs':[temp,src], 'err': {4} }
-            errset = rentable['conflicts'][dest]['err']
-
-        else:
-            if os.path.exists(dest) and dest not in fileset:
-                # name exists and not in files found
-                # which means it won't be renamed
-                errset.add(4)
-
-            if dest == src:
-                errset.add(0);
-            elif bname == '':
-                errset.add(1);
-            if bname[0] == '.':
-                errset.add(2);
-            if '/' in bname:
-                errset.add(3);
-
-            if errset:
-                rentable['conflicts'][dest] = { 'srcs': [src], 'err': errset }
-
-        if errset:
-            cascade(rentable, dest)
-        else:
-            rentable['renames'][dest] = src
+        set_rentable(rentable, fileset, dest, bname, src)
 
     return rentable
+
+
+def set_rentable(rentable, fileset, dest, bname, src):
+    errset = set()
+    if dest in rentable['conflicts']:
+        # this name is already in conflict
+        rentable['conflicts'][dest]['srcs'].append(src)
+        rentable['conflicts'][dest]['err'].add(4)
+        errset = rentable['conflicts'][dest]['err']
+
+    elif dest in rentable['renames']:
+        # this name is taken, invalidate both names
+        temp = rentable['renames'][dest]
+        del rentable['renames'][dest]
+        rentable['conflicts'][dest] = { 'srcs':[temp,src], 'err': {4} }
+        errset = rentable['conflicts'][dest]['err']
+
+    else:
+        if os.path.exists(dest) and dest not in fileset:
+            # name exists and not in files found
+            # which means it won't be renamed
+            errset.add(4)
+
+        if dest == src:
+            errset.add(0);
+
+        if bname == '':
+            errset.add(1);
+        elif bname[0] == '.':
+            errset.add(2);
+        elif '/' in bname:
+            errset.add(3);
+
+        if errset:
+            rentable['conflicts'][dest] = { 'srcs': [src], 'err': errset }
+
+    if errset:
+        cascade(rentable, dest)
+    else:
+        rentable['renames'][dest] = src
 
 
 def cascade(rentable, dest):
