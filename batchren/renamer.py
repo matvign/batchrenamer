@@ -5,6 +5,9 @@ from collections import deque, OrderedDict
 
 from natsort import natsorted, ns
 
+BOLD = '\033[1m'
+END = '\033[0m'
+
 # issuecodes for printing rentable
 issues = {
     0: 'no filters applied',
@@ -233,7 +236,7 @@ def print_rentable(rentable, quiet, verbose):
         conflicts = OrderedDict(natsorted(conf.items(), key=lambda x:x[0], alg=ns.PATH))
 
         if conflicts:
-            print('{:-^30}'.format('issues/conflicts'))
+            print('{:-^30}'.format(BOLD+'issues/conflicts'+END))
             print('the following files will NOT be renamed')
             for dest, obj in conflicts.items():
                 srcOut = natsorted(obj['srcs'], alg=ns.PATH)
@@ -246,13 +249,13 @@ def print_rentable(rentable, quiet, verbose):
             print()
 
         elif verbose:
-            print('{:-^30}'.format('issues/conflicts'))
+            print('{:-^30}'.format(BOLD+'issues/conflicts'+END))
             print('no conflicts found')
             print()
 
     # always show this output
     # produces tuples (dest, src) sorted by src
-    print('{:-^30}'.format('rename'))
+    print('{:-^30}'.format(BOLD+'rename'+END))
     renames = natsorted(ren.items(), key=lambda x:x[1], alg=ns.PATH)
     if renames:
         print('the following files can be renamed:')

@@ -8,21 +8,11 @@ from natsort import natsorted, ns
 from _version import __version__
 import renamer
 
-
 def printArgs(args):
-    print('{:-^30}'.format('arguments'))
+    print('{:-^30}'.format(renamer.BOLD+'arguments'+renamer.END))
     for argname, argval in sorted(vars(args).items()):
         if argval:
             print('    {}: {}'.format(argname, argval))
-    print()
-
-
-def printFound(fileset):
-    print('{:-^30}'.format('files found'))
-    if not fileset:
-        print('no files found')
-    for n in natsorted(fileset, alg=ns.PATH):
-        print('    {}'.format(n))
     print()
 
 
@@ -38,11 +28,11 @@ def main(args):
         return
 
     if not fileset:
-        print('{:-^30}'.format('files found'))
+        print('{:-^30}'.format(renamer.BOLD+'files found'+renamer.END))
         print('no files found\n')
 
     elif args.verbose:
-        print('{:-^30}'.format('files found'))
+        print('{:-^30}'.format(renamer.BOLD+'files found'+renamer.END))
         for n in natsorted(fileset, alg=ns.PATH):
             print('    ', n)
         print()
