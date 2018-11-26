@@ -1,7 +1,7 @@
 # Documentation - v0.5.0
 batchren - a batch renamer  
 batchren is a python script for batch renaming files. batchren uses unix style 
-pattern matching to look for files and uses a number of optional arguments to 
+pattern matching to look for files and uses optional arguments to 
 be applied to the set of files found.  
 Files are placed into a set with glob, then renamed based on 
 the optional arguments. 
@@ -16,22 +16,22 @@ command line. The following is enabled:
 * fromfile_prefix_char: accept arguments from file
 
 ### Arguments:
-dir: specifies the file pattern to search for.  
-Expands file pattern into directories. Only works for file patterns ending with a slash. Doesn't apply to paths using special characters.  
+path: specifies the file pattern to search for. If using wildcards, surround the pattern in quotes. 
+Expands pattern into directories or those ending with a slash. Doesn't apply to paths using special characters.  
 e.g. testdir/ -> testdir/\*
 
 ### Optional arguments:  
 ```
-spaces:     replace whitespace with specified char. replace with underscore by default  
-translate:  replaces specified characters with opposing characters. argument lengths must be equal  
-slice:      slices a portion of the file. must follow 'start:end:step' format (can have missing values)  
+spaces:     replace whitespace with specified char. default character is underscore (_)  
+translate:  replaces characters with opposing characters. argument lengths must be equal  
+slice:      slices a portion of the file to keep. must follow 'start:end:step' format (can have missing values)  
 case:       changes case of file to upper/lower/swap/capitalise word  
 bracr:      remove brackets and text.  
-append:     append text to file  
 prepend:    prepend text to file  
-sequence:   use numbers and append  
-extension:  change extension of file  
-regex:      use regex to replace. one argument removes that instance  
+postpend:     append text to file  
+sequence:   apply a sequence to the file  
+extension:  change extension of file (empty extensions are allowed)  
+regex:      use regex to replace. a single argument removes that instance  
 quiet:      suppress output. only shows what will be renamed and prompt  
 verbose:    show what args were invoked and prompts for every file rename  
 version:    show version  
@@ -46,11 +46,11 @@ different modules.
 
 glob.iglob()
 * simplest with the most support
-* treats hidden files as special
-* supports recursion, not that it should be used
+* doesn't include hidden files
+* supports recursion (not that it should be used)
 
 pathlib
-* full directory management
+* complete directory management
 * has its own implementation of glob
 * hashable
 * complex
@@ -60,20 +60,18 @@ At the moment we're using glob. pathlib is an option if we want less imports.
 
 # 1.3 File renaming filters
 ## 1.3.1 Filters and order
-Filters have a order that they are applied in. The general idea is that we want 
-to change/remove before adding characters. It wouldn't make sense to change 
-things that we want to add.
+Filters have a order that they are applied in. The general idea is that characters are removed/replaced before adding characters.
 
 Filters are run in the following order:
 1. regex
 2. slice
-3. sequence
+3. bracket remove
 4. translate
 5. spaces
-6. bracket remove
-7. case
-8. prefix
-9. postfix
+6. case
+7. sequence
+8. prepend
+9. postpend
 10. extention (only applies to extension)
 11. str.strip (always applied to basename and ext)
 
@@ -82,10 +80,9 @@ Filters are run in the following order:
 Filenames are passed in from file pattern matching and split into
 directory, basename and ext. Each basename is run against a list 
 of filters. Filters are implemented as lambda expressions in a list.  
-A list of supported filters can be found above (1.3.1).
+A list of filters can be found above (1.3.1).
 
-The resulting filename is then recombined and processed to determine
-if it is safe to rename.
+The resulting filename is then recombined and processed to determine if it is safe to rename.
 
 
 # 1.4 Processing rename information
@@ -109,25 +106,25 @@ that can be renamed safely. Using the sorted method, we can create a
 queue of (src, dest) files to rename.
 
 The conflicts field contains dest to an object. 
-The object contains a list of source names as well as an error field.
+The object contains a list of source names as well as a set of errors.
 When printing the conflicts, we provide a few options.
-1. If normal, only show conflicts if they existed. Don't show reasons.
+1. If normal, show conflicts if they existed. Don't show reasons.
 2. If verbose, always show conflict section. Show files and reason for conflict.
 3. If quiet, don't show any information about conflicts
 
 
 ## 1.4.2 Conflict resolution
-Filenames need to be checked for renaming conflicts. This is because
-renaming a file to an existing file will overwrite the file.  
+Filenames need to be checked for renaming conflicts. Renaming a file has the potential to overwrite an existing file.  
 This is undesired behaviour so we need to ensure that it doesn't happen.
 
 There are different renaming conflicts that can occur:
 1. a file had no filters applied
-2. two files are trying to rename itself to the same name
-3. file tries to rename itself to a file (or dir) that won't be renamed
-4. file tries to rename itself to a file that will be renamed
+2. new file name is empty
+3. a file has a slash in it or a dot in front
+4. two or more files are being renamed to the same name
+5. file tries to rename itself to a file (or directory) that won't be renamed
 
-note: the third conflict is a potential cycle (see 1.4.1.2)
+note: the fifth conflict is a potential cycle (see 1.4.3)
 
 Checking for a cycle is expensive and complicated. For this reason
 we only consider conflict checking for the first two cases above and
@@ -148,16 +145,16 @@ for every src, dest
             empty string, move to conflicts
         elif dest[0] == '.'
             files should not start with ., move to conflicts
-        elif dest[0] == '/'
+        elif '/' in dest[0]
             files should not start with /, move to conflicts
         else
-            if dest exists and not in fileset
+            if dest exists and not in files found
                 add to conflicts[dest]
-            else
-                add src to renames[dest]
+
+    if no errors
+        move to renames
 '''
-a file/dir not found by the file pattern will not be renamed, hence why
-it is immediately invalid. if a file exists and is in fileset, then we 
+a file/dir not found by the file pattern will not be renamed, hence why it is immediately invalid. if a file exists and is in fileset, then we 
 haven't encountered it yet and can be handled by our cases later.
 '''
 ```
@@ -274,11 +271,10 @@ then continue generating upwards.
 
 ## v0.5.0
 * change help display for metavars
-* cycle and conflict detection
-* new scheme for conflicts
+* better display for renames/conflicts
+* cascade on cycle conflicts
+* collapse adjacent dots, remove spaces and strip dots on right side of extension
 * implement sequence: add a sequence to a file
-* implement shave: remove slices from a file
-* implement whole: treat whole string as filename
 * add tests
 * bug fixes/code cleanup
 
