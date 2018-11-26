@@ -2,6 +2,7 @@
 import os
 import re
 from collections import deque, OrderedDict
+from itertools import groupby
 
 from natsort import natsorted, ns
 
@@ -59,14 +60,18 @@ def askQuery(question):
 def partfile(filepath):
     dirpath, filename = os.path.split(filepath)
     bname, ext = os.path.splitext(filename)
-    return (dirpath, bname, ext[1:])
+    return (dirpath, bname, ext)
 
 
 # recombine dir, basename and extension
 def joinpart(dirpath, bname, ext):
     fname = bname.strip()
     if ext:
-        fname += '.' + ext.strip()
+        ext = '.' + ext.replace(' ', '')
+        ext = re.sub('\.+', '.', ext)
+        ext = ext.rstrip('.')
+        fname += ext
+
     newname = fname
     if dirpath:
         newname = os.path.join(dirpath, fname)
@@ -151,7 +156,7 @@ def renfilter(args, fileset):
 
     filters = initfilters(args)
     for src in natsorted(fileset, alg=ns.PATH):
-        # split filepath into dir, basename and extension
+        # split file into dir, basename and extension
         dirpath, bname, ext = partfile(src)
         for runf in filters:
             bname = runf(bname)
@@ -162,12 +167,12 @@ def renfilter(args, fileset):
 
         # recombine as file+ext, path+file+ext
         bname, dest = joinpart(dirpath, bname, ext)
-        set_rentable(rentable, fileset, dest, bname, src)
+        assign_rentable(rentable, fileset, dest, bname, src)
 
     return rentable
 
 
-def set_rentable(rentable, fileset, dest, bname, src):
+def assign_rentable(rentable, fileset, dest, bname, src):
     errset = set()
     if dest in rentable['conflicts']:
         # this name is already in conflict

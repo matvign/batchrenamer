@@ -143,7 +143,7 @@ prefix_chars='-', only allow arguments with minus (default)
 '''
 parser = argparse.ArgumentParser(
     prog='batchren',
-    usage='python3 %(prog)s.py dir [options]',
+    usage='python3 %(prog)s.py path [options]',
     formatter_class=CustomFormatter,
     description='Batch Renamer - a script for renaming files',
     epilog='note: all special characters should be escaped using quotes',
