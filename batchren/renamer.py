@@ -2,7 +2,6 @@
 import os
 import re
 from collections import deque, OrderedDict
-from itertools import groupby
 
 from natsort import natsorted, ns
 
@@ -67,9 +66,8 @@ def partfile(filepath):
 def joinpart(dirpath, bname, ext):
     fname = bname.strip()
     if ext:
-        ext = '.' + ext.replace(' ', '')
+        ext = '.' + ext.rstrip('.').replace(' ', '')
         ext = re.sub('\.+', '.', ext)
-        ext = ext.rstrip('.')
         fname += ext
 
     newname = fname

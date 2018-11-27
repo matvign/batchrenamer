@@ -5,16 +5,15 @@ import os
 
 from natsort import natsorted, ns
 
-from _version import __version__
-import renamer
+from batchren import renamer
+from batchren._version import __version__
 
 def printArgs(args):
     print('{:-^30}'.format(renamer.BOLD+'arguments'+renamer.END))
     for argname, argval in sorted(vars(args).items()):
         if argval:
             print('    {}: {}'.format(argname, argval))
-    print()
-
+    print(args)
 
 def main(args):
     if args.verbose:
