@@ -11,13 +11,31 @@ from batchren._version import __version__
 def printArgs(args):
     print('{:-^30}'.format(renamer.BOLD+'arguments'+renamer.END))
     for argname, argval in sorted(vars(args).items()):
-        if argval:
+        if argval is not None:
             print('    {}: {}'.format(argname, argval))
-    print(args)
+    print(args, '\n')        
+
+
+def checkArgsSet(args, target=None):
+    notfilter = { 'quiet', 'verbose', 'path' }
+    argdict = vars(args)
+
+    for argname, argval in argdict.items():
+        if argname in notfilter or argval is False:
+            continue
+        if argval is not None:
+            return True
+
+    return False
+
 
 def main(args):
     if args.verbose:
         printArgs(args)
+
+    if not checkArgsSet(args):
+        print("no optional arguments set for renaming")
+        return
 
     try:
         # exclude directories
@@ -33,7 +51,7 @@ def main(args):
     elif args.verbose:
         print('{:-^30}'.format(renamer.BOLD+'files found'+renamer.END))
         for n in natsorted(fileset, alg=ns.PATH):
-            print('    ', n)
+            print(n)
         print()
 
     renamer.start_rename(args, fileset)
