@@ -67,7 +67,7 @@ def joinpart(dirpath, bname, ext):
     fname = bname.strip()
     if ext:
         ext = '.' + ext.rstrip('.').replace(' ', '')
-        ext = re.sub('\.+', '.', ext)
+        ext = re.sub(r'\.+', '.', ext)
         fname += ext
 
     newname = fname

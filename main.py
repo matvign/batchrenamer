@@ -49,6 +49,13 @@ def expanddir(path):
     return path
 
 
+def illegalextension(ext):
+    err1 = "argument -ext/--extension: illegal character found in extension"
+    if '/' in ext or '\\' in ext:
+        parser.error(err1)
+    return ext
+
+
 # enforce length of translate must be equal
 class TranslateAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -168,7 +175,7 @@ parser.add_argument('-pre', '--prepend', metavar='STR',
                     help='prepend string to filename')
 parser.add_argument('-post', '--postpend', metavar='STR',
                     help='append string to filename')
-parser.add_argument('-ext', '--extension', metavar='EXT',
+parser.add_argument('-ext', '--extension', metavar='EXT', type=illegalextension,
                     help="change last file extension (e.g. mp4, '')")
 parser.add_argument('-re', '--regex', nargs='+', action=RegexAction,
                     help='specify pattern to replace')
