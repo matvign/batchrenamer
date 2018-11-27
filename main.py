@@ -8,16 +8,17 @@ from natsort import natsorted, ns
 from batchren import renamer
 from batchren._version import __version__
 
+
 def printArgs(args):
-    print('{:-^30}'.format(renamer.BOLD+'arguments'+renamer.END))
+    print('{:-^30}'.format(renamer.BOLD + 'arguments' + renamer.END))
     for argname, argval in sorted(vars(args).items()):
         if argval is not None:
             print('    {}: {}'.format(argname, argval))
-    print(args, '\n')        
+    print(args, '\n')
 
 
-def checkArgsSet(args, target=None):
-    notfilter = { 'quiet', 'verbose', 'path' }
+def checkOptsSet(args):
+    notfilter = {'quiet', 'verbose', 'path'}
     argdict = vars(args)
 
     for argname, argval in argdict.items():
@@ -33,7 +34,7 @@ def main(args):
     if args.verbose:
         printArgs(args)
 
-    if not checkArgsSet(args):
+    if not checkOptsSet(args):
         print("no optional arguments set for renaming")
         return
 
@@ -45,11 +46,11 @@ def main(args):
         return
 
     if not fileset:
-        print('{:-^30}'.format(renamer.BOLD+'files found'+renamer.END))
+        print('{:-^30}'.format(renamer.BOLD + 'files found' + renamer.END))
         print('no files found\n')
 
     elif args.verbose:
-        print('{:-^30}'.format(renamer.BOLD+'files found'+renamer.END))
+        print('{:-^30}'.format(renamer.BOLD + 'files found' + renamer.END))
         for n in natsorted(fileset, alg=ns.PATH):
             print(n)
         print()
@@ -94,8 +95,8 @@ class SliceAction(argparse.Action):
         err2 = 'argument -sl/--slice: non-numeric character in slice'
         # to keep it simple, have '::' as our format
         try:
-            sl = slice(*map
-                (lambda x: int(x.strip()) if x.strip() else None, values.split(':'))
+            sl = slice(
+                *map(lambda x: int(x.strip()) if x.strip() else None, values.split(':'))
             )
         except TypeError:
             parser.error(err1)
@@ -112,7 +113,7 @@ class RegexAction(argparse.Action):
             parser.error(err1)
 
         if (len(values) == 1):
-            values.append('');
+            values.append('')
         namespace.regex = values
 
 
@@ -146,7 +147,7 @@ class CustomFormatter(argparse.HelpFormatter):
 
             # if the Optional takes a value, format is:
             #    -s ARGS, --long ARGS
-            # change to 
+            # change to
             #    -s, --long ARGS
             else:
                 default = action.dest.upper()
@@ -156,7 +157,7 @@ class CustomFormatter(argparse.HelpFormatter):
                         continue
                     parts.append('%s' % option_string)
                 args_string = self._hack_metavar(option_string, args_string)
-                parts[-1] += ' %s'%args_string
+                parts[-1] += ' %s' % args_string
             return ', '.join(parts)
 
 
@@ -184,8 +185,8 @@ parser.add_argument('-tr', '--translate', nargs='*', action=TranslateAction,
 parser.add_argument('-sl', '--slice', action=SliceAction,
                     metavar='start:end:step',
                     help='slice a portion of the filename')
-parser.add_argument('-c', '--case', 
-                    choices=['upper', 'lower', 'swap', 'cap'], 
+parser.add_argument('-c', '--case',
+                    choices=['upper', 'lower', 'swap', 'cap'],
                     help='convert filename case')
 parser.add_argument('-bracr', action='store_true',
                     help='remove brackets and their contents')

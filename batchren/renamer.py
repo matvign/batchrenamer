@@ -42,7 +42,7 @@ class seqObj:
 
 def askQuery(question):
     valid = {"yes": True, "y": True, "ye": True,
-             "no": False, "n": False, "q": False }
+             "no": False, "n": False, "q": False}
 
     while True:
         print(question, "[y/n] ", end='')
@@ -81,7 +81,7 @@ def joinpart(dirpath, bname, ext):
 def runfilters(filters, dirpath, filename):
     newname = filename
     for runf in filters:
-        if isinstanceof(runf, seqObj):
+        if isinstance(runf, seqObj):
             newname = runf(dirpath, filename)
         else:
             newname = runf(filename)
@@ -131,11 +131,11 @@ def initfilters(args):
     # args.sequence
 
     if args.prepend:
-        prepend = lambda x: args.prepend+x
+        prepend = lambda x: args.prepend + x
         filters.append(prepend)
 
     if args.postpend:
-        postpend = lambda x: x+args.postpend
+        postpend = lambda x: x + args.postpend
         filters.append(postpend)
 
     return filters
@@ -144,8 +144,8 @@ def initfilters(args):
 def renfilter(args, fileset):
     # create table of renames/conflicts
     rentable = {
-        'renames': { 
-            # dest: src 
+        'renames': {
+            # dest: src
         },
         'conflicts': {
             # dest: { srcs: [src], err: set() }
@@ -182,7 +182,7 @@ def assign_rentable(rentable, fileset, dest, bname, src):
         # this name is taken, invalidate both names
         temp = rentable['renames'][dest]
         del rentable['renames'][dest]
-        rentable['conflicts'][dest] = { 'srcs':[temp,src], 'err': {4} }
+        rentable['conflicts'][dest] = {'srcs': [temp, src], 'err': {4}}
         errset = rentable['conflicts'][dest]['err']
 
     else:
@@ -192,17 +192,17 @@ def assign_rentable(rentable, fileset, dest, bname, src):
             errset.add(4)
 
         if dest == src:
-            errset.add(0);
+            errset.add(0)
 
         if bname == '':
-            errset.add(1);
+            errset.add(1)
         elif bname[0] == '.':
-            errset.add(2);
+            errset.add(2)
         elif '/' in bname:
-            errset.add(3);
+            errset.add(3)
 
         if errset:
-            rentable['conflicts'][dest] = { 'srcs': [src], 'err': errset }
+            rentable['conflicts'][dest] = {'srcs': [src], 'err': errset}
 
     if errset:
         cascade(rentable, dest)
@@ -224,22 +224,23 @@ def cascade(rentable, dest):
         return
 
 
-'''
-print out contents of rentable, showing files that can be
-safely renamed and files that are in conflict.
-sort contents for display reasons.
-return sorted contents of what can be renamed (produces tuples)
-'''
 def print_rentable(rentable, quiet, verbose):
-    ren  = rentable['renames']
+    '''
+    print out contents of rentable, showing files that can be
+    safely renamed and files that are in conflict.
+    sort contents for display reasons.
+    return sorted contents of what can be renamed (produces tuples)
+    '''
+
+    ren = rentable['renames']
     conf = rentable['conflicts']
 
     if not quiet:
         # skip this if quiet
-        conflicts = OrderedDict(natsorted(conf.items(), key=lambda x:x[0], alg=ns.PATH))
+        conflicts = OrderedDict(natsorted(conf.items(), key=lambda x: x[0], alg=ns.PATH))
 
         if conflicts:
-            print('{:-^30}'.format(BOLD+'issues/conflicts'+END))
+            print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
             print('the following files will NOT be renamed')
             for dest, obj in conflicts.items():
                 srcOut = natsorted(obj['srcs'], alg=ns.PATH)
@@ -252,14 +253,14 @@ def print_rentable(rentable, quiet, verbose):
             print()
 
         elif verbose:
-            print('{:-^30}'.format(BOLD+'issues/conflicts'+END))
+            print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
             print('no conflicts found')
             print()
 
     # always show this output
     # produces tuples (dest, src) sorted by src
-    print('{:-^30}'.format(BOLD+'rename'+END))
-    renames = natsorted(ren.items(), key=lambda x:x[1], alg=ns.PATH)
+    print('{:-^30}'.format(BOLD + 'rename' + END))
+    renames = natsorted(ren.items(), key=lambda x: x[1], alg=ns.PATH)
     if renames:
         print('the following files can be renamed:')
         for dest, src in renames:
@@ -296,7 +297,7 @@ def run_rename(queue, args):
         else:
             # no conflict, just rename
             if args.verbose and not \
-                askQuery("rename ['{}'] to ['{}']?".format(src, dest)):
+                    askQuery("rename ['{}'] to ['{}']?".format(src, dest)):
                 continue
             rename_file(src, dest)
 

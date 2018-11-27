@@ -9,52 +9,37 @@ tests for parser
 
 parser = main.parser
 
+
 def test_parser_version():
     print(main.__version__, _version.__version__)
     assert main.__version__ == _version.__version__
 
-def test_parser_expanddir_01():
-    data = ['tests', '-v']
-    args = parser.parse_args(data)
-    print(args)
-    assert args.path == 'tests/*'
 
-def test_parser_expanddir_02():
-    data = ['tests/', '-v']
-    args = parser.parse_args(data)
+@pytest.mark.parametrize("path_args, path_res", [
+    (['tests', '-v'], 'tests/*'),
+    (['tests/', '-v'], 'tests/*')
+])
+def test_parser_expanddir(path_args, path_res):
+    args = parser.parse_args(path_args)
     print(args)
-    assert args.path == 'tests/*'
+    assert args.path == path_res
 
-def test_parser_translate_01():
+
+def test_parser_translate():
     data = ['tests/testdir', '-tr', 'ab', 'cd', '-v']
     args = parser.parse_args(data)
     print(args.translate)
     assert args.translate == ('ab', 'cd')
 
-def test_parser_translate_02():
-    data = ['tests/testdir', '-tr', '-v']
-    with pytest.raises(SystemExit) as err:
-        args = parser.parse_args(data)
-        print("No arguments, should exit")
-        assert err.type == SystemExit
 
-def test_parser_translate_03():
-    data = ['tests/testdir', '-tr', 'a', '-v']
+@pytest.mark.parametrize("tr_errargs", [
+    (['-v']),
+    (['a', '-v']),
+    (['a', 'b', 'c', '-v']),
+    (['a', 'bc', '-v'])
+])
+def test_parser_translate_err(tr_errargs):
     with pytest.raises(SystemExit) as err:
-        args = parser.parse_args(data)
-        print("Missing argument, should exit")
-        assert err.type == SystemExit
-
-def test_parser_translate_04():
-    data = ['tests/testdir', '-tr', 'a', 'b', 'c', '-v']
-    with pytest.raises(SystemExit) as err:
-        args = parser.parse_args(data)
-        print("Too many arguments, should exit")
-        assert err.type == SystemExit
-
-def test_parser_translate_04():
-    data = ['tests/testdir', '-tr', 'a', 'bc', '-v']
-    with pytest.raises(SystemExit) as err:
-        args = parser.parse_args(data)
-        print("lengths aren't equal, should exit")
+        args = parser.parse_args(['-tr', *tr_errargs])
+        print(tr_errargs, "is erroneous")
         assert err.type == SystemExit

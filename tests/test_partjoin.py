@@ -7,8 +7,11 @@ from batchren import renamer
 tests for splitting/joining file parts
 '''
 
-@pytest.mark.parametrize("partfname, partfres", [
+
+@pytest.mark.parametrize("partf_name, partf_res", [
     # filepath, (dirpath, file, ext)
+    # when there is more than one extension, take the last extension
+    # the rest is treated as filename
     ("file", ("", "file", "")),
     ("file.mp4", ("", "file", ".mp4")),
     ("file.mp4.mp5", ("", "file.mp4", ".mp5")),
@@ -17,20 +20,23 @@ tests for splitting/joining file parts
     ("parent/file.mp4.mp5", ("parent", "file.mp4", ".mp5")),
     ("parent/subdir/file.mp4.mp5", ("parent/subdir", "file.mp4", ".mp5"))
 ])
-def test_partfile_param(partfname, partfres):
-    res = renamer.partfile(partfname)
+def test_partfile_param(partf_name, partf_res):
+    res = renamer.partfile(partf_name)
     print(res)
-    assert res == partfres
+    assert res == partf_res
 
 
-@pytest.mark.parametrize("joinfname, joinfres", [
+@pytest.mark.parametrize("joinf_name, joinf_res", [
     # (dirpath, file, ext), (fullname fullpath)
+    # when there is no parent, fullname is just the filename
+    # when parent is present, join parts together
+    # for extensions, remove whitespace and collapse adjacent dots
     (("", "file", ""), ("file", "file")),
     (("parent", "file", "mp4"), ("file.mp4", "parent/file.mp4")),
     (("/parent", "file", "mp4.sav"), ("file.mp4.sav", "/parent/file.mp4.sav")),
-    (("parent", "file", "...ext?.ext..ext?.."), ("file.ext?.ext.ext?", "parent/file.ext?.ext.ext?"))
+    (("parent", "file", "...  e  xt?. ext.  .ext?.."), ("file.ext?.ext.ext?", "parent/file.ext?.ext.ext?"))
 ])
-def test_joinpart_param(joinfname, joinfres):
-    res = renamer.joinpart(*joinfname)
+def test_joinpart_param(joinf_name, joinf_res):
+    res = renamer.joinpart(*joinf_name)
     print(res)
-    assert res == joinfres
+    assert res == joinf_res
