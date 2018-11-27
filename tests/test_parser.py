@@ -3,6 +3,10 @@ import pytest
 import main
 from batchren import _version
 
+'''
+tests for parser
+'''
+
 parser = main.parser
 
 def test_parser_version():
