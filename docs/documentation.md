@@ -8,7 +8,7 @@ the optional arguments.
 
 
 # 1. Implementation detail
-## 1.1 batchren argument parsing
+# 1.1 Batchren argument parsing
 argparse is the module used to implement argument parsing from the
 command line. The following is enabled:
 * epilog: prints version after help
@@ -32,30 +32,21 @@ postpend:     append text to file
 sequence:   apply a sequence to the file  
 extension:  change extension of file (empty extensions are allowed)  
 regex:      use regex to replace. a single argument removes that instance  
-quiet:      suppress output. only shows what will be renamed and prompt  
-verbose:    show what args were invoked and prompts for every file rename  
+quiet:      see section 1.5  
+verbose:    see section 1.5  
 version:    show version  
 ```
 note: arguments that require special characters should be encased in quotes  
 e.g. `python3 batchren.py 'testdir/*' -tr '[]' '()'`
 
 
-## 1.2 File and pattern matching
-Unix style pattern matching can be implemented using a number of
-different modules.
+# 1.2 File and pattern matching
+Unix style pattern matching is implmented using the python glob module.
 
 glob.iglob()
 * simplest with the most support
 * doesn't include hidden files
 * supports recursion (not that it should be used)
-
-pathlib
-* complete directory management
-* has its own implementation of glob
-* hashable
-* complex
-
-At the moment we're using glob. pathlib is an option if we want less imports.
 
 
 # 1.3 File renaming filters
@@ -79,8 +70,7 @@ Filters are run in the following order:
 ## 1.3.2 Filter implementation
 Filenames are passed in from file pattern matching and split into
 directory, basename and ext. Each basename is run against a list 
-of filters. Filters are implemented as lambda expressions in a list.  
-A list of filters can be found above (1.3.1).
+of filters. Filters are implemented as classes, functions or lambda expressions in a list.  
 
 The resulting filename is then recombined and processed to determine if it is safe to rename.
 
@@ -90,73 +80,90 @@ The resulting filename is then recombined and processed to determine if it is sa
 After filtering filenames, we categorise them into a nested dict:
 ```python
 rentable = {
-    'renames': { 
-        # dest: src 
-    },
-    'conflicts': {
-        # dest: {
-        #   srcs: [srcs]
-        #   err: { error codes}
-        # }
-    }
+    'renames': { dest: src },
+    'conflicts': { dest: {srcs: [srcs], err: { error codes }} }
+    'unresolvable': set()
 }
 ```
-The renames field contains dest to src mappings. These are the files 
-that can be renamed safely. Using the sorted method, we can create a 
-queue of (src, dest) files to rename.
+### Renames
+The renames field contains dest to src mappings. These are files that
+can and will be renamed.  
+We can easily create a queue of (src, dest) for renaming.
 
-The conflicts field contains dest to an object. 
-The object contains a list of source names as well as a set of errors.
-When printing the conflicts, we provide a few options.
-1. If normal, show conflicts if they existed. Don't show reasons.
-2. If verbose, always show conflict section. Show files and reason for conflict.
-3. If quiet, don't show any information about conflicts
+### Conflicts
+Filenames need to be checked for renaming conflicts since renaming can
+potentially overwrite a file.  
+The conflicts field contains detailed information about files that have
+issues or cannot be renamed.
+* dest: file name that caused an error
+* srcs: list of file names attempting to rename to dest
+* err: set of error codes explaining why the dest is erroneous
+
+### Unresolvable
+Unresolvable conflicts are files that will not be renamed.  
+Unresolvable conflicts are srcs from conflicts. Anything that attempts
+to rename to a file in this field is also a conflict.
 
 
 ## 1.4.2 Conflict resolution
-Filenames need to be checked for renaming conflicts. Renaming a file has the potential to overwrite an existing file.  
-This is undesired behaviour so we need to ensure that it doesn't happen.
-
 There are different renaming conflicts that can occur:
-1. a file had no filters applied
-2. new file name is empty
-3. a file has a slash in it or a dot in front
-4. two or more files are being renamed to the same name
-5. file tries to rename itself to a file (or directory) that won't be renamed
+1. a file name has not changed
+2. the base name is empty (e.g. parent/file -> parent/)
+3. the base name begins with a dot (e.g. file -> .file)
+4. the base name contains a slash (e.g. file -> fi/le)
+5. file tries to rename to a file or directory that won't be renamed
+6. two or more files are being renamed to the same name
+7. file name is already in conflicts
 
-note: the fifth conflict is a potential cycle (see 1.4.3)
-
-Checking for a cycle is expensive and complicated. For this reason
-we only consider conflict checking for the first two cases above and
-handle cycles with another method.
-
-The following applies:
+To build the rename table, the following applies:
 ```
 for every src, dest
+    errset = set()
     if dest is in conflict
-        add src into conflicts[dest]
+        add err to errset
+        add dest into conflicts
+        cascade(src)
+
     elif dest is in renames
-        invalidate all dest in rentable
-        add all dest to conflicts[dest]
+        add err to errset
+        add both entries to conflicts
+        cascade(src)
+
     else
         if dest == src
-            no filters applied, move to conflicts
-        elif dest == ''
-            empty string, move to conflicts
-        elif dest[0] == '.'
-            files should not start with ., move to conflicts
-        elif '/' in dest[0]
-            files should not start with /, move to conflicts
-        else
-            if dest exists and not in files found
-                add to conflicts[dest]
+            add err to errset
+        if dest == ''
+            add err to errset
+        if dest[0] == '.'
+            add err to errset
+        if '/' in dest[0]
+            add err to errset
+        
+        if dest not in files found and exists
+            add err to errset
+
+        if errors in errset
+            add dest to conflicts
+            cascade(src)
 
     if no errors
         move to renames
+
+cascade(target)
 '''
-a file/dir not found by the file pattern will not be renamed, hence why it is immediately invalid. if a file exists and is in fileset, then we 
-haven't encountered it yet and can be handled by our cases later.
+we need to mark srcs as unusable and invalidate entries in 'renames'  
+that want to rename to our target.  
+See 1.4.3 Cycle Resolution
 '''
+dest = target
+while true
+    add dest to unresolvable
+    if dest in renames
+        temp = renames[dest]
+        move dest to conflicts
+        dest = temp
+        continue
+    break
 ```
 ```
 dir
@@ -180,30 +187,97 @@ dir
   filex -> filey (conflict with filey, resolvable)
   filey -> filez
 ```
+filex -> filey will cause a conflict since filey already exists.
+It is possible to delay filex and rename filey -> filez first. 
+This way filex can rename to filey safely without conflict.  
 
-filex -> filey will cause an overwrite. However, it is possible to delay
-filex and rename filey first. This way the conflict resolves itself.  
-However, in the case of filea, fileb, filec and filed a cycle will be
-formed and cannot be resolved.
-The best way to resolve this is to use two pass renaming.
-Create a random sequence whenever we get conflicts like this.
+However, a cycle will form for filea, fileb, filec and filed which cannot 
+be resolved through reordering.  
+The best way to resolve this is to use two pass renaming. 
+Generate a random sequence followed by a number to break the cycle. 
+If the generated sequence already exists, continue generating upwards.
 
+For simplicity we apply two pass renaming for every conflict that we
+encounter.
 ```
 dir:
-    filea           -> fileb (conflict, remove and get random sequence)
-    filea           -> filea_1230
-    fileb           -> filec (conflict)
-    filec           -> filed (conflict)
-    filed           -> filea (no conflict, if filea -> filea_1230)
-    filea_1230      -> fileb
+    filea           -> fileb (conflict with fileb, get random sequence)
+    filea           -> filea_1
+    fileb           -> filec (conflict with filec)
+    filec           -> filed (conflict with filed)
+    filed           -> filea (no conflict if filea -> filea_1)
+    filea_1         -> fileb
+```
+There are also cases where invalid cycles need to invalidate members.
+```
+dir
+    filea           -> fileb
+    fileb           -> filec
+    filec           -> filec (conflict)
+```
+Since filec won't be renamed, fileb can't be renamed to filec, 
+and filea can't be renamed to fileb. So the entire cycle is invalid.  
+
+To deal with this we use a cascade function, which removes names related
+to the conflict. We also mark each conflicted src as unusable 
+so that nothing else attempts to use it.
+```
+dir
+    filea           -> fileb (removed by cascade)
+    fileb           -> filec (removed by cascade)
+    filec           -> filed (removed by cascade)
+    filed           -> fil/ed (invalid name, cascade on filed)
+    fileg           -> filea (conflict, filea is marked as unusable)
 ```
 
-In this case, filea - filed is a cycle, so we have to use two pass for
-every conflict we find.
+# 1.5 Displaying information
+There are different behaviours depending on the arguments quiet and verbose. Only one can be set at any time.
 
-For simplicity generate numbers instead of random strings. Files are
-appended with an underscore and a number. If the file already exists 
-then continue generating upwards.
+## 1.5.1 Parser level
+The parser level is where arguments are read in.  
+The following applies:
+* If verbose, show arguments used
+* If no optional arguments set, quit
+* If no files found, quit
+* If verbose and files found, show files found
+```
+if verbose:
+    show arguments used
+if no optional arguments set
+    show 'no optional arguments set for renaming'
+    quit
+else
+    if no files found
+        show 'no files found'
+        quit
+    if verbose
+        show files found
+```
+
+
+## 1.5.2 Renamer level
+The renamer level is showing the contents things that can be renamed or have errors.
+For conflicts:
+* If quiet, show no conflict information
+* If verbose, show detailed errors
+* If not quiet, not verbose, no errors, show nothing
+* If not quiet, not verbose, errors exist, show files that won't be renamed
+```
+if quiet
+    show nothing
+elif verbose
+    if conflicts
+        show detailed errors
+    else
+        show 'no conflicts found'
+elif not quiet and not verbose and conflicts
+    show files that won't be renamed
+
+if renames
+    show files to be renamed
+else
+    show 'no files to rename'
+```
 
 
 # Changelog

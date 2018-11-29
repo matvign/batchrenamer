@@ -16,6 +16,7 @@ def test_parser_version():
 
 
 @pytest.mark.parametrize("path_args, path_res", [
+    # tests for expanding directories
     (['tests', '-v'], 'tests/*'),
     (['tests/', '-v'], 'tests/*')
 ])
@@ -33,6 +34,8 @@ def test_parser_translate():
 
 
 @pytest.mark.parametrize("tr_errargs", [
+    # errors for translate parser
+    # translate expects two arguments, both same length
     (['-v']),
     (['a', '-v']),
     (['a', 'b', 'c', '-v']),

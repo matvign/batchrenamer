@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import re
+import sys
 from collections import deque, OrderedDict
 
 from natsort import natsorted, ns
@@ -15,7 +16,7 @@ issues = {
     2: 'new name cannot start with .',
     3: 'new name cannot contain /',
     4: 'shared name conflict',
-    5: 'chain conflict'
+    5: 'unresolvable conflict'
 }
 
 
@@ -144,12 +145,9 @@ def initfilters(args):
 def renfilter(args, fileset):
     # create table of renames/conflicts
     rentable = {
-        'renames': {
-            # dest: src
-        },
-        'conflicts': {
-            # dest: { srcs: [src], err: set() }
-        }
+        'renames': {},
+        'conflicts': {},
+        'unresolvable': set()
     }
 
     filters = initfilters(args)
@@ -173,20 +171,33 @@ def renfilter(args, fileset):
 def assign_rentable(rentable, fileset, dest, bname, src):
     errset = set()
     if dest in rentable['conflicts']:
-        # this name is already in conflict
+        # this name is already in conflict, add src to conflicts
         rentable['conflicts'][dest]['srcs'].append(src)
         rentable['conflicts'][dest]['err'].add(4)
         errset = rentable['conflicts'][dest]['err']
+        cascade(rentable, src)
 
     elif dest in rentable['renames']:
         # this name is taken, invalidate both names
+        if dest == src:
+            errset.add(0)
+        errset.add(4)
+
         temp = rentable['renames'][dest]
         del rentable['renames'][dest]
-        rentable['conflicts'][dest] = {'srcs': [temp, src], 'err': {4}}
-        errset = rentable['conflicts'][dest]['err']
+        rentable['conflicts'][dest] = {'srcs': [temp, src], 'err': errset}
+        for n in rentable['conflicts'][dest]['srcs']:
+            cascade(rentable, n)
+
+    elif dest in rentable['unresolvable']:
+        # add dest that tries to rename to something that won't
+        # be renamed
+        errset.add(5)
+        rentable['conflicts'][dest] = {'srcs': [src], 'err': errset}
+        cascade(rentable, src)
 
     else:
-        if os.path.exists(dest) and dest not in fileset:
+        if dest not in fileset and os.path.exists(dest):
             # name exists and not in files found
             # which means it won't be renamed
             errset.add(4)
@@ -196,35 +207,42 @@ def assign_rentable(rentable, fileset, dest, bname, src):
 
         if bname == '':
             errset.add(1)
-        elif bname[0] == '.':
+
+        if bname[0] == '.':
             errset.add(2)
-        elif '/' in bname:
+
+        if '/' in bname:
             errset.add(3)
 
         if errset:
             rentable['conflicts'][dest] = {'srcs': [src], 'err': errset}
+            cascade(rentable, src)
 
-    if errset:
-        cascade(rentable, dest)
-    else:
+    if not errset:
         rentable['renames'][dest] = src
 
 
-def cascade(rentable, dest):
-    ndest = dest
+def cascade(rentable, target):
+    '''
+    when a conflict occurs the src can't be renamed.
+    we need to render src unusable for anything that wants to
+    rename to src, which can't be renamed.
+    include src in rentable['unresolvable'] and add anything
+    that renames to src
+    '''
+    ndest = target
     while True:
+        rentable['unresolvable'].add(ndest)
         if ndest in rentable['renames']:
             temp = rentable['renames'][ndest]
             del rentable['renames'][ndest]
-            rentable['conflicts'][ndest] = {
-                'srcs': [temp], 'err': {5}
-            }
+            rentable['conflicts'][ndest] = {'srcs': [temp], 'err': {5}}
             ndest = temp
             continue
         return
 
 
-def print_rentable(rentable, quiet, verbose):
+def print_rentable(rentable, quiet=False, verbose=False):
     '''
     print out contents of rentable, showing files that can be
     safely renamed and files that are in conflict.
@@ -234,28 +252,34 @@ def print_rentable(rentable, quiet, verbose):
 
     ren = rentable['renames']
     conf = rentable['conflicts']
+    unres = rentable['unresolvable']
 
-    if not quiet:
-        # skip this if quiet
-        conflicts = OrderedDict(natsorted(conf.items(), key=lambda x: x[0], alg=ns.PATH))
+    if quiet:
+        # do nothing if quiet
+        pass
 
-        if conflicts:
-            print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
-            print('the following files will NOT be renamed')
+    elif verbose:
+        print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
+        print('the following files will NOT be renamed')
+        if unres:
+            # show detailed output if there were conflicts
+            conflicts = OrderedDict(natsorted(conf.items(), key=lambda x: x[0], alg=ns.PATH))
             for dest, obj in conflicts.items():
                 srcOut = natsorted(obj['srcs'], alg=ns.PATH)
-                if verbose:
-                    print(', '.join([repr(str(e)) for e in srcOut]))
-                    print("--> '{}'\nerrors: ".format(dest), end='')
-                    print(', '.join([issues[e] for e in obj['err']]))
-                else:
-                    print(*["'{}'".format(s) for s in srcOut], sep='\n')
-            print()
+                print(', '.join([repr(str(e)) for e in srcOut]))
+                print("--> '{}'\nerrors: ".format(dest), end='')
+                print(', '.join([issues[e] for e in obj['err']]), '\n')
+        else:
+            # otherwise show a message
+            print('no conflicts found', '\n')
 
-        elif verbose:
-            print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
-            print('no conflicts found')
-            print()
+    elif unres:
+        # don't show anything if there weren't conflicts
+        # otherwise show files that can't be renamed
+        print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
+        print('the following files will NOT be renamed')
+        print(*["'{}'".format(s) for s in sorted(unres)], sep='\n')
+        print()
 
     # always show this output
     # produces tuples (dest, src) sorted by src
@@ -275,7 +299,7 @@ def print_rentable(rentable, quiet, verbose):
 def getFreeFile(dest):
     count = 1
     while(True):
-        temp = dest + ' ' + str(count)
+        temp = dest + '_' + str(count)
         if os.path.exists(temp):
             count += 1
             continue
@@ -290,15 +314,11 @@ def run_rename(queue, args):
             temp = getFreeFile(dest)
 
             if args.verbose:
-                print("conflict detected, temporarily \
-                    renaming '{}' to '{}'".format(src, temp))
-            if rename_file(src, temp):
-                q.append((dest, temp))
+                print("conflict detected, temporarily renaming '{}' to '{}'".format(src, temp))
+            rename_file(src, temp)
+            q.append((dest, temp))
         else:
             # no conflict, just rename
-            if args.verbose and not \
-                    askQuery("rename ['{}'] to ['{}']?".format(src, dest)):
-                continue
             rename_file(src, dest)
 
     print('Finished renaming...')
@@ -309,11 +329,8 @@ def rename_file(src, dest):
         os.rename(src, dest)
     except Exception as err:
         # continue renaming other files if error
-        # print(err)
-        print('An error occurred, skipping this file...')
-        return False
-    else:
-        return True
+        print('A fatal error occurred...', err)
+        sys.exit(1)
 
 
 def start_rename(args, fileset):

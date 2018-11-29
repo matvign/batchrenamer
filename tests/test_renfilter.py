@@ -59,7 +59,8 @@ def test_filter_spaces(sp_arg, sp_dirpath, sp_fname, sp_res):
 
 
 def test_filter_spaces_extra():
-    # special test case where there is a missing argument for spaces, defaults to _
+    # special test case for no arguments
+    # sets spaces to _
     args = parser.parse_args(['-sp'])
     filters = renamer.initfilters(args)
     newname = renamer.runfilters(filters, '', 'file a')
@@ -79,7 +80,8 @@ def test_filter_spaces_extra():
     ('swap', '', 'fIle1', 'FiLE1'),
     ('cap', '', 'file name', 'File Name'),
     ('cap', '', 'file1 1name', 'File1 1Name'),
-    ('cap', '', 'file1_1name', 'File1_1Name')
+    ('cap', '', 'file1_1name', 'File1_1Name'),
+    ('cap', '', 'file1.1name', 'File1.1Name')
 ])
 def test_filter_cases(c_arg, c_dirpath, c_fname, c_res):
     args = parser.parse_args(['-c', c_arg])

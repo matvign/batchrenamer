@@ -12,9 +12,12 @@ from batchren._version import __version__
 def printArgs(args):
     print('{:-^30}'.format(renamer.BOLD + 'arguments' + renamer.END))
     for argname, argval in sorted(vars(args).items()):
+        if argval is False:
+            continue
         if argval is not None:
             print('    {}: {}'.format(argname, argval))
-    print(args, '\n')
+    print()
+    # print(args, '\n')
 
 
 def checkOptsSet(args):
@@ -48,8 +51,9 @@ def main(args):
     if not fileset:
         print('{:-^30}'.format(renamer.BOLD + 'files found' + renamer.END))
         print('no files found\n')
+        return
 
-    elif args.verbose:
+    if args.verbose:
         print('{:-^30}'.format(renamer.BOLD + 'files found' + renamer.END))
         for n in natsorted(fileset, alg=ns.PATH):
             print(n)
@@ -64,7 +68,6 @@ def expanddir(path):
         return path + '*'
     elif os.path.isdir(path):
         return os.path.join(path, '*')
-
     return path
 
 
