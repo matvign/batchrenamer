@@ -6,6 +6,7 @@ import os
 from natsort import natsorted, ns
 
 from batchren import renamer
+from batchren.seqObj import SequenceObj
 from batchren._version import __version__
 
 
@@ -122,7 +123,20 @@ class RegexAction(argparse.Action):
 
 # sequence action, store some format for sequences
 class SequenceAction(argparse.Action):
-    ...
+    def __call__(self, parser, namespace, values, option_string=None):
+        msg = 'argument -seq/--sequence: '
+        err1 = 'missing file formatter %f'
+        try:
+            seqObj = SequenceObj(values)
+        except ValueError as verr:
+            parser.error(msg + verr.args[0])
+        except TypeError as terr:
+            parser.error(msg + terr.args[0])
+        else:
+            if seqObj.is_valid():
+                namespace.sequence = seqObj
+            else:
+                parser.error(msg + err1)
 
 
 class CustomFormatter(argparse.HelpFormatter):
@@ -201,8 +215,8 @@ parser.add_argument('-ext', '--extension', metavar='EXT', type=illegalextension,
                     help="change last file extension (e.g. mp4, '')")
 parser.add_argument('-re', '--regex', nargs='+', action=RegexAction,
                     help='specify pattern to replace')
-# parser.add_argument('-seq', '--sequence', action=SequenceAction,
-#                     help='apply a sequence to files')
+parser.add_argument('-seq', '--sequence', action=SequenceAction,
+                    help='apply a sequence to files')
 outgroup.add_argument('-q', '--quiet', action='store_true',
                     help='skip output, but show confirmations')
 outgroup.add_argument('-v', '--verbose', action='store_true',

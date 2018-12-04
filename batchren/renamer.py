@@ -6,6 +6,8 @@ from collections import deque, OrderedDict
 
 from natsort import natsorted, ns
 
+from batchren.seqObj import SequenceObj
+
 BOLD = '\033[1m'
 END = '\033[0m'
 
@@ -18,27 +20,6 @@ issues = {
     4: 'shared name conflict',
     5: 'unresolvable conflict'
 }
-
-
-class seqObj:
-    def __init__(self, curdir='', optstr='', minval=1, mode=1):
-        self.min = int(minval)
-        self.count = minval
-        self.curdir = curdir
-        self.optstr = optstr
-        self.mode = mode
-
-    def __call__(self, inputdir, bname):
-        if inputdir != self.curdir:
-            self.curdir = inputdir
-            self.count = self.min
-
-        if self.mode:
-            new_name = '{}{}{:02d}'.format(bname, self.optstr, self.count)
-        else:
-            new_name = '{:02d}{}{}'.format(self.count, self.optstr, bname)
-        self.count += 1
-        return new_name
 
 
 def askQuery(question):
@@ -67,8 +48,8 @@ def partfile(filepath):
 def joinpart(dirpath, bname, ext):
     fname = bname.strip()
     if ext:
-        ext = '.' + ext.rstrip('.').replace(' ', '')
-        ext = re.sub(r'\.+', '.', ext)
+        ext = ext.replace(' ', '').strip('.')
+        ext = '.' + re.sub(r'\.+', '.', ext)
         fname += ext
 
     newname = fname
@@ -82,8 +63,9 @@ def joinpart(dirpath, bname, ext):
 def runfilters(filters, dirpath, filename):
     newname = filename
     for runf in filters:
-        if isinstance(runf, seqObj):
-            newname = runf(dirpath, filename)
+        if isinstance(runf, SequenceObj):
+            runf.update_curdir(dirpath)
+            newname = runf(filename)
         else:
             newname = runf(filename)
 
@@ -129,7 +111,8 @@ def initfilters(args):
             case = lambda x: str.title(x)
         filters.append(case)
 
-    # args.sequence
+    if args.sequence:
+        filters.append(args.sequence)
 
     if args.prepend:
         prepend = lambda x: args.prepend + x

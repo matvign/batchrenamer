@@ -70,10 +70,46 @@ Filters are run in the following order:
 ## 1.3.2 Filter implementation
 Filenames are passed in from file pattern matching and split into
 directory, basename and ext. Each basename is run against a list 
-of filters. Filters are implemented as classes, functions or lambda expressions in a list.  
+of filters. Filters are implemented as classes, functions or lambda expressions in a list. The resulting filename is then recombined and processed to determine if it is safe to rename.
 
-The resulting filename is then recombined and processed to determine if it is safe to rename.
+For the most part filters are simple applications of text manipulation.
 
+
+## 1.3.3 Sequences
+The sequence filter is more complicated than other filters as it can track multiple sequences to be applied to a file.
+
+```
+%f
+represents the filename. must be present to be a valid sequence.
+
+pre/%f/post
+represents raw string to be placed before/after filename
+
+%n
+represents a number sequence to be placed before a string.  
+by default starts counting at 1 with 0 padded.
+
+e.g. %n/_/%f
+01_file
+02_file
+...
+10_file
+...
+100_file
+
+%n3:start:end:step
+represents a number sequence with a depth of 3,  
+start counting at start, wrap around at end and increment by step.  
+Much like slicing not all values need to be filled in.
+
+e.g. %n3:2:9:2
+002_file
+004_file
+006_file
+008_file
+002_file
+...
+```
 
 # 1.4 Processing rename information
 ## 1.4.1 Processing renamed strings
@@ -230,10 +266,10 @@ dir
     fileg           -> filea (conflict, filea is marked as unusable)
 ```
 
-# 1.5 Displaying information
+# 2. Displaying information
 There are different behaviours depending on the arguments quiet and verbose. Only one can be set at any time.
 
-## 1.5.1 Parser level
+## 2.1 Parser level
 The parser level is where arguments are read in.  
 The following applies:
 * If verbose, show arguments used
@@ -255,7 +291,7 @@ else
 ```
 
 
-## 1.5.2 Renamer level
+## 2.2 Renamer level
 The renamer level is showing the contents things that can be renamed or have errors.
 For conflicts:
 * If quiet, show no conflict information
@@ -348,7 +384,7 @@ else
 * better display for renames/conflicts
 * cascade on cycle conflicts
 * collapse adjacent dots, remove spaces and strip dots on right side of extension
-* implement sequence: add a sequence to a file
+* implement sequence: add a number sequence to a file
 * add tests
 * bug fixes/code cleanup
 
