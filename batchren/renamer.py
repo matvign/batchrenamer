@@ -37,20 +37,25 @@ def askQuery(question):
             print("Please respond with 'yes' or 'no'")
 
 
-# split filepath into dir, basename and extension
 def partfile(filepath):
+    '''
+    split filepath into dir, basename and extensions
+    '''
     dirpath, filename = os.path.split(filepath)
     bname, ext = os.path.splitext(filename)
     return (dirpath, bname, ext)
 
 
-# recombine dir, basename and extension
 def joinpart(dirpath, bname, ext):
+    '''
+    Combine directory path, base name and extension.
+    Remove spaces and dots on left/right side of extension.
+    Collapse dots in extension.
+    '''
     fname = bname.strip()
     if ext:
-        ext = ext.replace(' ', '').strip('.')
-        ext = '.' + re.sub(r'\.+', '.', ext)
-        fname += ext
+        ext = re.sub(r'\.+', '.', ext.replace(' ', '').strip('.'))
+        fname += '.' + ext
 
     newname = fname
     if dirpath:
@@ -59,21 +64,20 @@ def joinpart(dirpath, bname, ext):
     return (fname, newname)
 
 
-# function to run filters
-def runfilters(filters, dirpath, filename):
-    newname = filename
+def runfilters(filters, dirpath, bname):
+    # function to run filters
+    newname = bname
     for runf in filters:
         if isinstance(runf, SequenceObj):
-            runf.update_curdir(dirpath)
-            newname = runf(filename)
+            newname = runf(newname, dirpath)
         else:
-            newname = runf(filename)
+            newname = runf(newname)
 
     return newname
 
 
-# create filters in a list
 def initfilters(args):
+    # create filters in a list
     filters = []
     if args.regex:
         reg = re.compile(args.regex[0])
@@ -126,7 +130,10 @@ def initfilters(args):
 
 
 def renfilter(args, fileset):
-    # create table of renames/conflicts
+    '''
+    Initialise filters and run them on filenames.
+    Assign the new filename to a table of renames/conflicts.
+    '''
     rentable = {
         'renames': {},
         'conflicts': {},
@@ -137,8 +144,7 @@ def renfilter(args, fileset):
     for src in natsorted(fileset, alg=ns.PATH):
         # split file into dir, basename and extension
         dirpath, bname, ext = partfile(src)
-        for runf in filters:
-            bname = runf(bname)
+        bname = runfilters(filters, dirpath, bname)
 
         # change extension, allow empty extensions
         if args.extension is not None:
@@ -173,17 +179,15 @@ def assign_rentable(rentable, fileset, dest, bname, src):
             cascade(rentable, n)
 
     elif dest in rentable['unresolvable']:
-        # add dest that tries to rename to something that won't
-        # be renamed
+        # file won't be renamed, assign to unresolvable
         errset.add(5)
         rentable['conflicts'][dest] = {'srcs': [src], 'err': errset}
         cascade(rentable, src)
 
     else:
         if dest not in fileset and os.path.exists(dest):
-            # name exists and not in files found
-            # which means it won't be renamed
-            errset.add(4)
+            # file exists but not in fileset, assign to unresolvable
+            errset.add(5)
 
         if dest == src:
             errset.add(0)
@@ -207,11 +211,9 @@ def assign_rentable(rentable, fileset, dest, bname, src):
 
 def cascade(rentable, target):
     '''
-    when a conflict occurs the src can't be renamed.
-    we need to render src unusable for anything that wants to
-    rename to src, which can't be renamed.
-    include src in rentable['unresolvable'] and add anything
-    that renames to src
+    If dest has an error, src won't be renamed.
+    Mark src as unresolvable so nothing renames to it.
+    Remove anything else that wants to rename to src.
     '''
     ndest = target
     while True:
@@ -227,10 +229,14 @@ def cascade(rentable, target):
 
 def print_rentable(rentable, quiet=False, verbose=False):
     '''
-    print out contents of rentable, showing files that can be
-    safely renamed and files that are in conflict.
-    sort contents for display reasons.
-    return sorted contents of what can be renamed (produces tuples)
+    Print contents of rentable.
+    For conflicts:
+        if quiet: don't show error output
+        if verbose: show detailed errors
+        if verbose and no errors: show message
+        if not verbose, no errors, show nothing
+        if not verbose, errors, show unrenamable files
+    Always show output for renames
     '''
 
     ren = rentable['renames']
@@ -261,11 +267,10 @@ def print_rentable(rentable, quiet=False, verbose=False):
         # otherwise show files that can't be renamed
         print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
         print('the following files will NOT be renamed')
-        print(*["'{}'".format(s) for s in sorted(unres)], sep='\n')
-        print()
+        print(*["'{}'".format(s) for s in sorted(unres)], '', sep='\n')
 
     # always show this output
-    # produces tuples (dest, src) sorted by src
+    # return list of tuples (dest, src) sorted by src
     print('{:-^30}'.format(BOLD + 'rename' + END))
     renames = natsorted(ren.items(), key=lambda x: x[1], alg=ns.PATH)
     if renames:
@@ -291,17 +296,19 @@ def getFreeFile(dest):
 
 def run_rename(queue, args):
     q = deque(queue)
+    msg = 'conflict detected, temporarily renaming'
     while q:
         dest, src = q.popleft()
         if os.path.exists(dest):
             temp = getFreeFile(dest)
-
             if args.verbose:
-                print("conflict detected, temporarily renaming '{}' to '{}'".format(src, temp))
+                print(msg, "'{}' to '{}'".format(src, temp))
             rename_file(src, temp)
             q.append((dest, temp))
         else:
             # no conflict, just rename
+            if args.verbose:
+                print("renaming '{}' to '{}'".format(src, dest))
             rename_file(src, dest)
 
     print('Finished renaming...')

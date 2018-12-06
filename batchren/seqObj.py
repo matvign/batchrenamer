@@ -5,15 +5,21 @@ class SequenceObj:
     def __init__(self, args):
         self.presence = False
         self.rules = []
-        self.curdir = ''
+        self.curdir = None
         self.args = args
         self._parse_args(args)
 
-    def __call__(self, filename):
+    def __call__(self, filename, dirpath):
+        if not self.curdir:
+            self.curdir = dirpath
         st = ''
         for t, r in self.rules:
             if t == "seq":
-                st += next(r)
+                if self.curdir != dirpath:
+                    self.curdir = dirpath
+                    st += r.send('reset')
+                else:
+                    st += next(r)
             elif t == "file":
                 st += filename
             elif t == "raw":
@@ -31,16 +37,6 @@ class SequenceObj:
 
     def is_valid(self):
         return self.presence
-
-    def update_curdir(self, dirpath):
-        if dirpath != self.curdir:
-            self._reset_generators()
-            self.curdir = dirpath
-
-    def reset_generators(self):
-        for t, r in self.rules:
-            if t == "seq":
-                r.send('reset')
 
     def _num_generator(self, depth=2, start=1, end=None, step=1):
         start = start if start is not None else 1

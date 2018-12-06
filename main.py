@@ -30,7 +30,6 @@ def checkOptsSet(args):
             continue
         if argval is not None:
             return True
-
     return False
 
 
@@ -63,8 +62,11 @@ def main(args):
     renamer.start_rename(args, fileset)
 
 
-# glob into directories e.g. dir/ -> dir/*
 def expanddir(path):
+    '''
+    Custom type for directories.
+    Add '*' if path is a directory or if path ends with '/'
+    '''
     if path[-1] == '/':
         return path + '*'
     elif os.path.isdir(path):
@@ -73,6 +75,10 @@ def expanddir(path):
 
 
 def illegalextension(ext):
+    '''
+    Custom type for extensions.
+    Give an error if argument contains '/' or '\'
+    '''
     err1 = "argument -ext/--extension: illegal character found in extension"
     if '/' in ext or '\\' in ext:
         parser.error(err1)
@@ -81,6 +87,12 @@ def illegalextension(ext):
 
 # enforce length of translate must be equal
 class TranslateAction(argparse.Action):
+    '''
+    Custom action for translate.
+    Give an error if there aren't two arguments.
+    Give an error if argument lengths aren't equal.
+    Convert output into a tuple.
+    '''
     def __call__(self, parser, namespace, values, option_string=None):
         err1 = 'argument -tr/--translate: expected two arguments'
         err2 = 'argument -tr/--translate: arguments must be equal length'
@@ -94,6 +106,11 @@ class TranslateAction(argparse.Action):
 
 # produce slice object from string
 class SliceAction(argparse.Action):
+    '''
+    Custom action for slices. Have '::' as our format.
+    Give an error if we cannot convert to slice object.
+    Give an error if any of the values aren't integers.
+    '''
     def __call__(self, parser, namespace, values, option_string=None):
         err1 = 'argument -sl/--slice: too many arguments for slicing'
         err2 = 'argument -sl/--slice: non-numeric character in slice'
@@ -109,8 +126,12 @@ class SliceAction(argparse.Action):
         namespace.slice = sl
 
 
-# custom action, only accept one or two arguments
 class RegexAction(argparse.Action):
+    '''
+    Custom action for regex. Accept one or two arguments.
+    If two arguments, replace first by second.
+    If one argument, remove first argument from string.
+    '''
     def __call__(self, parser, namespace, values, option_string=None):
         err1 = 'argument -re/--regex: expected one or two arguments'
         if (len(values) > 2):
@@ -123,6 +144,10 @@ class RegexAction(argparse.Action):
 
 # sequence action, store some format for sequences
 class SequenceAction(argparse.Action):
+    '''
+    Custom action for sequence.
+    Try creating a sequence object and raise errors on exceptions.
+    '''
     def __call__(self, parser, namespace, values, option_string=None):
         msg = 'argument -seq/--sequence: '
         err1 = 'missing file formatter %f'
@@ -140,12 +165,17 @@ class SequenceAction(argparse.Action):
 
 
 class CustomFormatter(argparse.HelpFormatter):
-    # ugly hack to override specific metavars
+    '''
+    Custom formatter for argparse.
+    Skip long optionals that have parameters.
+    Replace metavars for specific arguments.
+    '''
     def _hack_metavar(self, option_string, args_string):
+        # ugly hack to override specific metavars
         if option_string == '--translate':
             return 'CHARS CHARS'
         elif option_string == '--spaces':
-            return 'CHARS'
+            return '[CHARS]'
         elif option_string == '--regex':
             return 'REGEX [REGEX]'
         else:
@@ -157,20 +187,21 @@ class CustomFormatter(argparse.HelpFormatter):
             return metavar
         else:
             parts = []
-            # if the Optional doesn't take a value, format is:
+            # default for optionals without parameters:
             #    -s, --long
             if action.nargs == 0:
                 parts.extend(action.option_strings)
 
-            # if the Optional takes a value, format is:
+            # default for optional with parameters:
             #    -s ARGS, --long ARGS
-            # change to
-            #    -s, --long ARGS
+            # change to:
+            #    -s, ARGS
             else:
                 default = action.dest.upper()
                 args_string = self._format_args(action, default)
                 for option_string in action.option_strings:
                     if option_string[:2] == '--':
+                        # skip long optionals with parameters
                         continue
                     parts.append('%s' % option_string)
                 args_string = self._hack_metavar(option_string, args_string)
@@ -178,19 +209,14 @@ class CustomFormatter(argparse.HelpFormatter):
             return ', '.join(parts)
 
 
-'''
-Argparse options
-fromfile_prefix_chars='@', allow arguments from file input
-prefix_chars='-', only allow arguments with minus (default)
-'''
 parser = argparse.ArgumentParser(
     prog='batchren',
     usage='python3 %(prog)s.py path [options]',
     formatter_class=CustomFormatter,
     description='Batch Renamer - a script for renaming files',
     epilog='note: all special characters should be escaped using quotes',
-    prefix_chars='-',
-    fromfile_prefix_chars='@'
+    prefix_chars='-',           # only allow arguments with minus (default)
+    fromfile_prefix_chars='@'   # allow arguments from file input
 )
 outgroup = parser.add_mutually_exclusive_group()
 
