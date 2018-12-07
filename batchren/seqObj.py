@@ -1,4 +1,5 @@
 import re
+from string import ascii_lowercase
 
 
 class SequenceObj:
@@ -39,6 +40,11 @@ class SequenceObj:
         return self.presence
 
     def _num_generator(self, depth=2, start=1, end=None, step=1):
+        '''
+        Generator function for numbers given a depth, start, end, step
+        Resets are supported. If reset, go back to start.
+        If end > start, or step = 0 values will always be start. NOT a bug!
+        '''
         start = start if start is not None else 1
         step = step if step is not None else 1
         i = start
@@ -52,35 +58,83 @@ class SequenceObj:
                 if end and i > end:
                     i = start
 
-    def _alpha_generator(self):
-        pass
+    def _alpha_generator(self, depth=1, start='a', end='z'):
+        # default depth is 1, start is 'a', end is 'z'
+        start = start if start is not None else 'a'
+        end = end if end is not None else 'z'
+
+        def init(start, depth):
+            staticst = start * (depth - 1)
+            return (start, staticst, [*staticst])
+
+        i, staticst, lst = init(start, depth)
+        while True:
+            val = yield (staticst + i)
+            if val == 'reset':
+                i, staticst, lst = init(start, depth)
+            else:
+                i = chr(ord(i) + 1)
+                if i > end:
+                    i = start
+                    for count, item in reversed(list(enumerate(lst))):
+                        if item == end:
+                            lst[count] = start
+                        else:
+                            lst[count] = chr(ord(item) + 1)
+                            break
+                    staticst = ''.join(lst)
 
     def _parse_num(self, arg):
         '''
-        parse the sequence as a number sequence
-        do not allow negative values
+        Parse the arguments as a number sequence
+        %n{depth}:start:end
+        Raise error if:
+            depth value is not a number
+            too many arguments (>4)
+            argument is not a positive number
         '''
-        msg1 = 'invalid width for number sequence'
+        msg1 = 'invalid depth for number sequence'
         msg2 = 'too many arguments for number sequence'
         msg3 = 'non-positive integer value in number sequence'
         args = arg.split(':')
-        groupobj = re.match(r'^(n)(\d*)$', args[0])
-        if not groupobj:
+        groups = re.match(r'^(n)(\d*)$', args[0])
+        if not groups:
             raise ValueError(msg1)
         elif len(args) > 4:
             raise TypeError(msg2)
-
-        depth = int(groupobj.group(2)) if groupobj.group(2) else 2
-        # convert strings to ints, empty strings to None
+        depth = int(groups.group(2)) if groups.group(2) else 2
         try:
-            sl = [*map(
-                lambda x: int(x.strip()) if x.strip() else None, args[1:]
-            )]
+            sl = [int(x.strip()) if x.strip() else None for x in args[1:]]
         except ValueError as err:
             raise ValueError(msg3)
         if sum(1 for n in sl if n and n < 0):
             raise ValueError(msg3)
         gen = self._num_generator(depth, *sl)
+        self.rules.append(("seq", gen))
+
+    def _parse_alpha(self, arg):
+        '''
+        Parse the arguments as an alphabetical sequence
+        %a{depth}:start:end
+        Raise error if:
+            depth value is not a number
+            too many arguments (>3)
+            argument is not an alphabetical character
+        '''
+        msg1 = 'invalid depth for alphabetical sequence'
+        msg2 = 'too many arguments for alphabetical sequence'
+        msg3 = 'argument is not an alphabetical character'
+        args = arg.split(':')
+        groups = re.match(r'^(a)(\d*)$', args[0])
+        if not groups:
+            raise ValueError(msg1)
+        elif len(args) > 3:
+            raise TypeError(msg2)
+        depth = int(groups.group(2)) if groups.group(2) else 1
+        if sum(1 for x in args[1:] if x and (len(x) != 1 or x not in ascii_lowercase)):
+            raise ValueError(msg3)
+        sl = [x if x else None for x in args[1:]]
+        gen = self._alpha_generator(depth, *sl)
         self.rules.append(("seq", gen))
 
     def _parse_seq(self, arg):
@@ -91,7 +145,7 @@ class SequenceObj:
         elif val[0] == 'n':
             self._parse_num(val)
         elif val[0] == 'a':
-            pass
+            self._parse_alpha(val)
         else:
             raise ValueError(msg + arg)
 
@@ -111,11 +165,12 @@ class SequenceObj:
                 self.presence = True
             elif n == '%n':
                 # create a default num sequence
-                gen = self._num_generator()
-                self.rules.append(("seq", gen))
+                numgen = self._num_generator()
+                self.rules.append(("seq", numgen))
             elif n == '%a':
                 # create a default alphabetical sequence
-                pass
+                alphagen = self._alpha_generator()
+                self.rules.append(("seq", alphagen))
             elif n[0] != '%':
                 # add raw string
                 self.rules.append(("raw", n))

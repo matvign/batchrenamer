@@ -21,7 +21,7 @@ def printArgs(args):
     # print(args, '\n')
 
 
-def checkOptsSet(args):
+def checkOptSet(args):
     notfilter = {'quiet', 'verbose', 'path'}
     argdict = vars(args)
 
@@ -37,7 +37,7 @@ def main(args):
     if args.verbose:
         printArgs(args)
 
-    if not checkOptsSet(args):
+    if not checkOptSet(args):
         print("no optional arguments set for renaming")
         return
 
@@ -116,9 +116,7 @@ class SliceAction(argparse.Action):
         err2 = 'argument -sl/--slice: non-numeric character in slice'
         # to keep it simple, have '::' as our format
         try:
-            sl = slice(
-                *map(lambda x: int(x.strip()) if x.strip() else None, values.split(':'))
-            )
+            sl = slice(*[int(x.strip()) if x.strip() else None for x in values.split(':')])
         except TypeError:
             parser.error(err1)
         except ValueError:
@@ -240,7 +238,7 @@ parser.add_argument('-post', '--postpend', metavar='STR',
 parser.add_argument('-ext', '--extension', metavar='EXT', type=illegalextension,
                     help="change last file extension (e.g. mp4, '')")
 parser.add_argument('-re', '--regex', nargs='+', action=RegexAction,
-                    help='specify pattern to replace')
+                    help='specify pattern to remove/replace')
 parser.add_argument('-seq', '--sequence', action=SequenceAction,
                     help='apply a sequence to files')
 outgroup.add_argument('-q', '--quiet', action='store_true',

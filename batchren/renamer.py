@@ -249,7 +249,7 @@ def print_rentable(rentable, quiet=False, verbose=False):
 
     elif verbose:
         print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
-        print('the following files will NOT be renamed')
+        print('the following files have conflicts')
         if unres:
             # show detailed output if there were conflicts
             conflicts = OrderedDict(natsorted(conf.items(), key=lambda x: x[0], alg=ns.PATH))
