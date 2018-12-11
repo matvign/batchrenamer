@@ -32,8 +32,9 @@ postpend:     append text to file
 sequence:   apply a sequence to the file  
 extension:  change extension of file (empty extensions are allowed)  
 regex:      use regex to replace. a single argument removes that instance  
-quiet:      see section 1.5  
-verbose:    see section 1.5  
+dry-run:    run without renaming any files
+quiet:      skip output, but show confirmations (see section 1.5)  
+verbose:    show detailed output (see section 1.5)  
 version:    show version  
 ```
 note: arguments that require special characters should be encased in quotes  
@@ -76,18 +77,18 @@ For the most part filters are simple applications of text manipulation.
 
 
 ## 1.3.3 Sequences
-The sequence filter is more complicated than other filters as it can track multiple sequences to be applied to a file.
+The sequence filter uses strings separated by slashes for formatting. Strings must belong with % and be either f, n or a to be a valid formatter. Sequences reset with different directories.
 
 ```
 %f
 represents the filename. must be present to be a valid sequence.
 
-pre/%f/post
+raw/%f
 represents raw string to be placed before/after filename
 
-%n
-represents a number sequence to be placed before a string.  
-by default starts counting at 1 with 0 padded.
+%n/_/%f
+represents a number sequence followed by a number sequence.  
+Starts counting at 1 with 0 padded by default.
 
 e.g. %n/_/%f
 01_file
@@ -99,8 +100,12 @@ e.g. %n/_/%f
 
 %n3:start:end:step
 represents a number sequence with a depth of 3,  
-start counting at start, wrap around at end and increment by step.  
-Much like slicing not all values need to be filled in.
+starting at start, resetting to start when greater than end
+and incrementing by step.  
+* If depth is missing, default is 2 
+* If start is missing, default is 1 
+* If end is missing, default is no wrap
+* If step is missing, default is 1
 
 e.g. %n3:2:9:2
 002_file
@@ -108,7 +113,33 @@ e.g. %n3:2:9:2
 006_file
 008_file
 002_file
+
+%f/_/%a
+represents a letter sequence starting at a and resetting when we go beyond z.
+
+e.g. %f/_/%a
+file_a
+file_b
+file_c
 ...
+file_z
+file_a
+
+%a2:start:end
+represents a letter sequence starting with a depth of 2,
+starting at start, resetting to start when greater than end
+
+e.g. %f/_/%a2:a:c
+file_aa
+file_ab
+file_ac
+file_ba
+file_bb
+file_bc
+file_ca
+file_cb
+file_cc
+file_aa
 ```
 
 # 1.4 Processing rename information
@@ -138,7 +169,7 @@ issues or cannot be renamed.
 ### Unresolvable
 Unresolvable conflicts are files that will not be renamed.  
 Unresolvable conflicts are srcs from conflicts. Anything that attempts
-to rename to a file in this field is also a conflict.
+to rename to a file in this field is a conflict.
 
 
 ## 1.4.2 Conflict resolution
@@ -267,16 +298,21 @@ dir
 ```
 
 # 2. Displaying information
-There are different behaviours depending on the arguments quiet and verbose. Only one can be set at any time.
+There are different behaviours depending on the arguments quiet, verbose and dryrun. 
+Quiet and verbose cannot be set at the same time.
 
 ## 2.1 Parser level
 The parser level is where arguments are read in.  
 The following applies:
+* If error with arguments, show error, quit
 * If verbose, show arguments used
 * If no optional arguments set, quit
 * If no files found, quit
-* If verbose and files found, show files found
+* If verbose, show files found
 ```
+if argumenterror:
+    show error with arguments
+    quit
 if verbose:
     show arguments used
 if no optional arguments set
@@ -298,6 +334,7 @@ For conflicts:
 * If verbose, show detailed errors
 * If not quiet, not verbose, no errors, show nothing
 * If not quiet, not verbose, errors exist, show files that won't be renamed
+* If dryrun or verbose, show files as they are renamed
 ```
 if quiet
     show nothing
@@ -313,6 +350,9 @@ if renames
     show files to be renamed
 else
     show 'no files to rename'
+
+if dryrun or verbose
+    show files as they are renamed
 ```
 
 
@@ -384,13 +424,14 @@ else
 * better display for renames/conflicts
 * cascade on cycle conflicts
 * collapse adjacent dots, remove spaces and strip dots on right side of extension
-* implement sequence: add a number sequence to a file
+* add dry run option
+* implement sequence: add sequence to files (works over multiple directories)
 * add tests
 * bug fixes/code cleanup
 
 
 # Planned updates
-
+???
 
 
 # Documentation changelog

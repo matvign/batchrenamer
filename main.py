@@ -9,9 +9,12 @@ from batchren import renamer
 from batchren.seqObj import SequenceObj
 from batchren._version import __version__
 
+BOLD = '\033[1m'
+END = '\033[0m'
+
 
 def printArgs(args):
-    print('{:-^30}'.format(renamer.BOLD + 'arguments' + renamer.END))
+    print('{:-^30}'.format(BOLD + 'arguments' + END))
     for argname, argval in sorted(vars(args).items()):
         if argval is False:
             continue
@@ -22,7 +25,7 @@ def printArgs(args):
 
 
 def checkOptSet(args):
-    notfilter = {'quiet', 'verbose', 'path'}
+    notfilter = {'dry_run', 'quiet', 'verbose', 'path'}
     argdict = vars(args)
 
     for argname, argval in argdict.items():
@@ -42,24 +45,24 @@ def main(args):
         return
 
     try:
-        # exclude directories
-        fileset = {f for f in glob.iglob(args.path) if os.path.isfile(f)}
+        # only include files
+        files = natsorted([f for f in glob.iglob(args.path) if os.path.isfile(f)], alg=ns.PATH)
     except Exception as e:
         print(e)
         return
 
-    if not fileset:
-        print('{:-^30}'.format(renamer.BOLD + 'files found' + renamer.END))
+    if not files:
+        print('{:-^30}'.format(BOLD + 'files found' + END))
         print('no files found\n')
         return
 
     if args.verbose:
-        print('{:-^30}'.format(renamer.BOLD + 'files found' + renamer.END))
-        for n in natsorted(fileset, alg=ns.PATH):
+        print('{:-^30}'.format(BOLD + 'files found' + END))
+        for n in files:
             print(n)
         print()
 
-    renamer.start_rename(args, fileset)
+    renamer.start_rename(args, files)
 
 
 def expanddir(path):
@@ -88,7 +91,7 @@ def illegalextension(ext):
 # enforce length of translate must be equal
 class TranslateAction(argparse.Action):
     '''
-    Custom action for translate.
+    Custom action for translate. Accept two arguments.
     Give an error if there aren't two arguments.
     Give an error if argument lengths aren't equal.
     Convert output into a tuple.
@@ -107,14 +110,13 @@ class TranslateAction(argparse.Action):
 # produce slice object from string
 class SliceAction(argparse.Action):
     '''
-    Custom action for slices. Have '::' as our format.
+    Custom action for slices. Accept one argument with slice format.
     Give an error if we cannot convert to slice object.
     Give an error if any of the values aren't integers.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         err1 = 'argument -sl/--slice: too many arguments for slicing'
         err2 = 'argument -sl/--slice: non-numeric character in slice'
-        # to keep it simple, have '::' as our format
         try:
             sl = slice(*[int(x.strip()) if x.strip() else None for x in values.split(':')])
         except TypeError:
@@ -140,10 +142,9 @@ class RegexAction(argparse.Action):
         namespace.regex = values
 
 
-# sequence action, store some format for sequences
 class SequenceAction(argparse.Action):
     '''
-    Custom action for sequence.
+    Custom action for sequence. Accept one argument.
     Try creating a sequence object and raise errors on exceptions.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
@@ -241,6 +242,8 @@ parser.add_argument('-re', '--regex', nargs='+', action=RegexAction,
                     help='specify pattern to remove/replace')
 parser.add_argument('-seq', '--sequence', action=SequenceAction,
                     help='apply a sequence to files')
+parser.add_argument('--dry-run', action='store_true',
+                    help='run without renaming any files')
 outgroup.add_argument('-q', '--quiet', action='store_true',
                     help='skip output, but show confirmations')
 outgroup.add_argument('-v', '--verbose', action='store_true',

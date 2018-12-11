@@ -11,8 +11,8 @@ from batchren.seqObj import SequenceObj
 BOLD = '\033[1m'
 END = '\033[0m'
 
-# issuecodes for printing rentable
 issues = {
+    # issuecodes for printing rentable
     0: 'no filters applied',
     1: 'new name cannot be empty',
     2: 'new name cannot start with .',
@@ -39,7 +39,7 @@ def askQuery(question):
 
 def partfile(filepath):
     '''
-    split filepath into dir, basename and extensions
+    Split filepath into dir, base name and extension
     '''
     dirpath, filename = os.path.split(filepath)
     bname, ext = os.path.splitext(filename)
@@ -49,7 +49,7 @@ def partfile(filepath):
 def joinpart(dirpath, bname, ext):
     '''
     Combine directory path, base name and extension.
-    Remove spaces and dots on left/right side of extension.
+    Remove spaces and dots on left and right side of extension.
     Collapse dots in extension.
     '''
     fname = bname.strip()
@@ -129,7 +129,7 @@ def initfilters(args):
     return filters
 
 
-def renfilter(args, fileset):
+def renfilter(args, files):
     '''
     Initialise filters and run them on filenames.
     Assign the new filename to a table of renames/conflicts.
@@ -139,9 +139,10 @@ def renfilter(args, fileset):
         'conflicts': {},
         'unresolvable': set()
     }
+    fileset = set(files)
 
     filters = initfilters(args)
-    for src in natsorted(fileset, alg=ns.PATH):
+    for src in files:
         # split file into dir, basename and extension
         dirpath, bname, ext = partfile(src)
         bname = runfilters(filters, dirpath, bname)
@@ -190,15 +191,19 @@ def assign_rentable(rentable, fileset, dest, bname, src):
             errset.add(5)
 
         if dest == src:
+            # name hasn't changed, don't rename this
             errset.add(0)
 
         if bname == '':
+            # name is empty, don't rename this
             errset.add(1)
 
         if bname[0] == '.':
+            # . is reserved in unix
             errset.add(2)
 
         if '/' in bname:
+            # / usually indicates some kind of directory
             errset.add(3)
 
         if errset:
@@ -238,7 +243,6 @@ def print_rentable(rentable, quiet=False, verbose=False):
         if not verbose, errors, show unrenamable files
     Always show output for renames
     '''
-
     ren = rentable['renames']
     conf = rentable['conflicts']
     unres = rentable['unresolvable']
@@ -267,7 +271,7 @@ def print_rentable(rentable, quiet=False, verbose=False):
         # otherwise show files that can't be renamed
         print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
         print('the following files will NOT be renamed')
-        print(*["'{}'".format(s) for s in sorted(unres)], '', sep='\n')
+        print(*["'{}'".format(s) for s in natsorted(unres, alg=ns.PATH)], '', sep='\n')
 
     # always show this output
     # return list of tuples (dest, src) sorted by src
@@ -297,19 +301,23 @@ def getFreeFile(dest):
 def run_rename(queue, args):
     q = deque(queue)
     msg = 'conflict detected, temporarily renaming'
+    if args.dry_run:
+        print('running with dry-run, files will NOT be renamed')
     while q:
         dest, src = q.popleft()
         if os.path.exists(dest):
             temp = getFreeFile(dest)
-            if args.verbose:
+            if args.verbose or args.dry_run:
                 print(msg, "'{}' to '{}'".format(src, temp))
-            rename_file(src, temp)
+            if not args.dry_run:
+                rename_file(src, temp)
             q.append((dest, temp))
         else:
             # no conflict, just rename
-            if args.verbose:
-                print("renaming '{}' to '{}'".format(src, dest))
-            rename_file(src, dest)
+            if args.verbose or args.dry_run:
+                print("rename '{}' to '{}'".format(src, dest))
+            if not args.dry_run:
+                rename_file(src, dest)
 
     print('Finished renaming...')
 
@@ -318,7 +326,6 @@ def rename_file(src, dest):
     try:
         os.rename(src, dest)
     except Exception as err:
-        # continue renaming other files if error
         print('A fatal error occurred...', err)
         sys.exit(1)
 

@@ -59,7 +59,12 @@ class SequenceObj:
                     i = start
 
     def _alpha_generator(self, depth=1, start='a', end='z'):
-        # default depth is 1, start is 'a', end is 'z'
+        '''
+        Generator function for letters given a depth, start, end.
+        Resets are supported. If reset, go back to start with some depth.
+        If end > start, go back to start e.g. z -> a.
+        If depth > 1, az -> ba, aaz -> aba, zaz -> zba, zzz -> aaa
+        '''
         start = start if start is not None else 'a'
         end = end if end is not None else 'z'
 
@@ -175,4 +180,5 @@ class SequenceObj:
                 # add raw string
                 self.rules.append(("raw", n))
             else:
+                # this is a sequence with arguments, parse it
                 self._parse_seq(n)
