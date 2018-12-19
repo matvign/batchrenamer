@@ -2,6 +2,7 @@
 import argparse
 import glob
 import os
+import re
 
 from natsort import natsorted, ns
 
@@ -25,7 +26,7 @@ def printArgs(args):
 
 
 def checkOptSet(args):
-    notfilter = {'dry_run', 'quiet', 'verbose', 'path'}
+    notfilter = {'dry_run', 'nf', 'quiet', 'verbose', 'path'}
     argdict = vars(args)
 
     for argname, argval in argdict.items():
@@ -134,12 +135,17 @@ class RegexAction(argparse.Action):
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         err1 = 'argument -re/--regex: expected one or two arguments'
+        err2 = 'argument -re/--regex: bad regex input '
         if (len(values) > 2):
             parser.error(err1)
-
         if (len(values) == 1):
             values.append('')
-        namespace.regex = values
+
+        try:
+            reg_exp1 = re.compile(values[0])
+        except re.error as err:
+            parser.error(err2 + err.args[0])
+        namespace.regex = (reg_exp1, values[1])
 
 
 class SequenceAction(argparse.Action):
@@ -157,10 +163,7 @@ class SequenceAction(argparse.Action):
         except TypeError as terr:
             parser.error(msg + terr.args[0])
         else:
-            if seqObj.is_valid():
-                namespace.sequence = seqObj
-            else:
-                parser.error(msg + err1)
+            namespace.sequence = seqObj
 
 
 class CustomFormatter(argparse.HelpFormatter):

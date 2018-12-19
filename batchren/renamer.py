@@ -76,12 +76,43 @@ def runfilters(filters, dirpath, bname):
     return newname
 
 
+def repl_closure(pattern, repl='', count=0):
+    '''
+    Return a function that replaces the count'th instance
+    with repl. Abuse function attributes for a counter.
+    '''
+    def replacer(matchobj):
+        if matchobj.group(0) and replacer.count == count:
+            ret = repl
+        else:
+            ret = matchobj.group(0)
+        replacer.count = replacer.count + 1
+        return ret
+    replacer.count = 1
+
+    def reg_func(x):
+        try:
+            val = re.sub(pattern, replacer, x)
+            replacer.count = 1
+            return val
+        except re.error as err:
+            print('bad regex:')
+            print(err)
+
+    return reg_func
+
+
 def initfilters(args):
     # create filters in a list
     filters = []
     if args.regex:
-        reg = re.compile(args.regex[0])
-        regex_re = lambda x: re.sub(reg, args.regex[1], x)
+        def regex_re(x):
+            try:
+                val = re.sub(args.regex[0], args.regex[1], x)
+                return val
+            except re.error as err:
+                print('bad regex:', err)
+                sys.exit(1)
         filters.append(regex_re)
 
     if args.slice:
@@ -197,8 +228,7 @@ def assign_rentable(rentable, fileset, dest, bname, src):
         if bname == '':
             # name is empty, don't rename this
             errset.add(1)
-
-        if bname[0] == '.':
+        elif bname[0] == '.':
             # . is reserved in unix
             errset.add(2)
 

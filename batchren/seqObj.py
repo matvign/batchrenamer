@@ -36,7 +36,7 @@ class SequenceObj:
     def get_rules(self):
         return self.rules
 
-    def is_valid(self):
+    def has_fileformat(self):
         return self.presence
 
     def _num_generator(self, depth=2, start=1, end=None, step=1):

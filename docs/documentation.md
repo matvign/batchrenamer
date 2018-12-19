@@ -1,4 +1,4 @@
-# Documentation - v0.5.0
+# Documentation - v0.5.1
 batchren - a batch renamer  
 batchren is a python script for batch renaming files. batchren uses unix style 
 pattern matching to look for files and uses optional arguments to 
@@ -81,7 +81,7 @@ The sequence filter uses strings separated by slashes for formatting. Strings mu
 
 ```
 %f
-represents the filename. must be present to be a valid sequence.
+represents the filename.
 
 raw/%f
 represents raw string to be placed before/after filename
@@ -430,8 +430,20 @@ if dryrun or verbose
 * bug fixes/code cleanup
 
 
+## v0.5.1
+* regex filter: except re.error in main.py and renamer.py
+* regex filter: optional remove nth instance
+* bracr filter: improved bracket removal
+* sequence filter: remove requirement for file formatter
+* add more tests
+* bug fixes/code cleanup
+
+
 # Planned updates
-???
+## v0.5.2
+* new: shave filter, remove text from head or/and tail
+* new: interactive option for ordering of files
+* bug fixes/code cleanup
 
 
 # Documentation changelog
