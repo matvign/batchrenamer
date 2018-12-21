@@ -119,6 +119,10 @@ def initfilters(args):
         slash = lambda x: x[args.slice]
         filters.append(slash)
 
+    if args.shave:
+        shave = lambda x: x[args.shave[0]][args.shave[1]]
+        filters.append(shave)
+
     # note: find better method to remove brackets
     if args.bracr:
         brac_re = re.compile(r'[\{\[\(].*?[\{\]\)]')
@@ -331,22 +335,22 @@ def getFreeFile(dest):
 def run_rename(queue, args):
     q = deque(queue)
     msg = 'conflict detected, temporarily renaming'
-    if args.dry_run:
-        print('running with dry-run, files will NOT be renamed')
+    if args.dryrun:
+        print('running with dryrun, files will NOT be renamed')
     while q:
         dest, src = q.popleft()
         if os.path.exists(dest):
             temp = getFreeFile(dest)
-            if args.verbose or args.dry_run:
+            if args.verbose or args.dryrun:
                 print(msg, "'{}' to '{}'".format(src, temp))
-            if not args.dry_run:
+            if not args.dryrun:
                 rename_file(src, temp)
             q.append((dest, temp))
         else:
             # no conflict, just rename
-            if args.verbose or args.dry_run:
+            if args.verbose or args.dryrun:
                 print("rename '{}' to '{}'".format(src, dest))
-            if not args.dry_run:
+            if not args.dryrun:
                 rename_file(src, dest)
 
     print('Finished renaming...')

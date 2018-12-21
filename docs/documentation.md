@@ -8,7 +8,7 @@ the optional arguments.
 
 
 # 1. Implementation detail
-# 1.1 Batchren argument parsing
+# 1.1.1 Batchren argument parsing
 argparse is the module used to implement argument parsing from the
 command line. The following is enabled:
 * epilog: prints version after help
@@ -16,8 +16,8 @@ command line. The following is enabled:
 * fromfile_prefix_char: accept arguments from file
 
 ### Arguments:
-path: specifies the file pattern to search for. If using wildcards, surround the pattern in quotes. 
-Expands pattern into directories or those ending with a slash. Doesn't apply to paths using special characters.  
+path: specifies the file pattern to search for. If using wildcards, surround the pattern in quotes.  
+Expands pattern or those ending with a slash into directories.  
 e.g. testdir/ -> testdir/\*
 
 ### Optional arguments:  
@@ -25,20 +25,32 @@ e.g. testdir/ -> testdir/\*
 spaces:     replace whitespace with specified char. default character is underscore (_)  
 translate:  replaces characters with opposing characters. argument lengths must be equal  
 slice:      slices a portion of the file to keep. must follow 'start:end:step' format (can have missing values)  
+shave:      shave some text from the top and/or the bottom of the text. must follow 'head:tail' format, must not be negative
 case:       changes case of file to upper/lower/swap/capitalise word  
 bracr:      remove brackets and text.  
 prepend:    prepend text to file  
-postpend:     append text to file  
+postpend:   append text to file  
 sequence:   apply a sequence to the file  
 extension:  change extension of file (empty extensions are allowed)  
 regex:      use regex to replace. a single argument removes that instance  
-dry-run:    run without renaming any files
+dryrun:    run without renaming any files
 quiet:      skip output, but show confirmations (see section 1.5)  
 verbose:    show detailed output (see section 1.5)  
 version:    show version  
 ```
-note: arguments that require special characters should be encased in quotes  
+
+
+## 1.1.2 Considerations/issues
+Arguments that require special characters should be encased in quotes.  
 e.g. `python3 batchren.py 'testdir/*' -tr '[]' '()'`
+
+Due to the way that argparse interpret hypens, arguments starting with a hypen 
+should use an equal sign and quotes. This *should* work with most filters.  
+e.g. `-arg='-val'`
+
+The translate filter doesn't work with this method. Individual hypens can be
+translated, but any extra characters will give an error.  
+e.g. `-tr - +'` is ok, but `-tr '-a' '+b'` will give an error.
 
 
 # 1.2 File and pattern matching
@@ -57,23 +69,45 @@ Filters have a order that they are applied in. The general idea is that characte
 Filters are run in the following order:
 1. regex
 2. slice
-3. bracket remove
-4. translate
-5. spaces
-6. case
-7. sequence
-8. prepend
-9. postpend
-10. extention (only applies to extension)
-11. str.strip (always applied to basename and ext)
+3. shave
+4. bracket remove
+5. translate
+6. spaces
+7. case
+8. sequence
+9. prepend
+10. postpend
+11. extention (only applies to extension)
+12. str.strip (always applied to basename and ext)
 
 
 ## 1.3.2 Filter implementation
-Filenames are passed in from file pattern matching and split into
-directory, basename and ext. Each basename is run against a list 
-of filters. Filters are implemented as classes, functions or lambda expressions in a list. The resulting filename is then recombined and processed to determine if it is safe to rename.
+Filenames are passed in from file pattern matching and split into directory, 
+basename and ext.  
+Each basename is run against a list of filters.  
+Filters are implemented as classes, functions or lambda expressions in a list.  
+The resulting filename is then recombined and processed to determine if it is
+safe to rename.
 
-For the most part filters are simple applications of text manipulation.
+
+## 1.3.3 Shave filter
+The shave filter is a convenient variation of the slice filter that performs 
+slicing on the front end of a string.  
+Unlike the slice filter, shave only takes two slice values, one for head 
+and one for tail.  
+Values can be ommitted for head and/or tail slicing.  
+Negative integers are not allowed in the shave values.
+
+The slice filter can do everything the shave filter does. Shave purely for 
+convenience.
+```
+e.g. 
+-sh 4:2
+removes 4 characters from the front and 2 from the end of a filename
+
+-sh 4:2:0
+invalid, only takes two values
+```
 
 
 ## 1.3.3 Sequences
@@ -115,7 +149,7 @@ e.g. %n3:2:9:2
 002_file
 
 %f/_/%a
-represents a letter sequence starting at a and resetting when we go beyond z.
+represents a letter sequence starting at a and resetting when greater than z.
 
 e.g. %f/_/%a
 file_a
@@ -435,13 +469,13 @@ if dryrun or verbose
 * regex filter: optional remove nth instance
 * bracr filter: improved bracket removal
 * sequence filter: remove requirement for file formatter
-* add more tests
+* add help text for hyphens
+* new: shave filter, remove text from head or/and tail
 * bug fixes/code cleanup
 
 
 # Planned updates
 ## v0.5.2
-* new: shave filter, remove text from head or/and tail
 * new: interactive option for ordering of files
 * bug fixes/code cleanup
 

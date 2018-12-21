@@ -92,6 +92,7 @@ def illegalextension(ext):
 # enforce length of translate must be equal
 class TranslateAction(argparse.Action):
     '''
+    Use * in argparse to treat extra arguments as translate arguments
     Custom action for translate. Accept two arguments.
     Give an error if there aren't two arguments.
     Give an error if argument lengths aren't equal.
@@ -108,7 +109,6 @@ class TranslateAction(argparse.Action):
         namespace.translate = tuple(values)
 
 
-# produce slice object from string
 class SliceAction(argparse.Action):
     '''
     Custom action for slices. Accept one argument with slice format.
@@ -125,6 +125,40 @@ class SliceAction(argparse.Action):
         except ValueError:
             parser.error(err2)
         namespace.slice = sl
+
+
+class ShaveAction(argparse.Action):
+    '''
+    Custom action for shave. Accept one argument in 'head:tail' format.
+    Slice values must be positive integers.
+    Give an error if any non-numeric character.
+    Give an error if more than two values.
+    Give an error if both values are None.
+    Give an error if any values are negative.
+    Create a slice object from both values.
+    '''
+    def __call__(self, parser, namespace, values, option_string=None):
+        err1 = 'argument -sh/--shave: non-numeric character in shave'
+        err2 = 'argument -sh/--shave: too many values for shaving'
+        err3 = 'argument -sh/--shave: too few values for shaving'
+        err4 = 'argument -sh/--shave: negative value in shave'
+        try:
+            sl = [int(x.strip()) if x.strip() else None for x in values.split(':')]
+        except ValueError:
+            parser.error(err1)
+        if len(sl) > 2:
+            parser.error(err2)
+        elif len(sl) == 1:
+            sl.append(None)
+        if sum(1 for x in sl if x is not None and x < 0):
+            # check for negative values
+            parser.error(err4)
+        if not sum(1 for x in sl if x is not None):
+            # check if all values are None
+            parser.error(err3)
+        head = slice(sl[0], None, None) if sl[0] is not None else slice(None)
+        tail = slice(None, -sl[1], None) if sl[1] is not None else slice(None)
+        namespace.shave = (head, tail)
 
 
 class RegexAction(argparse.Action):
@@ -216,7 +250,7 @@ parser = argparse.ArgumentParser(
     usage='python3 %(prog)s.py path [options]',
     formatter_class=CustomFormatter,
     description='Batch Renamer - a script for renaming files',
-    epilog='note: all special characters should be escaped using quotes',
+    epilog="note: all special characters should be escaped using quotes. If hyphen is in beginning of argument, use -arg='-val'",
     prefix_chars='-',           # only allow arguments with minus (default)
     fromfile_prefix_chars='@'   # allow arguments from file input
 )
@@ -230,6 +264,8 @@ parser.add_argument('-tr', '--translate', nargs='*', action=TranslateAction,
 parser.add_argument('-sl', '--slice', action=SliceAction,
                     metavar='start:end:step',
                     help='slice a portion of the filename')
+parser.add_argument('-sh', '--shave', action=ShaveAction,
+                    metavar='[head]:[tail]', help='shave head and/or tail from string')
 parser.add_argument('-c', '--case',
                     choices=['upper', 'lower', 'swap', 'cap'],
                     help='convert filename case')
@@ -245,7 +281,7 @@ parser.add_argument('-re', '--regex', nargs='+', action=RegexAction,
                     help='specify pattern to remove/replace')
 parser.add_argument('-seq', '--sequence', action=SequenceAction,
                     help='apply a sequence to files')
-parser.add_argument('--dry-run', action='store_true',
+parser.add_argument('--dryrun', action='store_true',
                     help='run without renaming any files')
 outgroup.add_argument('-q', '--quiet', action='store_true',
                     help='skip output, but show confirmations')
