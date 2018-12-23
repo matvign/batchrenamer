@@ -130,12 +130,11 @@ class SliceAction(argparse.Action):
 class ShaveAction(argparse.Action):
     '''
     Custom action for shave. Accept one argument in 'head:tail' format.
-    Slice values must be positive integers.
+    Slice values must be positive integers. Create two slice object from values.
     Give an error if any non-numeric character.
     Give an error if more than two values.
     Give an error if both values are None.
     Give an error if any values are negative.
-    Create a slice object from both values.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         err1 = 'argument -sh/--shave: non-numeric character in shave'
@@ -163,23 +162,33 @@ class ShaveAction(argparse.Action):
 
 class RegexAction(argparse.Action):
     '''
-    Custom action for regex. Accept one or two arguments.
-    If two arguments, replace first by second.
-    If one argument, remove first argument from string.
+    Custom action for regex. Accept up to three arguments.
+    If three arguments, replace the nth instance of first by second.
+    If two arguments, replace all instances of first by second.
+    If one argument, remove all instances of first.
+    Second argument default is '', third argument default is 0
     '''
     def __call__(self, parser, namespace, values, option_string=None):
-        err1 = 'argument -re/--regex: expected one or two arguments'
-        err2 = 'argument -re/--regex: bad regex input '
-        if (len(values) > 2):
+        err1 = 'argument -re/--regex: expected at least one argument'
+        err2 = 'argument -re/--regex: expected up to three arguments'
+        err3 = 'argument -re/--regex: non-numeric character in count argument'
+        err4 = 'argument -re/--regex: bad regex input '
+        if len(values) < 1:
             parser.error(err1)
-        if (len(values) == 1):
-            values.append('')
+        elif len(values) > 3:
+            parser.error(err2)
 
         try:
-            reg_exp1 = re.compile(values[0])
+            reg_exp = re.compile(values[0])
+            repl_val = values[1] if len(values) > 1 else ''
+            repl_cnt = int(values[2].strip()) if len(values) == 3 else 0
         except re.error as err:
-            parser.error(err2 + err.args[0])
-        namespace.regex = (reg_exp1, values[1])
+            # error from compiling regex
+            parser.error(err4 + err.args[0])
+        except ValueError:
+            # error from converting count into int
+            parser.error(err3)
+        namespace.regex = (reg_exp, repl_val, repl_cnt)
 
 
 class SequenceAction(argparse.Action):
@@ -277,7 +286,7 @@ parser.add_argument('-post', '--postpend', metavar='STR',
                     help='append string to filename')
 parser.add_argument('-ext', '--extension', metavar='EXT', type=illegalextension,
                     help="change last file extension (e.g. mp4, '')")
-parser.add_argument('-re', '--regex', nargs='+', action=RegexAction,
+parser.add_argument('-re', '--regex', nargs='*', action=RegexAction,
                     help='specify pattern to remove/replace')
 parser.add_argument('-seq', '--sequence', action=SequenceAction,
                     help='apply a sequence to files')

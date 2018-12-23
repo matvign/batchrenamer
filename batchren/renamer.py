@@ -78,41 +78,47 @@ def runfilters(filters, dirpath, bname):
 
 def repl_closure(pattern, repl='', count=0):
     '''
-    Return a function that replaces the count'th instance
-    with repl. Abuse function attributes for a counter.
+    Return one of two different functions.
+    1. Normal re.sub with exceptions.
+    2. re.sub with counter that removes nth instance.
+       Abuse function attributes for a counter.
     '''
     def replacer(matchobj):
-        if matchobj.group(0) and replacer.count == count:
+        '''
+        Function to be used with re.sub. Replace words only if count = count.
+        Otherwise just replace with the match itself.
+        '''
+        if matchobj.group() and replacer.count == count:
             ret = repl
         else:
-            ret = matchobj.group(0)
-        replacer.count = replacer.count + 1
+            ret = matchobj.group()
+        replacer.count += 1
         return ret
     replacer.count = 1
 
-    def reg_func(x):
+    def repl_nth(x):
         try:
             val = re.sub(pattern, replacer, x)
             replacer.count = 1
             return val
         except re.error as err:
-            print('bad regex:')
-            print(err)
+            sys.exit('bad regex: ' + err)
 
-    return reg_func
+    def repl_all(x):
+        try:
+            val = re.sub(pattern, repl, x)
+            return val
+        except re.error as err:
+            sys.exit('bad regex: ' + err)
+
+    return repl_all if not count else repl_nth
 
 
 def initfilters(args):
     # create filters in a list
     filters = []
     if args.regex:
-        def regex_re(x):
-            try:
-                val = re.sub(args.regex[0], args.regex[1], x)
-                return val
-            except re.error as err:
-                print('bad regex:', err)
-                sys.exit(1)
+        regex_re = repl_closure(args.regex[0], args.regex[1], args.regex[2])
         filters.append(regex_re)
 
     if args.slice:
@@ -360,8 +366,7 @@ def rename_file(src, dest):
     try:
         os.rename(src, dest)
     except Exception as err:
-        print('A fatal error occurred...', err)
-        sys.exit(1)
+        sys.exit('A fatal error occurred... ' + err)
 
 
 def start_rename(args, fileset):
