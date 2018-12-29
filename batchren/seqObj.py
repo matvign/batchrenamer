@@ -4,7 +4,7 @@ from string import ascii_lowercase
 
 class SequenceObj:
     def __init__(self, args):
-        self.presence = False
+        self.fbit = False
         self.rules = []
         self.curdir = None
         self.args = args
@@ -37,7 +37,7 @@ class SequenceObj:
         return self.rules
 
     def has_fileformat(self):
-        return self.presence
+        return self.fbit
 
     def _num_generator(self, depth=2, start=1, end=None, step=1):
         '''
@@ -63,7 +63,9 @@ class SequenceObj:
         Generator function for letters given a depth, start, end.
         Resets are supported. If reset, go back to start with some depth.
         If end > start, go back to start e.g. z -> a.
-        If depth > 1, az -> ba, aaz -> aba, zaz -> zba, zzz -> aaa
+        Length of sequence does not grow when reaching the end.
+            depth = 2, az -> ba
+            depth = 3, aaz -> aba, zaz -> zba, zzz -> aaa
         '''
         start = start if start is not None else 'a'
         end = end if end is not None else 'z'
@@ -167,7 +169,7 @@ class SequenceObj:
             if n == '%f':
                 # '' is a dummy value for consistency
                 self.rules.append(("file", ''))
-                self.presence = True
+                self.fbit = True
             elif n == '%n':
                 # create a default num sequence
                 numgen = self._num_generator()

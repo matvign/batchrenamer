@@ -33,7 +33,7 @@ postpend:   append text to file
 sequence:   apply a sequence to the file  
 extension:  change extension of file (empty extensions are allowed)  
 regex:      use regex to replace. a single argument removes that instance  
-dryrun:    run without renaming any files
+dryrun:     run without renaming any files
 quiet:      skip output, but show confirmations (see section 1.5)  
 verbose:    show detailed output (see section 1.5)  
 version:    show version  
@@ -98,7 +98,7 @@ and one for tail.
 Values can be ommitted for head and/or tail slicing.  
 Negative integers are not allowed in the shave values.
 
-The slice filter can do everything the shave filter does. Shave purely for 
+The slice filter can do everything the shave filter does. Shave exists purely for 
 convenience.
 ```
 e.g. 
@@ -121,7 +121,7 @@ raw/%f
 represents raw string to be placed before/after filename
 
 %n/_/%f
-represents a number sequence followed by a number sequence.  
+represents a number sequence followed by filename.
 Starts counting at 1 with 0 padded by default.
 
 e.g. %n/_/%f
@@ -182,7 +182,7 @@ After filtering filenames, we categorise them into a nested dict:
 ```python
 rentable = {
     'renames': { dest: src },
-    'conflicts': { dest: {srcs: [srcs], err: { error codes }} }
+    'conflicts': {dest: {srcs: [srcs], err: {error codes}}}
     'unresolvable': set()
 }
 ```

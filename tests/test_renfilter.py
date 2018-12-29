@@ -1,11 +1,17 @@
 import pytest
 
-from main import parser
-from batchren import renamer
+import main
+from batchren import renamer, _version
 
 '''
 tests for filters of names
 '''
+parser = main.parser
+
+
+def test_parser_version():
+    print(main.__version__, _version.__version__)
+    assert main.__version__ == _version.__version__
 
 
 @pytest.mark.parametrize("pre_arg, pre_dirpath, pre_fname, pre_res", [
@@ -68,6 +74,22 @@ def test_filter_spaces_extra():
     assert newname == 'file_a'
 
 
+@pytest.mark.parametrize("c_errarg", [
+    # tests for case filter
+    (['-v']),
+    (['bla', '-v']),
+    (['garbage', '-v']),
+    (['bug', '-v']),
+    (['1', '-v']),
+    (['1', '2', '-v'])
+])
+def test_filter_case_err(c_errarg):
+    with pytest.raises(SystemExit) as err:
+        args = parser.parse_args(['-c', *c_errarg])
+        print(c_errarg, "is erroneous")
+        assert err.type == SystemExit
+
+
 @pytest.mark.parametrize("c_arg, c_dirpath, c_fname, c_res", [
     # tests for case filter
     # dirpath is only used in sequence filter
@@ -91,6 +113,21 @@ def test_filter_cases(c_arg, c_dirpath, c_fname, c_res):
     assert newname == c_res
 
 
+@pytest.mark.parametrize("tr_errargs", [
+    # errors for translate parser
+    # translate expects two arguments, both same length
+    (['-v']),
+    (['a', '-v']),
+    (['a', 'b', 'c', '-v']),
+    (['a', 'bc', '-v'])
+])
+def test_filter_translate_err(tr_errargs):
+    with pytest.raises(SystemExit) as err:
+        args = parser.parse_args(['-tr', *tr_errargs])
+        print(tr_errargs, "is erroneous")
+        assert err.type == SystemExit
+
+
 @pytest.mark.parametrize("tr_arg, tr_dirpath, tr_fname, tr_res", [
     # tests for translate filter
     # dirpath is only used in sequence filter
@@ -107,6 +144,27 @@ def test_filter_translate(tr_arg, tr_dirpath, tr_fname, tr_res):
     assert newname == tr_res
 
 
+@pytest.mark.parametrize("sl_errargs", [
+    # errors for slice parser
+    (['-v']),
+    (['a', 'b', '-v']),
+    (['a', 'b', 'c', '-v']),
+    (['1:2:3:4', '-v']),
+    (['1:2:3:4:', '-v']),
+    (['a:', '-v']),
+    (['a:b', '-v']),
+    (['a:b:c', '-v']),
+    (['a::c', '-v']),
+    (['a:b:', '-v']),
+    (['1e:2b:3c', '-v'])
+])
+def test_filter_slice_err(sl_errargs):
+    with pytest.raises(SystemExit) as err:
+        args = parser.parse_args(['-sl', *sl_errargs])
+        print(sl_errargs, "is erroneous")
+        assert err.type == SystemExit
+
+
 @pytest.mark.parametrize("sl_arg, sl_dirpath, sl_fname, sl_res", [
     # tests for slice filter
     # dirpath is only used in sequence filter
@@ -120,3 +178,42 @@ def test_filter_slice(sl_arg, sl_dirpath, sl_fname, sl_res):
     newname = renamer.runfilters(filters, sl_dirpath, sl_fname)
     print('oldname: {} --> newname: {}'.format(sl_fname, newname))
     assert newname == sl_res
+
+
+@pytest.mark.parametrize("sh_errargs", [
+    # errors for shave parser
+    (['-v']),
+    (['1a', '-v']),
+    (['a', '-v']),
+    (['a:', '-v']),
+    (['a:b', '-v']),
+    ([':b', '-v']),
+    (['a:b:c', '-v']),
+    (['1:2:3', '-v']),
+    (['1:a', '-v']),
+    (['1:-1', '-v']),
+    (['-1:1', '-v']),
+    (['-1:', '-v']),
+    ([':-1', '-v'])
+])
+def test_filter_shave_err(sh_errargs):
+    with pytest.raises(SystemExit) as err:
+        args = parser.parse_args(['-sh', *sh_errargs])
+        print(sh_errargs, "is erroneous")
+        assert err.type == SystemExit
+
+
+@pytest.mark.parametrize("sh_arg, sh_dirpath, sh_fname, sh_res", [
+    # tests for shave filter
+    # dirpath is only used in sequence filter
+    # arg, dirpath, filename, expected result
+    (':1', '', 'filea', 'file'),
+    ('1:', '', 'filea', 'ilea'),
+    ('1:1', '', 'filea', 'ile')
+])
+def test_filter_shave(sh_arg, sh_dirpath, sh_fname, sh_res):
+    args = parser.parse_args(['-sh', sh_arg])
+    filters = renamer.initfilters(args)
+    newname = renamer.runfilters(filters, sh_dirpath, sh_fname)
+    print('oldname: {} --> newname: {}'.format(sh_fname, newname))
+    assert newname == sh_res

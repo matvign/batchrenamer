@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
 import pytest
 
+from main import parser
 from batchren import renamer
+'''
+tests for misc functions that do certain things.
+'''
 
-'''
-tests for splitting/joining file parts
-'''
+
+@pytest.mark.parametrize("path_args, path_res", [
+    # tests for expanding directories
+    (['tests', '-v'], 'tests/*'),
+    (['tests/', '-v'], 'tests/*')
+])
+def test_parser_expanddir(path_args, path_res):
+    args = parser.parse_args(path_args)
+    print(args)
+    assert args.path == path_res
 
 
 @pytest.mark.parametrize("partf_name, partf_res", [

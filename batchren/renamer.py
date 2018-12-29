@@ -118,7 +118,7 @@ def initfilters(args):
     # create filters in a list
     filters = []
     if args.regex:
-        regex_re = repl_closure(args.regex[0], args.regex[1], args.regex[2])
+        regex_re = repl_closure(*args.regex)
         filters.append(regex_re)
 
     if args.slice:

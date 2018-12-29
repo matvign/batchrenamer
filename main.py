@@ -26,7 +26,7 @@ def printArgs(args):
 
 
 def checkOptSet(args):
-    notfilter = {'dry_run', 'nf', 'quiet', 'verbose', 'path'}
+    notfilter = {'dryrun', 'quiet', 'verbose', 'path'}
     argdict = vars(args)
 
     for argname, argval in argdict.items():
@@ -83,7 +83,7 @@ def illegalextension(ext):
     Custom type for extensions.
     Give an error if argument contains '/' or '\'
     '''
-    err1 = "argument -ext/--extension: illegal character found in extension"
+    err1 = 'argument -ext/--extension: illegal character found in extension'
     if '/' in ext or '\\' in ext:
         parser.error(err1)
     return ext
@@ -166,7 +166,7 @@ class RegexAction(argparse.Action):
     If three arguments, replace the nth instance of first by second.
     If two arguments, replace all instances of first by second.
     If one argument, remove all instances of first.
-    Second argument default is '', third argument default is 0
+    Second argument default is '', third argument default is 0.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         err1 = 'argument -re/--regex: expected at least one argument'
