@@ -27,12 +27,12 @@ translate:  replaces characters with opposing characters. argument lengths must 
 slice:      slices a portion of the file to keep. must follow 'start:end:step' format (can have missing values)  
 shave:      shave some text from the top and/or the bottom of the text. must follow 'head:tail' format, must not be negative
 case:       changes case of file to upper/lower/swap/capitalise word  
-bracr:      remove brackets and text.  
+bracr:      remove curly/round/square brackets from filename. add an optional argument to remove the nth bracket instance.  
 prepend:    prepend text to file  
 postpend:   append text to file  
 sequence:   apply a sequence to the file  
 extension:  change extension of file (empty extensions are allowed)  
-regex:      use regex to replace. a single argument removes that instance  
+regex:      use regex to replace. a single argument removes that instance. add an optional argument to remove the nth instance.  
 dryrun:     run without renaming any files
 quiet:      skip output, but show confirmations (see section 1.5)  
 verbose:    show detailed output (see section 1.5)  
@@ -64,7 +64,8 @@ glob.iglob()
 
 # 1.3 File renaming filters
 ## 1.3.1 Filters and order
-Filters have a order that they are applied in. The general idea is that characters are removed/replaced before adding characters.
+Filters have a order that they are applied in. The general idea is that 
+characters are removed/replaced before adding characters.
 
 Filters are run in the following order:
 1. regex
@@ -90,9 +91,16 @@ The resulting filename is then recombined and processed to determine if it is
 safe to rename.
 
 
-## 1.3.3 Shave filter
+## 1.3.3 Regex filter
+Regex filter allows python regex to be used.  
+There may be some untested oddities that occur from inputting python regex as
+bash strings. If there was an issue with compiling
+or executing regex replacement, the program (**should**) safely crash.  
+
+
+## 1.3.4 Shave filter
 The shave filter is a convenient variation of the slice filter that performs 
-slicing on the front end of a string.  
+slicing on the ends of a file.  
 Unlike the slice filter, shave only takes two slice values, one for head 
 and one for tail.  
 Values can be ommitted for head and/or tail slicing.  
@@ -103,14 +111,30 @@ convenience.
 ```
 e.g. 
 -sh 4:2
-removes 4 characters from the front and 2 from the end of a filename
+removes 4 characters from the front and 2 characters from the back
 
 -sh 4:2:0
 invalid, only takes two values
 ```
 
 
-## 1.3.3 Sequences
+## 1.3.5 Bracket remover
+The bracket remover takes a certain bracket type: curly, round or square and
+removes it from the filename.  
+An optional argument can be specified to remove the nth bracket.  
+Internally, it uses the same function from the regex filter.
+```
+e.g. 
+-bracr square
+removes all square brackets and their contents
+
+-bracr square 1
+remove only the first square bracket found.
+```
+Bracket remover doesn't work with nested brackets!!
+
+
+## 1.3.6 Sequences
 The sequence filter uses strings separated by slashes for formatting. Strings must belong with % and be either f, n or a to be a valid formatter. Sequences reset with different directories.
 
 ```
@@ -138,7 +162,7 @@ starting at start, resetting to start when greater than end
 and incrementing by step.  
 * If depth is missing, default is 2 
 * If start is missing, default is 1 
-* If end is missing, default is no wrap
+* If end is missing, keep counting up
 * If step is missing, default is 1
 
 e.g. %n3:2:9:2
@@ -467,7 +491,7 @@ if dryrun or verbose
 ## v0.5.1
 * regex filter: except re.error in main.py and renamer.py
 * regex filter: optional remove nth instance
-* bracr filter: improved bracket removal
+* bracr filter: change to target specific bracket removal
 * sequence filter: remove requirement for file formatter
 * add help text for hyphens
 * new: shave filter, remove text from head or/and tail

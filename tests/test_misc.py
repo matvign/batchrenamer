@@ -5,6 +5,7 @@ from main import parser
 from batchren import renamer
 '''
 tests for misc functions that do certain things.
+Run this in the top level directory
 '''
 
 

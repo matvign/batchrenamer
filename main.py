@@ -181,14 +181,46 @@ class RegexAction(argparse.Action):
         try:
             reg_exp = re.compile(values[0])
             repl_val = values[1] if len(values) > 1 else ''
-            repl_cnt = int(values[2].strip()) if len(values) == 3 else 0
+            repl_count = int(values[2].strip()) if len(values) == 3 else 0
         except re.error as err:
             # error from compiling regex
             parser.error(err4 + err.args[0])
         except ValueError:
             # error from converting count into int
             parser.error(err3)
-        namespace.regex = (reg_exp, repl_val, repl_cnt)
+        namespace.regex = (reg_exp, repl_val, repl_count)
+
+
+class BracketAction(argparse.Action):
+    '''
+    Custom action for a bracket remover. Accept multiple arguments.
+    Create different patterns with regex depending on bracket type.
+    Allow an extra argument to target the nth bracket.
+    '''
+    def __call__(self, parser, namespace, values, option_string=None):
+        choices = ['curly', 'round', 'square']
+        err1 = 'argument -bracr/bracket_remove: expected at least one argument'
+        err2 = 'argument -bracr/bracket_remove: expected at most two arguments'
+        err3 = 'argument -bracr/bracket_remove: invalid choice for bracket type'
+        err4 = 'argument -bracr/bracket_remove: bracket target is not a number'
+        err5 = 'argument -bracr/bracket_remove: cannot remove negative bracket match'
+        repl_count = 0
+        if len(values) < 1:
+            parser.error(err1)
+        elif len(values) > 2:
+            parser.error(err2)
+
+        if values[0].strip() not in choices:
+            parser.error(err3)
+
+        try:
+            repl_count = int(values[1].strip()) if len(values) == 2 else 0
+            if repl_count < 0:
+                parser.error(err5)
+        except ValueError:
+            parser.error(err4)
+
+        namespace.bracr = (values[0], repl_count)
 
 
 class SequenceAction(argparse.Action):
@@ -219,10 +251,10 @@ class CustomFormatter(argparse.HelpFormatter):
         # ugly hack to override specific metavars
         if option_string == '--translate':
             return 'CHARS CHARS'
-        elif option_string == '--spaces':
-            return '[CHARS]'
         elif option_string == '--regex':
-            return 'REGEX [REGEX]'
+            return 'PATTERN [REPL] [COUNT]'
+        elif option_string == '-bracr':
+            return '{curly,round,square} [COUNT]'
         else:
             return args_string
 
@@ -265,7 +297,8 @@ parser = argparse.ArgumentParser(
 )
 outgroup = parser.add_mutually_exclusive_group()
 
-parser.add_argument('-sp', '--spaces', nargs='?', const='_', metavar='REPL',
+parser.add_argument('-sp', '--spaces', nargs='?', const='_',
+                    metavar='REPL',
                     help='replace whitespaces with specified (default: _)')
 parser.add_argument('-tr', '--translate', nargs='*', action=TranslateAction,
                     metavar='CHARS',
@@ -274,12 +307,13 @@ parser.add_argument('-sl', '--slice', action=SliceAction,
                     metavar='start:end:step',
                     help='slice a portion of the filename')
 parser.add_argument('-sh', '--shave', action=ShaveAction,
-                    metavar='[head]:[tail]', help='shave head and/or tail from string')
+                    metavar='head:tail',
+                    help='shave head and/or tail from string')
+parser.add_argument('-bracr', nargs='*', action=BracketAction,
+                    help='remove contents of bracket type')
 parser.add_argument('-c', '--case',
                     choices=['upper', 'lower', 'swap', 'cap'],
                     help='convert filename case')
-parser.add_argument('-bracr', action='store_true',
-                    help='remove brackets and their contents')
 parser.add_argument('-pre', '--prepend', metavar='STR',
                     help='prepend string to filename')
 parser.add_argument('-post', '--postpend', metavar='STR',
