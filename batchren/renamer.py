@@ -76,7 +76,7 @@ def runfilters(filters, dirpath, bname):
     return newname
 
 
-def repl_closure(pattern, repl='', count=0):
+def repl_closure(pattern, repl='', repl_count=0):
     '''
     Return one of two different functions.
     1. Normal re.sub with exceptions.
@@ -88,7 +88,7 @@ def repl_closure(pattern, repl='', count=0):
         Function to be used with re.sub. Replace words only if count = count.
         Otherwise just replace with the match itself.
         '''
-        if matchobj.group() and replacer.count == count:
+        if matchobj.group() and replacer.count == repl_count:
             ret = repl
         else:
             ret = matchobj.group()
@@ -98,7 +98,7 @@ def repl_closure(pattern, repl='', count=0):
 
     def repl_nth(x):
         try:
-            val = re.sub(pattern, replacer, x)
+            val = re.sub(pattern, replacer, x, repl_count)
             replacer.count = 1
             return val
         except re.error as err:
@@ -111,15 +111,15 @@ def repl_closure(pattern, repl='', count=0):
         except re.error as err:
             sys.exit('bad regex: ' + err)
 
-    return repl_all if not count else repl_nth
+    return repl_all if not repl_count else repl_nth
 
 
 def initfilters(args):
     # create filters in a list
     filters = []
     if args.regex:
-        regex_re = repl_closure(*args.regex)
-        filters.append(regex_re)
+        regex_repl = repl_closure(*args.regex)
+        filters.append(regex_repl)
 
     if args.slice:
         slash = lambda x: x[args.slice]
@@ -129,12 +129,9 @@ def initfilters(args):
         shave = lambda x: x[args.shave[0]][args.shave[1]]
         filters.append(shave)
 
-    # note: find better method to remove brackets
     if args.bracr:
-        brac_re = re.compile(r'[\{\[\(].*?[\{\]\)]')
-        brac_trans = str.maketrans('', '', '{}[]()')
-        bracrf = lambda x: re.sub(brac_re, '', x).translate(brac_trans)
-        filters.append(bracrf)
+        bracr = repl_closure(args.bracr[0], '', args.bracr[1])
+        filters.append(bracr)
 
     if args.translate:
         translmap = str.maketrans(*args.translate)

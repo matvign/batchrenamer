@@ -217,3 +217,27 @@ def test_filter_shave(sh_arg, sh_dirpath, sh_fname, sh_res):
     newname = renamer.runfilters(filters, sh_dirpath, sh_fname)
     print('oldname: {} --> newname: {}'.format(sh_fname, newname))
     assert newname == sh_res
+
+
+@pytest.mark.parametrize("bracr_arg, bracr_dirpath, bracr_fname, bracr_res", [
+    # tests for bracket removal
+    (['round'], '', '(filea)file(file)', 'file'),
+    (['round'], '', 'filea', 'filea'),
+    (['round'], '', '(file)(file)(file)file', 'file'),
+    (['round', '1'], '', '(file)file(file)', 'file(file)'),
+    (['round', '2'], '', '(file)file(file)', '(file)file'),
+    (['round', '3'], '', '(file)file(file)', '(file)file(file)'),
+    (['square', '1'], '', '[file]file[file]', 'file[file]'),
+    (['square', '2'], '', '[file]file[file]', '[file]file'),
+    (['square', '3'], '', '[file]file[file]', '[file]file[file]'),
+    (['curly', '1'], '', '{file}file{file}', 'file{file}'),
+    (['curly', '2'], '', '{file}file{file}', '{file}file'),
+    (['curly', '3'], '', '{file}file{file}', '{file}file{file}'),
+])
+def test_filter_bracr(bracr_arg, bracr_dirpath, bracr_fname, bracr_res):
+    args = parser.parse_args(['-bracr', *bracr_arg])
+    filters = renamer.initfilters(args)
+    newname = renamer.runfilters(filters, bracr_dirpath, bracr_fname)
+    print('oldname: {} --> newname: {}'.format(bracr_fname, newname))
+    print('expected:', bracr_res)
+    assert newname == bracr_res
