@@ -198,7 +198,6 @@ class BracketAction(argparse.Action):
     Allow an extra argument to target the nth bracket.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
-        choices = ['curly', 'round', 'square']
         err1 = 'argument -bracr/bracket_remove: expected at least one argument'
         err2 = 'argument -bracr/bracket_remove: expected at most two arguments'
         err3 = 'argument -bracr/bracket_remove: invalid choice for bracket type'
@@ -219,7 +218,7 @@ class BracketAction(argparse.Action):
                 parser.error(err5)
         except ValueError:
             parser.error(err4)
-
+            
         namespace.bracr = (values[0], repl_count)
 
 
