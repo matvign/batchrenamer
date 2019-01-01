@@ -41,16 +41,25 @@ version:    show version
 
 
 ## 1.1.2 Considerations/issues
+It is highly recommended that positionals are placed first followed by optionals.  
+This is because some arguments take at *least n* arguments, which messes with parsing.
+```
+-re PATTERN [REPL] [COUNT], replace the nth pattern found with repl.
+BAD:
+python3 batchren.py -re cat dog catcat
+interprets catcat as the nth instance to remove.
+
+GOOD:
+python3 batchren.py catcat -re cat dog 2
+given a file named cat, remove the second instance of the pattern with dog
+i.e. catcat -> catdog
+```
+
 Arguments that require special characters should be encased in quotes.  
 e.g. `python3 batchren.py 'testdir/*' -tr '[]' '()'`
 
-Due to the way that argparse interpret hypens, arguments starting with a hypen 
-should use an equal sign and quotes. This *should* work with most filters.  
-e.g. `-arg='-val'`
-
-The translate filter doesn't work with this method. Individual hypens can be
-translated, but any extra characters will give an error.  
-e.g. `-tr - +'` is ok, but `-tr '-a' '+b'` will give an error.
+Arguments with only one argument starting with a hypen should use equals before it.  
+e.g. `-arg='-val'`  
 
 
 # 1.2 File and pattern matching
@@ -94,8 +103,8 @@ safe to rename.
 ## 1.3.3 Regex filter
 Regex filter allows python regex to be used.  
 There may be some untested oddities that occur from inputting python regex as
-bash strings. If there was an issue with compiling
-or executing regex replacement, the program (**should**) safely crash.  
+bash strings.  
+If an issue occurs with compiling or executing regex, the program (**should**) safely crash.  
 
 
 ## 1.3.4 Shave filter
@@ -135,7 +144,7 @@ Bracket remover doesn't work with nested brackets!!
 
 
 ## 1.3.6 Sequences
-The sequence filter uses strings separated by slashes for formatting. Strings must belong with % and be either f, n or a to be a valid formatter. Sequences reset with different directories.
+The sequence filter uses strings separated by slashes for formatting. Strings must begin with **%** and be either **f**, **n** or **a** to be a valid formatter. Sequences reset with different directories.
 
 ```
 %f
@@ -493,6 +502,7 @@ if dryrun or verbose
 * regex filter: optional remove nth instance
 * bracr filter: change to target specific bracket removal
 * sequence filter: remove requirement for file formatter
+* sequence filter: allow sequencing of capital letters
 * add help text for hyphens
 * new: shave filter, remove text from head or/and tail
 * bug fixes/code cleanup

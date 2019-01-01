@@ -89,6 +89,10 @@ def illegalextension(ext):
     return ext
 
 
+def trim(arg):
+    return arg.strip()
+
+
 # enforce length of translate must be equal
 class TranslateAction(argparse.Action):
     '''
@@ -99,10 +103,10 @@ class TranslateAction(argparse.Action):
     Convert output into a tuple.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
-        err1 = 'argument -tr/--translate: expected two arguments'
+        # err1 = 'argument -tr/--translate: expected two arguments'
         err2 = 'argument -tr/--translate: arguments must be equal length'
-        if (len(values) != 2):
-            parser.error(err1)
+        # if len(values) != 2:
+        #     parser.error(err1)
 
         if len(values[0]) != len(values[1]):
             parser.error(err2)
@@ -198,6 +202,7 @@ class BracketAction(argparse.Action):
     Allow an extra argument to target the nth bracket.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
+        choices = ['curly', 'round', 'square']
         err1 = 'argument -bracr/bracket_remove: expected at least one argument'
         err2 = 'argument -bracr/bracket_remove: expected at most two arguments'
         err3 = 'argument -bracr/bracket_remove: invalid choice for bracket type'
@@ -209,16 +214,16 @@ class BracketAction(argparse.Action):
         elif len(values) > 2:
             parser.error(err2)
 
-        if values[0].strip() not in choices:
+        if values[0] not in choices:
             parser.error(err3)
 
         try:
-            repl_count = int(values[1].strip()) if len(values) == 2 else 0
+            repl_count = int(values[1]) if len(values) == 2 else 0
             if repl_count < 0:
                 parser.error(err5)
         except ValueError:
             parser.error(err4)
-            
+
         namespace.bracr = (values[0], repl_count)
 
 
@@ -297,10 +302,9 @@ parser = argparse.ArgumentParser(
 outgroup = parser.add_mutually_exclusive_group()
 
 parser.add_argument('-sp', '--spaces', nargs='?', const='_',
-                    metavar='REPL',
+                    metavar='REPL', type=trim,
                     help='replace whitespaces with specified (default: _)')
-parser.add_argument('-tr', '--translate', nargs='*', action=TranslateAction,
-                    metavar='CHARS',
+parser.add_argument('-tr', '--translate', nargs=2, action=TranslateAction,
                     help='translate characters from one to another')
 parser.add_argument('-sl', '--slice', action=SliceAction,
                     metavar='start:end:step',
@@ -308,10 +312,11 @@ parser.add_argument('-sl', '--slice', action=SliceAction,
 parser.add_argument('-sh', '--shave', action=ShaveAction,
                     metavar='head:tail',
                     help='shave head and/or tail from string')
-parser.add_argument('-bracr', nargs='*', action=BracketAction,
+parser.add_argument('-bracr', nargs='*', type=trim, action=BracketAction,
                     help='remove contents of bracket type')
 parser.add_argument('-c', '--case',
                     choices=['upper', 'lower', 'swap', 'cap'],
+                    type=trim,
                     help='convert filename case')
 parser.add_argument('-pre', '--prepend', metavar='STR',
                     help='prepend string to filename')
@@ -331,7 +336,7 @@ outgroup.add_argument('-v', '--verbose', action='store_true',
                     help='show detailed output')
 parser.add_argument('--version', action='version', version=__version__)
 parser.add_argument('path', nargs='?', default='*', type=expanddir,
-                    help='target directory')
+                    help='target file/directory')
 args = parser.parse_args()
 
 if __name__ == '__main__':

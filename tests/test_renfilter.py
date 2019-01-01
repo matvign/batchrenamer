@@ -104,7 +104,10 @@ def test_filter_case_err(c_errarg):
     ('cap', '', 'file name', 'File Name'),
     ('cap', '', 'file1 1name', 'File1 1Name'),
     ('cap', '', 'file1_1name', 'File1_1Name'),
-    ('cap', '', 'file1.1name', 'File1.1Name')
+    ('cap', '', 'file1.1name', 'File1.1Name'),
+    ('upper  ', '', 'file', 'FILE'),
+    ('lower  ', '', 'FILE', 'file'),
+    ('swap   ', '', 'fIle', 'FiLE')
 ])
 def test_filter_cases(c_arg, c_dirpath, c_fname, c_res):
     args = parser.parse_args(['-c', c_arg])
@@ -116,10 +119,12 @@ def test_filter_cases(c_arg, c_dirpath, c_fname, c_res):
 
 @pytest.mark.parametrize("tr_errargs", [
     # errors for translate parser
+    # let nargs=2 handle length of arguments
     # translate expects two arguments, both same length
     (['-v']),
+    (['a']),
     (['a', '-v']),
-    (['a', 'b', 'c', '-v']),
+    # (['a', 'b', 'c', '-v']),  # let argparse deal with this error
     (['a', 'bc', '-v'])
 ])
 def test_filter_translate_err(tr_errargs):
@@ -220,12 +225,31 @@ def test_filter_shave(sh_arg, sh_dirpath, sh_fname, sh_res):
     assert newname == sh_res
 
 
+@pytest.mark.parametrize("bracr_errargs", [
+    (['-v']),
+    (['something', '-v']),
+    (['roun', '-v']),
+    (['CURLY', '-v']),
+    (['ROUND', '-v']),
+    (['SQUARE', '-v']),
+    (['SOMETHING', 'HERE', '-v']),
+    (['10', '-v'])
+])
+def test_filter_bracr_err(bracr_errargs):
+    with pytest.raises(SystemExit) as err:
+        args = parser.parse_args(['-bracr', *bracr_errargs])
+        print(bracr_errargs, "is erroneous")
+        assert err.type == SystemExit
+
+
 @pytest.mark.parametrize("bracr_arg, bracr_dirpath, bracr_fname, bracr_res", [
     # tests for bracket removal
     (['round'], '', '(filea)file(file)', 'file'),
     (['round'], '', 'filea', 'filea'),
+    (['round '], '', 'filea', 'filea'),
     (['round'], '', '(file)(file)(file)file', 'file'),
     (['round', '1'], '', '(file)file(file)', 'file(file)'),
+    (['  round  ', ' 1 '], '', '(file)file(file)', 'file(file)'),
     (['round', '2'], '', '(file)file(file)', '(file)file'),
     (['round', '3'], '', '(file)file(file)', '(file)file(file)'),
     (['square', '1'], '', '[file]file[file]', 'file[file]'),
