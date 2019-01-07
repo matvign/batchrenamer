@@ -96,18 +96,20 @@ def trim(arg):
 # enforce length of translate must be equal
 class TranslateAction(argparse.Action):
     '''
-    Use * in argparse to treat extra arguments as translate arguments
     Custom action for translate. Accept two arguments.
+    Give an error if both values are empty.
     Give an error if there aren't two arguments.
     Give an error if argument lengths aren't equal.
     Convert output into a tuple.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
+        err0 = 'argument -tr/--translate: argument values are empty'
         # err1 = 'argument -tr/--translate: expected two arguments'
         err2 = 'argument -tr/--translate: arguments must be equal length'
         # if len(values) != 2:
         #     parser.error(err1)
-
+        if sum(1 for n in values if not n):
+            parser.error(err0)
         if len(values[0]) != len(values[1]):
             parser.error(err2)
         namespace.translate = tuple(values)
@@ -120,8 +122,11 @@ class SliceAction(argparse.Action):
     Give an error if any of the values aren't integers.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
+        err0 = 'argument -sl/--slice: argument value is empty'
         err1 = 'argument -sl/--slice: too many arguments for slicing'
         err2 = 'argument -sl/--slice: non-numeric character in slice'
+        if not values:
+            parser.error(err0)
         try:
             sl = slice(*[int(x.strip()) if x.strip() else None for x in values.split(':')])
         except TypeError:
@@ -141,10 +146,13 @@ class ShaveAction(argparse.Action):
     Give an error if any values are negative.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
+        err0 = 'argument -sh/--shave: argument value is empty'
         err1 = 'argument -sh/--shave: non-numeric character in shave'
         err2 = 'argument -sh/--shave: too many values for shaving'
         err3 = 'argument -sh/--shave: too few values for shaving'
         err4 = 'argument -sh/--shave: negative value in shave'
+        if not values:
+            parser.error(err0)
         try:
             sl = [int(x.strip()) if x.strip() else None for x in values.split(':')]
         except ValueError:
@@ -173,6 +181,7 @@ class RegexAction(argparse.Action):
     Second argument default is '', third argument default is 0.
     '''
     def __call__(self, parser, namespace, values, option_string=None):
+        err0 = 'argument -re/--regex: pattern argument is empty'
         err1 = 'argument -re/--regex: expected at least one argument'
         err2 = 'argument -re/--regex: expected up to three arguments'
         err3 = 'argument -re/--regex: non-numeric character in count argument'
@@ -181,6 +190,8 @@ class RegexAction(argparse.Action):
             parser.error(err1)
         elif len(values) > 3:
             parser.error(err2)
+        if not values[0]:
+            parser.error(err0)
 
         try:
             reg_exp = re.compile(values[0])
@@ -302,14 +313,14 @@ parser = argparse.ArgumentParser(
 outgroup = parser.add_mutually_exclusive_group()
 
 parser.add_argument('-sp', '--spaces', nargs='?', const='_',
-                    metavar='REPL', type=trim,
+                    metavar='REPL',
                     help='replace whitespaces with specified (default: _)')
 parser.add_argument('-tr', '--translate', nargs=2, action=TranslateAction,
                     help='translate characters from one to another')
 parser.add_argument('-sl', '--slice', action=SliceAction,
                     metavar='start:end:step',
                     help='slice a portion of the filename')
-parser.add_argument('-sh', '--shave', action=ShaveAction,
+parser.add_argument('-sh', '--shave', type=trim, action=ShaveAction,
                     metavar='head:tail',
                     help='shave head and/or tail from string')
 parser.add_argument('-bracr', nargs='*', type=trim, action=BracketAction,

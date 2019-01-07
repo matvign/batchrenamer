@@ -2,7 +2,7 @@
 import os
 import re
 import sys
-from collections import deque, OrderedDict
+from collections import deque
 
 from natsort import natsorted, ns
 
@@ -43,6 +43,7 @@ def partfile(filepath):
     '''
     dirpath, filename = os.path.split(filepath)
     bname, ext = os.path.splitext(filename)
+    # bname, ext = filename.split('.', 1)
     return (dirpath, bname, ext)
 
 
@@ -145,7 +146,7 @@ def initfilters(args):
         translate = lambda x: x.translate(translmap)
         filters.append(translate)
 
-    if args.spaces:
+    if args.spaces is not None:
         space = lambda x: x.replace(' ', args.spaces)
         filters.append(space)
 
@@ -297,14 +298,20 @@ def print_rentable(rentable, quiet=False, verbose=False):
 
     elif verbose:
         print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
-        print('the following files have conflicts')
         if unres:
             # show detailed output if there were conflicts
-            conflicts = OrderedDict(natsorted(conf.items(), key=lambda x: x[0], alg=ns.PATH))
-            for dest, obj in conflicts.items():
+            print('the following files have conflicts')
+            if '' in conf:
+                # bug with ns.path and empty values, instant crashes!!
+                conflicts = natsorted(conf.items(), key=lambda x: x[0])
+                conflicts = [conflicts[0], *natsorted(conflicts[1:], key=lambda x: x[0], alg=ns.PATH)]
+            else:
+                conflicts = natsorted(conf.items(), key=lambda x: x[0], alg=ns.PATH)
+
+            for dest, obj in conflicts:
                 srcOut = natsorted(obj['srcs'], alg=ns.PATH)
                 print(', '.join([repr(str(e)) for e in srcOut]))
-                print("--> '{}'\nerrors: ".format(dest), end='')
+                print("--> '{}'\nerror(s): ".format(dest), end='')
                 print(', '.join([issues[e] for e in obj['err']]), '\n')
         else:
             # otherwise show a message

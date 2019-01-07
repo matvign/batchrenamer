@@ -53,6 +53,7 @@ def test_filter_postpend(post_arg, post_dirpath, post_fname, post_res):
     # dirpath is only used in sequence filter
     # arg, dirpath, filename, expected result
     ('_', '', 'file a', 'file_a'),
+    ('', '', 'file a', 'filea'),
     ('.', '', 'file b', 'file.b'),
     ('THIS', '', 'file c', 'fileTHISc'),
     ('.', '', 'f i l e', 'f.i.l.e')

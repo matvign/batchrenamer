@@ -1,4 +1,5 @@
 import re
+from itertools import zip_longest
 from string import ascii_lowercase
 
 
@@ -58,6 +59,55 @@ class SequenceObj:
                 if end and i > end:
                     i = start
 
+    def _test_alpha_generator(self, depth=1, start='a', end='z'):
+        '''
+        Generator function for letters given a depth, start, end.
+        Start is where sequencing begins. Consists only of letters.
+        End is where sequencing ends. Consists only of letters.
+        Depth determines how much end should repeat.
+        '''
+        start = start if start is not None else 'a'
+        end = depth * end if end is not None else depth * 'z'
+        if len(start) < len(end):
+            # aa:zzz --> aaa:zzz
+            start, end = zip_longest(*zip_longest(start, end, fillvalue='a'))
+        elif len(start) > len(end):
+            # aaaa:zz --> aaaa:zz--
+            start, end = zip_longest(*zip_longest(start, end))
+
+        def do_increment(ch, start_ch, end_ch):
+            '''
+            if (a - z) keep incrementing or reset when = end
+            if (A - Z) keep incrementing or reset when = end
+            if (a - Z) keep incrementing until z, then switch to uppercase
+                and reset when = end
+            if (A - z) don't increment at all
+            '''
+            if start_ch in ascii_lowercase and end_ch in ascii_lowercase:
+                return chr(ord(ch) + 1) if ch < end_ch else start_ch
+            elif start_ch not in ascii_lowercase and end_ch not in ascii_lowercase:
+                return chr(ord(ch) + 1) if ch < end_ch else start_ch
+            elif start_ch in ascii_lowercase and end_ch not in ascii_lowercase:
+                if ch in ascii_lowercase:
+                    return chr(ord(ch) + 1) if ch != 'z' else 'A'
+                return chr(ord(ch) + 1) if ch < end_ch else start_ch
+            return ch
+
+        staticst, lst = ''.join(start[:-1]), start
+        while True:
+            val = yield (staticst + lst[-1])
+            if val == 'reset':
+                staticst, lst = ''.join(start[:-1]), start
+            else:
+                for count, item in reversed(list(enumerate(lst))):
+                    start_ch, end_ch = start[count], end[count]
+                    if end_ch:
+                        lst[count] = do_increment(item, start_ch, end_ch)
+                        if lst[count] != start_ch:
+                            # rebuild staticst and stop looping if not a reset
+                            staticst = ''.join(lst[:-1])
+                            break
+
     def _alpha_generator(self, depth=1, start='a', end='z'):
         '''
         Generator function for letters given a depth, start, end.
@@ -94,7 +144,7 @@ class SequenceObj:
     def _parse_num(self, arg):
         '''
         Parse the arguments as a number sequence
-        %n{depth}:start:end
+        %n[depth]:start:end
         Raise error if:
             depth value is not a number
             too many arguments (>4)
@@ -104,12 +154,12 @@ class SequenceObj:
         msg2 = 'too many arguments for number sequence'
         msg3 = 'non-positive integer value in number sequence'
         args = arg.split(':')
-        groups = re.match(r'^(n)(\d*)$', args[0])
-        if not groups:
+        matchobj = re.match(r'^(n)(\d*)$', args[0])
+        if not matchobj:
             raise ValueError(msg1)
         elif len(args) > 4:
             raise TypeError(msg2)
-        depth = int(groups.group(2)) if groups.group(2) else 2
+        depth = int(matchobj.group(2)) if matchobj.group(2) else 2
         try:
             sl = [int(x.strip()) if x.strip() else None for x in args[1:]]
         except ValueError as err:
@@ -122,38 +172,41 @@ class SequenceObj:
     def _parse_alpha(self, arg):
         '''
         Parse the arguments as an alphabetical sequence
-        %a{depth}:start:end
+        %a[depth]:start:end
         Raise error if:
             depth value is not a number
             too many arguments (>3)
-            argument is not an alphabetical character
+            argument contains non-alphabetical character(s)
         '''
         msg1 = 'invalid depth for alphabetical sequence'
         msg2 = 'too many arguments for alphabetical sequence'
-        msg3 = 'argument is not an alphabetical character'
-        args = arg.split(':')
-        groups = re.match(r'^(a)(\d*)$', args[0])
-        if not groups:
+        msg3 = 'argument contains non-alphabetical character(s)'
+        args = [x.strip() if x.strip() else None for x in arg.split(':')]
+        matchobj = re.match(r'^(a)(\d*)$', args[0])
+        if not matchobj:
             raise ValueError(msg1)
         elif len(args) > 3:
             raise TypeError(msg2)
-        depth = int(groups.group(2)) if groups.group(2) else 1
-        if sum(1 for x in args[1:] if x and (len(x) != 1 or x not in ascii_lowercase)):
+        depth = int(matchobj.group(2)) if matchobj.group(2) else 1
+        if sum(1 for x in args[1:] if x and not x.isalpha()):
             raise ValueError(msg3)
-        sl = [x if x else None for x in args[1:]]
-        gen = self._alpha_generator(depth, *sl)
+        gen = self._alpha_generator(depth, *args[1:])
         self.rules.append(("seq", gen))
 
     def _parse_seq(self, arg):
+        # %a[depth]:start:end or
+        # %n[depth]:start:end:step
         msg = 'invalid sequence formatter '
-        val = arg[1:]
+        val = arg[1:]  # strip % from arg
         if not val:
-            raise ValueError(msg + arg)
+            # arg was %, just add it as raw string
+            self.rules.append(("raw", "%"))
         elif val[0] == 'n':
             self._parse_num(val)
         elif val[0] == 'a':
             self._parse_alpha(val)
         else:
+            # raise error or add as raw string??
             raise ValueError(msg + arg)
 
     def _parse_args(self, args):
@@ -168,7 +221,7 @@ class SequenceObj:
 
             if n == '%f':
                 # '' is a dummy value for consistency
-                self.rules.append(("file", ''))
+                self.rules.append(('file', ''))
                 self.fbit = True
             elif n == '%n':
                 # create a default num sequence
