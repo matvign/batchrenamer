@@ -498,20 +498,26 @@ if dryrun or verbose
 
 
 ## v0.5.1
-* regex filter: except re.error in main.py and renamer.py
+* reorganise package structure (python packaging is confusing)
 * regex filter: optional remove nth instance
-* bracr filter: change to target specific bracket removal
+* bracr filter: target specific bracket type for removal (+ optional nth bracket)
 * sequence filter: remove requirement for file formatter
-* sequence filter: allow sequencing of capital letters
+* sequence filter: positional sequence of all alphabetical characters
 * add help text for hyphens
+* exceptions: use re.error and oserror for better exception handling
 * new: shave filter, remove text from head or/and tail
 * bug fixes/code cleanup
 
 
 # Planned updates
 ## v0.5.2
-* new: interactive option for ordering of files
+* new: option to treat all dots as an extension
+* new: options for sorting by asc or desc
 * bug fixes/code cleanup
+
+
+## v0.6.0
+* new: interactive option for ordering of files
 
 
 # Documentation changelog

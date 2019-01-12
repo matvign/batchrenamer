@@ -48,9 +48,8 @@ def main(args):
     try:
         # only include files
         files = natsorted([f for f in glob.iglob(args.path) if os.path.isfile(f)], alg=ns.PATH)
-    except Exception as e:
-        print(e)
-        return
+    except OSError as err:
+        parser.error('A error occurred while searching for files... ' + err)
 
     if not files:
         print('{:-^30}'.format(BOLD + 'files found' + END))
@@ -231,8 +230,10 @@ class BracketAction(argparse.Action):
         try:
             repl_count = int(values[1]) if len(values) == 2 else 0
             if repl_count < 0:
+                # don't allow negative bracket match
                 parser.error(err5)
         except ValueError:
+            # values[1] cannot be converted to an int
             parser.error(err4)
 
         namespace.bracr = (values[0], repl_count)

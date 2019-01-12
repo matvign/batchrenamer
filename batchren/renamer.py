@@ -12,7 +12,7 @@ BOLD = '\033[1m'
 END = '\033[0m'
 
 issues = {
-    # issuecodes for printing rentable
+    # issuecodes for rentable
     0: 'no filters applied',
     1: 'new name cannot be empty',
     2: 'new name cannot start with .',
@@ -69,15 +69,18 @@ def runfilters(filters, dirpath, bname):
     # function to run filters
     newname = bname
     for runf in filters:
-        if isinstance(runf, SequenceObj):
-            newname = runf(newname, dirpath)
-        else:
-            newname = runf(newname)
+        try:
+            if isinstance(runf, SequenceObj):
+                newname = runf(newname, dirpath)
+            else:
+                newname = runf(newname)
+        except re.error as re_err:
+            sys.exit('bad regex: ' + re_err)
 
     return newname
 
 
-def repl_closure(pattern, repl='', repl_count=0):
+def repl_decorator(pattern, repl='', repl_count=0):
     '''
     Return one of two different functions.
     1. Normal re.sub with exceptions.
@@ -98,19 +101,12 @@ def repl_closure(pattern, repl='', repl_count=0):
     replacer.count = 1
 
     def repl_nth(x):
-        try:
-            val = re.sub(pattern, replacer, x, repl_count)
-            replacer.count = 1
-            return val
-        except re.error as err:
-            sys.exit('bad regex: ' + err)
+        val = re.sub(pattern, replacer, x, repl_count)
+        replacer.count = 1
+        return val
 
     def repl_all(x):
-        try:
-            val = re.sub(pattern, repl, x)
-            return val
-        except re.error as err:
-            sys.exit('bad regex: ' + err)
+        return re.sub(pattern, repl, x)
 
     return repl_all if not repl_count else repl_nth
 
@@ -119,7 +115,7 @@ def initfilters(args):
     # create filters in a list
     filters = []
     if args.regex:
-        regex_repl = repl_closure(*args.regex)
+        regex_repl = repl_decorator(*args.regex)
         filters.append(regex_repl)
 
     if args.slice:
@@ -138,7 +134,7 @@ def initfilters(args):
         elif args.bracr[0] == 'square':
             reg_exp = re.compile(r'\[.*?\]')
 
-        bracr = repl_closure(reg_exp, '', args.bracr[1])
+        bracr = repl_decorator(reg_exp, '', args.bracr[1])
         filters.append(bracr)
 
     if args.translate:
@@ -376,8 +372,8 @@ def run_rename(queue, args):
 def rename_file(src, dest):
     try:
         os.rename(src, dest)
-    except Exception as err:
-        sys.exit('A fatal error occurred... ' + err)
+    except OSError as err:
+        sys.exit('An error occurred while renaming... ' + err)
 
 
 def start_rename(args, fileset):
