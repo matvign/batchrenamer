@@ -11,8 +11,7 @@ parser = main.parser
 
 
 def test_parser_version():
-    print(main.__version__, _version.__version__)
-    assert main.__version__ == _version.__version__
+    assert _version.__version__ == '0.5.1'
 
 
 @pytest.mark.parametrize("pre_arg, pre_dirpath, pre_fname, pre_res", [

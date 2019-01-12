@@ -6,7 +6,7 @@ from collections import deque
 
 from natsort import natsorted, ns
 
-from batchren.seqObj import SequenceObj
+from batchren import seqObj
 
 BOLD = '\033[1m'
 END = '\033[0m'
@@ -70,7 +70,7 @@ def runfilters(filters, dirpath, bname):
     newname = bname
     for runf in filters:
         try:
-            if isinstance(runf, SequenceObj):
+            if isinstance(runf, seqObj.SequenceObj):
                 newname = runf(newname, dirpath)
             else:
                 newname = runf(newname)

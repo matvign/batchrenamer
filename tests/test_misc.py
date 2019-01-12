@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 import pytest
 
-from main import parser
+import main
 from batchren import renamer
+
 '''
 tests for misc functions that do certain things.
 Run this in the top level directory
 '''
+parser = main.parser
 
 
 @pytest.mark.parametrize("path_args, path_res", [

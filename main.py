@@ -6,9 +6,7 @@ import re
 
 from natsort import natsorted, ns
 
-from batchren import renamer
-from batchren.seqObj import SequenceObj
-from batchren._version import __version__
+from batchren import _version, renamer, seqObj
 
 BOLD = '\033[1m'
 END = '\033[0m'
@@ -248,13 +246,13 @@ class SequenceAction(argparse.Action):
         msg = 'argument -seq/--sequence: '
         err1 = 'missing file formatter %f'
         try:
-            seqObj = SequenceObj(values)
+            seq = seqObj.SequenceObj(values)
         except ValueError as verr:
             parser.error(msg + verr.args[0])
         except TypeError as terr:
             parser.error(msg + terr.args[0])
         else:
-            namespace.sequence = seqObj
+            namespace.sequence = seq
 
 
 class CustomFormatter(argparse.HelpFormatter):
@@ -346,7 +344,7 @@ outgroup.add_argument('-q', '--quiet', action='store_true',
                     help='skip output, but show confirmations')
 outgroup.add_argument('-v', '--verbose', action='store_true',
                     help='show detailed output')
-parser.add_argument('--version', action='version', version=__version__)
+parser.add_argument('--version', action='version', version=_version.__version__)
 parser.add_argument('path', nargs='?', default='*', type=expanddir,
                     help='target file/directory')
 args = parser.parse_args()
