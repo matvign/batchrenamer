@@ -59,20 +59,24 @@ class SequenceObj:
                 if end and i > end:
                     i = start
 
-    def _test_alpha_generator(self, depth=1, start='a', end='z'):
+    def _alpha_generator(depth=1, start='a', end='z'):
         '''
         Generator function for letters given a depth, start, end.
         Start is where sequencing begins. Consists only of letters.
         End is where sequencing ends. Consists only of letters.
         Depth determines how much end should repeat.
+        Lowercase increments to uppercase, but NOT vice-versa
         '''
-        start = start if start is not None else 'a'
-        end = depth * end if end is not None else depth * 'z'
+        # convert start, end into list of chars
+        start = [*start] if start is not None else ['a']
+        end = [*(depth * end)] if end is not None else depth * ['z']
         if len(start) < len(end):
-            # aa:zzz --> aaa:zzz
+            # fill start with starting char a
+            # a:zzz --> aaa:zzz
             start, end = zip_longest(*zip_longest(start, end, fillvalue='a'))
         elif len(start) > len(end):
-            # aaaa:zz --> aaaa:zz--
+            # fill end with None
+            # aaa:z --> aaa:z--
             start, end = zip_longest(*zip_longest(start, end))
 
         def do_increment(ch, start_ch, end_ch):
@@ -81,7 +85,8 @@ class SequenceObj:
             if (A - Z) keep incrementing or reset when = end
             if (a - Z) keep incrementing until z, then switch to uppercase
                 and reset when = end
-            if (A - z) don't increment at all
+            if (A - z) don't increment
+            if (A - None) don't increment (handled externally)
             '''
             if start_ch in ascii_lowercase and end_ch in ascii_lowercase:
                 return chr(ord(ch) + 1) if ch < end_ch else start_ch
@@ -93,53 +98,21 @@ class SequenceObj:
                 return chr(ord(ch) + 1) if ch < end_ch else start_ch
             return ch
 
-        staticst, lst = ''.join(start[:-1]), start
+        st = list(start)
         while True:
-            val = yield (staticst + lst[-1])
+            val = yield ''.join(st)
             if val == 'reset':
-                staticst, lst = ''.join(start[:-1]), start
+                st = list(start)
             else:
-                for count, item in reversed(list(enumerate(lst))):
+                for count, item in reversed(list(enumerate(st))):
                     start_ch, end_ch = start[count], end[count]
                     if end_ch:
-                        lst[count] = do_increment(item, start_ch, end_ch)
-                        if lst[count] != start_ch:
-                            # rebuild staticst and stop looping if not a reset
-                            staticst = ''.join(lst[:-1])
-                            break
-
-    def _alpha_generator(self, depth=1, start='a', end='z'):
-        '''
-        Generator function for letters given a depth, start, end.
-        Resets are supported. If reset, go back to start with some depth.
-        If end > start, go back to start e.g. z -> a.
-        Length of sequence does not grow when reaching the end.
-            depth = 2, az -> ba
-            depth = 3, aaz -> aba, zaz -> zba, zzz -> aaa
-        '''
-        start = start if start is not None else 'a'
-        end = end if end is not None else 'z'
-
-        def init(start, depth):
-            staticst = start * (depth - 1)
-            return (start, staticst, [*staticst])
-
-        i, staticst, lst = init(start, depth)
-        while True:
-            val = yield (staticst + i)
-            if val == 'reset':
-                i, staticst, lst = init(start, depth)
-            else:
-                i = chr(ord(i) + 1)
-                if i > end:
-                    i = start
-                    for count, item in reversed(list(enumerate(lst))):
-                        if item == end:
-                            lst[count] = start
-                        else:
-                            lst[count] = chr(ord(item) + 1)
-                            break
-                    staticst = ''.join(lst)
+                        tmp = do_increment(item, start_ch, end_ch)
+                        if st[count] != tmp:
+                            # stop incrementing if we've incremented something
+                            st[count] = tmp
+                            if tmp != start_ch:
+                                break
 
     def _parse_num(self, arg):
         '''
