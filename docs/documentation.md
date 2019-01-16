@@ -1,4 +1,4 @@
-# Documentation - v0.5.1
+# Documentation - v0.5.2
 batchren - a batch renamer  
 batchren is a python script for batch renaming files. batchren uses unix style 
 pattern matching to look for files and uses optional arguments to 
@@ -46,17 +46,17 @@ This is because some arguments take at *least n* arguments, which messes with pa
 ```
 -re PATTERN [REPL] [COUNT], replace the nth pattern found with repl.
 BAD:
-python3 batchren.py -re cat dog catcat
+batchren.py -re cat dog catcat
 interprets catcat as the nth instance to remove.
 
 GOOD:
-python3 batchren.py catcat -re cat dog 2
+batchren.py catcat -re cat dog 2
 given a file named cat, remove the second instance of the pattern with dog
 i.e. catcat -> catdog
 ```
 
 Arguments that require special characters should be encased in quotes.  
-e.g. `python3 batchren.py 'testdir/*' -tr '[]' '()'`
+e.g. `batchren.py 'testdir/*' -tr '[]' '()'`
 
 Arguments with only one argument starting with a hypen should use equals before it.  
 e.g. `-arg='-val'`  
@@ -192,9 +192,9 @@ file_c
 file_z
 file_a
 
-%a2:start:end
-represents a letter sequence starting with a depth of 2,
-starting at start, resetting to start when greater than end
+%a:start:end
+represents a letter sequence starting at start, 
+resetting to start when greater than end.
 
 e.g. %f/_/%a2:a:c
 file_aa
@@ -207,6 +207,30 @@ file_ca
 file_cb
 file_cc
 file_aa
+
+%a2:start:end
+represents a letter sequence, but with a width multiplier of 2
+i.e. %a2:a:z = %a:aa:zz (z is multiplied by 2)
+
+Unlike numerical sequences, alphabetical sequences are bound by position.
+i.e. %a:aa:db -> aa, ab, ba, bb, cb, da, db, aa (complete reset)
+
+Default characters for missing values are 'a' and 'z' 
+(includes missing values due to multiplier)
+e.g. %a:a: = %a:a:z
+     %a2:a:z = %a:a:zz = %a:aa:zz
+
+When start is longer than end, the missing values are filled with None
+and not incremented.
+e.g. %a:aa:z = %a:aa:z(None) -> aa, ba, ca, da, ea, ..., za, aa
+
+When end is longer than start, the missing values are filled with 'a'
+e.g. %a:a:zz = %a:aa:zz
+
+Uppercase and lowercase sequencing is supported.
+Note that lowercase goes to uppercase, but NOT vice versa.
+i.e. %a:a:A -> a, b, c, ..., z, A
+     %a:A:a -> A, A, A, ..., A, A
 ```
 
 # 1.4 Processing rename information

@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 import pytest
 
-import main
-from batchren import renamer
+from batchren import renamer, bren
 
 '''
 tests for misc functions that do certain things.
 Run this in the top level directory
 '''
-parser = main.parser
+parser = bren.parser
 
 
 @pytest.mark.parametrize("path_args, path_res", [

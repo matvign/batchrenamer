@@ -5,14 +5,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="batchren-test",
-    version="0.5.1",
-    author="Example Author",
-    author_email="author@example.com",
-    description="A small example package",
+    name="batchren",
+    version="0.5.2",
+    author="Andrew Au",
+    author_email="andrew.ch.au@outlook.com",
+    description="A command line batch renamer",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="www.google.com",
+    url="https://github.com/matvign/batchrenamer",
     packages=setuptools.find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",

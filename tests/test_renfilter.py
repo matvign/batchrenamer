@@ -1,17 +1,16 @@
 import pytest
 
-import main
-from batchren import renamer, _version
+from batchren import bren, renamer, _version
 
 '''
 tests for filters of names
 Run this in the top level directory
 '''
-parser = main.parser
+parser = bren.parser
 
 
 def test_parser_version():
-    assert _version.__version__ == '0.5.1'
+    assert _version.__version__ == '0.5.2'
 
 
 @pytest.mark.parametrize("pre_arg, pre_dirpath, pre_fname, pre_res", [

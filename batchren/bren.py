@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python3
 import argparse
 import glob
 import os
@@ -24,7 +24,7 @@ def printArgs(args):
 
 
 def checkOptSet(args):
-    notfilter = {'dryrun', 'quiet', 'verbose', 'path'}
+    notfilter = {'dryrun', 'quiet', 'verbose', 'path', 'sort'}
     argdict = vars(args)
 
     for argname, argval in argdict.items():
@@ -40,7 +40,8 @@ def main(args):
         printArgs(args)
 
     if not checkOptSet(args):
-        print("no optional arguments set for renaming")
+        parser.print_usage()
+        print("\nno optional arguments set for renaming")
         return
 
     try:
@@ -59,6 +60,9 @@ def main(args):
         for n in files:
             print(n)
         print()
+
+    if args.sort == 'desc':
+        files.reverse()
 
     renamer.start_rename(args, files)
 
@@ -302,7 +306,7 @@ class CustomFormatter(argparse.HelpFormatter):
 
 parser = argparse.ArgumentParser(
     prog='batchren',
-    usage='python3 %(prog)s.py path [options]',
+    usage='%(prog)s path [options]',
     formatter_class=CustomFormatter,
     description='Batch Renamer - a script for renaming files',
     epilog="note: all special characters should be escaped using quotes. If hyphen is in beginning of argument, use -arg='-val'",
@@ -338,6 +342,8 @@ parser.add_argument('-re', '--regex', nargs='*', action=RegexAction,
                     help='specify pattern to remove/replace')
 parser.add_argument('-seq', '--sequence', action=SequenceAction,
                     help='apply a sequence to files')
+parser.add_argument('-sort', '--sort', choices=['asc', 'desc'], default='asc',
+                    help='sorting order when finding files')
 parser.add_argument('--dryrun', action='store_true',
                     help='run without renaming any files')
 outgroup.add_argument('-q', '--quiet', action='store_true',
@@ -347,8 +353,3 @@ outgroup.add_argument('-v', '--verbose', action='store_true',
 parser.add_argument('--version', action='version', version=_version.__version__)
 parser.add_argument('path', nargs='?', default='*', type=expanddir,
                     help='target file/directory')
-args = parser.parse_args()
-
-if __name__ == '__main__':
-    main(args)
-    print('Exiting...')
