@@ -511,8 +511,8 @@ if dryrun or verbose
 
 # Planned updates
 ## v0.5.2
-* new: option to treat all dots as an extension
 * new: options for sorting by asc or desc
+* new: sequence filter: add modification time
 * bug fixes/code cleanup
 
 
