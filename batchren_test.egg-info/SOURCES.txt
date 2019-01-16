@@ -1,0 +1,12 @@
+README.md
+setup.py
+batchren/__init__.py
+batchren/_version.py
+batchren/renamer.py
+batchren/seqObj.py
+batchren_test.egg-info/PKG-INFO
+batchren_test.egg-info/SOURCES.txt
+batchren_test.egg-info/dependency_links.txt
+batchren_test.egg-info/requires.txt
+batchren_test.egg-info/top_level.txt
+bin/batchren
