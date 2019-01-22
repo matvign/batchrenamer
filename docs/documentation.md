@@ -22,17 +22,18 @@ e.g. testdir/ -> testdir/\*
 
 ### Optional arguments:  
 ```
-spaces:     replace whitespace with specified char. default character is underscore (_)  
-translate:  replaces characters with opposing characters. argument lengths must be equal  
-slice:      slices a portion of the file to keep. must follow 'start:end:step' format (can have missing values)  
-shave:      shave some text from the top and/or the bottom of the text. must follow 'head:tail' format, must not be negative
-case:       changes case of file to upper/lower/swap/capitalise word  
-bracr:      remove curly/round/square brackets from filename. add an optional argument to remove the nth bracket instance.  
 prepend:    prepend text to file  
 postpend:   append text to file  
+spaces:     replace whitespace with specified char. default character is underscore (_)  
+translate:  replaces characters with opposing characters. argument lengths must be equal  
+case:       changes case of file to upper/lower/swap/capitalise word  
+slice:      slices a portion of the file to keep. must follow 'start:end:step' format (can have missing values)  
+shave:      shave some text from the top and/or the bottom of the text. must follow 'head:tail' format, must not be negative
+bracr:      remove curly/round/square brackets from filename. add an optional argument to remove the nth bracket instance.  
+regex:      use regex to replace. a single argument removes that instance. add an optional argument to remove the nth instance.  
 sequence:   apply a sequence to the file  
 extension:  change extension of file (empty extensions are allowed)  
-regex:      use regex to replace. a single argument removes that instance. add an optional argument to remove the nth instance.  
+sort:       after finding files, sort by ascending or descending order. useful for sequences.  
 dryrun:     run without renaming any files
 quiet:      skip output, but show confirmations (see section 1.5)  
 verbose:    show detailed output (see section 1.5)  

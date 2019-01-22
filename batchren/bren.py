@@ -321,6 +321,10 @@ parser.add_argument('-sp', '--spaces', nargs='?', const='_',
                     help='replace whitespaces with specified (default: _)')
 parser.add_argument('-tr', '--translate', nargs=2, action=TranslateAction,
                     help='translate characters from one to another')
+parser.add_argument('-c', '--case',
+                    choices=['upper', 'lower', 'swap', 'cap'],
+                    type=trim,
+                    help='convert filename case')
 parser.add_argument('-sl', '--slice', action=SliceAction,
                     metavar='start:end:step',
                     help='slice a portion of the filename')
@@ -329,20 +333,16 @@ parser.add_argument('-sh', '--shave', type=trim, action=ShaveAction,
                     help='shave head and/or tail from string')
 parser.add_argument('-bracr', nargs='*', type=trim, action=BracketAction,
                     help='remove contents of bracket type')
-parser.add_argument('-c', '--case',
-                    choices=['upper', 'lower', 'swap', 'cap'],
-                    type=trim,
-                    help='convert filename case')
+parser.add_argument('-re', '--regex', nargs='*', action=RegexAction,
+                    help='specify pattern to remove/replace')
 parser.add_argument('-pre', '--prepend', metavar='STR',
                     help='prepend string to filename')
 parser.add_argument('-post', '--postpend', metavar='STR',
                     help='append string to filename')
-parser.add_argument('-ext', '--extension', metavar='EXT', type=illegalextension,
-                    help="change last file extension (e.g. mp4, '')")
-parser.add_argument('-re', '--regex', nargs='*', action=RegexAction,
-                    help='specify pattern to remove/replace')
 parser.add_argument('-seq', '--sequence', action=SequenceAction,
                     help='apply a sequence to files')
+parser.add_argument('-ext', '--extension', metavar='EXT', type=illegalextension,
+                    help="change last file extension (e.g. mp4, '')")
 parser.add_argument('-sort', '--sort', choices=['asc', 'desc'], default='asc',
                     help='sorting order when finding files')
 parser.add_argument('--dryrun', action='store_true',
