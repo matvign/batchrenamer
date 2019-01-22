@@ -144,15 +144,19 @@ Bracket remover doesn't work with nested brackets!!
 
 
 ## 1.3.6 Sequences
-The sequence filter uses strings separated by slashes for formatting. Strings must begin with **%** and be either **f**, **n** or **a** to be a valid formatter. Sequences reset with different directories.
+The sequence filter uses strings separated by slashes for formatting. Formatters begin with **%** and must be followed by **f**, **n**, **a**, **md**, or **mt** to be a valid formatter. Sequences reset with different directories.
 
+### File format
 ```
 %f
 represents the filename.
 
 raw/%f
-represents raw string to be placed before/after filename
+represents raw string to be placed before/after filename.
+```
 
+### Numerical sequence
+```
 %n/_/%f
 represents a number sequence followed by filename.
 Starts counting at 1 with 0 padded by default.
@@ -168,7 +172,7 @@ e.g. %n/_/%f
 %n3:start:end:step
 represents a number sequence with a depth of 3,  
 starting at start, resetting to start when greater than end
-and incrementing by step.  
+and incrementing by a number >= 0.  
 * If depth is missing, default is 2 
 * If start is missing, default is 1 
 * If end is missing, keep counting up
@@ -180,9 +184,12 @@ e.g. %n3:2:9:2
 006_file
 008_file
 002_file
+```
 
+### Alphabetical sequence
+```
 %f/_/%a
-represents a letter sequence starting at a and resetting when greater than z.
+represents a letter sequence starting at 'a' and resetting when greater than 'z'.
 
 e.g. %f/_/%a
 file_a
@@ -194,29 +201,24 @@ file_a
 
 %a:start:end
 represents a letter sequence starting at start, 
-resetting to start when greater than end.
+resetting to start when greater than end.  
+alphabetical sequences are bound by position.
 
-e.g. %f/_/%a2:a:c
-file_aa
-file_ab
-file_ac
-file_ba
-file_bb
-file_bc
-file_ca
-file_cb
-file_cc
-file_aa
+e.g. %a:aa:cb
+aa
+ab
+ba
+bb
+ca
+cb
+aa (complete reset)
 
 %a2:start:end
-represents a letter sequence, but with a width multiplier of 2
-i.e. %a2:a:z = %a:aa:zz (z is multiplied by 2)
-
-Unlike numerical sequences, alphabetical sequences are bound by position.
-i.e. %a:aa:db -> aa, ab, ba, bb, cb, da, db, aa (complete reset)
+represents a letter sequence, but with a width multiplier of 2.
+e.g. %a2:a:z = %a:aa:zz (z is multiplied by 2)
 
 Default characters for missing values are 'a' and 'z' 
-(includes missing values due to multiplier)
+(includes missing values due to multiplier).
 e.g. %a:a: = %a:a:z
      %a2:a:z = %a:a:zz = %a:aa:zz
 
@@ -225,12 +227,35 @@ and not incremented.
 e.g. %a:aa:z = %a:aa:z(None) -> aa, ba, ca, da, ea, ..., za, aa
 
 When end is longer than start, the missing values are filled with 'a'
+and is incremented as usual.
 e.g. %a:a:zz = %a:aa:zz
 
 Uppercase and lowercase sequencing is supported.
 Note that lowercase goes to uppercase, but NOT vice versa.
 i.e. %a:a:A -> a, b, c, ..., z, A
      %a:A:a -> A, A, A, ..., A, A
+```
+
+### Time format
+```
+%md
+represents the date that a file was last modified.
+
+e.g. %md/_/%f
+2019-11-14_file1
+2019-11-15_file2
+2019-11-16_file3
+
+%mt
+represents the time that a file was last modified. 
+
+e.g. %mt/_/%f
+18.00.37_file1
+18.30.37_file2
+19.30.37_file3
+
+e.g. %md/./%mt/_/%f
+2019-11-16.19.10.37_file
 ```
 
 # 1.4 Processing rename information
@@ -520,7 +545,6 @@ if dryrun or verbose
 * add tests
 * bug fixes/code cleanup
 
-
 ## v0.5.1
 * reorganise package structure (python packaging is confusing)
 * regex filter: optional remove nth instance
@@ -533,13 +557,14 @@ if dryrun or verbose
 * bug fixes/code cleanup
 
 
-# Planned updates
 ## v0.5.2
-* new: options for sorting by asc or desc
-* new: sequence filter: add modification time
+* normalise '.' and '..' and expand tilde character if it is the first character
+* new: option for sorting by asc or desc
+* new: sequence filter :: add modification time
 * bug fixes/code cleanup
 
 
+# Planned updates
 ## v0.6.0
 * new: interactive option for ordering of files
 

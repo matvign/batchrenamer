@@ -1,6 +1,8 @@
 import re
+from datetime import datetime
 from itertools import zip_longest
 from string import ascii_lowercase
+from os.path import getmtime
 
 
 class SequenceObj:
@@ -11,7 +13,7 @@ class SequenceObj:
         self.args = args
         self._parse_args(args)
 
-    def __call__(self, filename, dirpath):
+    def __call__(self, origpath, dirpath, filename):
         if not self.curdir:
             self.curdir = dirpath
         st = ''
@@ -24,6 +26,10 @@ class SequenceObj:
                     st += next(r)
             elif t == "file":
                 st += filename
+            elif t == 'mdate':
+                st += r(origpath)
+            elif t == 'mtime':
+                st += r(origpath)
             elif t == "raw":
                 st += r
         return st
@@ -114,6 +120,16 @@ class SequenceObj:
                             if tmp != start_ch:
                                 break
 
+    def _md_generator(self, arg):
+        # Return modification time with date
+        tstamp = getmtime(arg)
+        return datetime.fromtimestamp(tstamp).strftime('%Y-%m-%d')
+
+    def _mt_generator(self, arg):
+        # Return modification time with time
+        tstamp = getmtime(arg)
+        return datetime.fromtimestamp(tstamp).strftime('%H.%M.%S')
+
     def _parse_num(self, arg):
         '''
         Parse the arguments as a number sequence
@@ -196,6 +212,10 @@ class SequenceObj:
                 # '' is a dummy value for consistency
                 self.rules.append(('file', ''))
                 self.fbit = True
+            elif n == '%md':
+                self.rules.append(('mdate', self._md_generator))
+            elif n == '%mt':
+                self.rules.append(('mtime', self._mt_generator))
             elif n == '%n':
                 # create a default num sequence
                 numgen = self._num_generator()

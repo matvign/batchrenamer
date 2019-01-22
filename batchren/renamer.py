@@ -65,17 +65,25 @@ def joinpart(dirpath, bname, ext):
     return (fname, newname)
 
 
-def runfilters(filters, dirpath, bname):
-    # function to run filters
-    newname = bname
+def runfilters(filters, origpath, dirpath, basename):
+    '''
+    Function to run filters.
+    Dirpath and Origpath are used in sequences.
+    Dirpath is used for resetting sequences on different directories.
+    Origpath is used for getting modification time in sequences.
+    '''
+    newname = basename
     for runf in filters:
         try:
             if isinstance(runf, seqObj.SequenceObj):
-                newname = runf(newname, dirpath)
+                newname = runf(origpath, dirpath, newname)
             else:
                 newname = runf(newname)
         except re.error as re_err:
             sys.exit('bad regex: ' + re_err)
+        except OSError as os_err:
+            # except oserror from sequences
+            sys.exit('fatal os error ' + os_err)
 
     return newname
 
@@ -185,9 +193,9 @@ def renfilter(args, files):
 
     filters = initfilters(args)
     for src in files:
-        # split file into dir, basename and extension
+        # split filename into directory, basename and extension
         dirpath, bname, ext = partfile(src)
-        bname = runfilters(filters, dirpath, bname)
+        bname = runfilters(filters, src, dirpath, bname)
 
         # change extension, allow empty extensions
         if args.extension is not None:
