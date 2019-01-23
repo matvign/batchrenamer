@@ -53,8 +53,9 @@ def joinpart(dirpath, bname, ext):
     Remove spaces and dots on left and right side of extension.
     Collapse dots in extension.
     '''
-    fname = bname.strip()
+    fname = bname.rstrip('._ ')
     if ext:
+        # remove spaces and dots from extensions
         ext = re.sub(r'\.+', '.', ext.replace(' ', '').strip('.'))
         fname += '.' + ext
 

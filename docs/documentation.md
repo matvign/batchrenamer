@@ -88,8 +88,8 @@ Filters are run in the following order:
 8. sequence
 9. prepend
 10. postpend
-11. extention (only applies to extension)
-12. str.strip (always applied to basename and ext)
+11. rstrip (remove '._' chars from end of file)
+12. extention
 
 
 ## 1.3.2 Filter implementation
@@ -559,7 +559,8 @@ if dryrun or verbose
 
 
 ## v0.5.2
-* normalise '.' and '..' and expand tilde character if it is the first character
+* normalise and expand ('.', '..', '~')
+* remove any '._' from right side of file name
 * new: option for sorting by asc or desc
 * new: sequence filter :: add modification time
 * bug fixes/code cleanup
@@ -568,6 +569,7 @@ if dryrun or verbose
 # Planned updates
 ## v0.6.0
 * new: interactive option for ordering of files
+* new: interactive option for choosing files
 
 
 # Documentation changelog
