@@ -10,7 +10,7 @@ parser = bren.parser
 
 
 def test_parser_version():
-    assert _version.__version__ == '0.5.2'
+    assert _version.__version__ == '0.6.0'
 
 
 @pytest.mark.parametrize("pre_arg, pre_dirpath, pre_fname, pre_res", [

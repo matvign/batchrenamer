@@ -7,37 +7,59 @@ A script to rename files with various arguments. Supports Unix style file globbi
 2. Python 3.6.7
 3. Pip
 4. natsort (from pypa)
+5. urwid (from pypa)
 
 ## Instructions
 1. Download/clone this repo
 2. cd into directory
-3. run pip install --user dist/batchren-0.5.2-py3-none-any.whl (should also download natsort)
+3. run pip install --user dist/batchren-0.6.0-py3-none-any.whl (also downloads natsort & urwid)
 
 
-### Arguments:
+### Positional arguments:
 path: specifies the file pattern to search for. If using wildcards, surround the pattern in quotes.  
 Expands pattern or those ending with a slash into directories.  
 e.g. testdir/ -> testdir/\*
 
 ### Optional arguments:  
 ```
-prepend:    prepend text to file  
-postpend:   append text to file  
-spaces:     replace whitespace with specified char. default character is underscore (_)  
-translate:  replaces characters with opposing characters. argument lengths must be equal  
-case:       changes case of file to upper/lower/swap/capitalise word  
-slice:      slices a portion of the file to keep. must follow 'start:end:step' format (can have missing values)  
-shave:      shave some text from the top and/or the bottom of the text. must follow 'head:tail' format, must not be negative
-bracr:      remove curly/round/square brackets from filename. add an optional argument to remove the nth bracket instance.  
-regex:      use regex to replace. a single argument removes that instance. add an optional argument to remove the nth instance.  
-sequence:   apply a sequence to the file  
-extension:  change extension of file (empty extensions are allowed)  
-sort:       after finding files, sort by ascending or descending order. useful for sequences.  
-dryrun:     run without renaming any files
-quiet:      skip output, but show confirmations (see section 1.5)  
-verbose:    show detailed output (see section 1.5)  
-version:    show version  
+-h:             show help text
+-pre            add text before file
+-post           add text after file
+-sp             replace whitespace with specified char. default: '_'
+-tr             translate characters of first argument to second argument. argument lengths must be equal
+-c              change case of file to upper/lower/swap/capitalise word
+-sl             slice a portion of the file to keep. must follow 'start:end:step' format (can have missing values)
+-sh             shave text from top and/or the bottom of file. must follow 'head:tail' format, must not be negative
+-bracr          remove curly/round/square bracket groups from filename. add optional argument to remove the nth bracket group
+-re             replace with regex. remove with one argument, replace with two. use three to replace nth pattern instance
+-seq            apply a sequence to the file
+-ext            change extension of file (empty extensions are allowed)
+
+--sel           after finding files with a file pattern, manually select which files to rename
+--sort          after finding files, sort by ascending, descending or manual. useful for sequences
+-q/--quiet      skip output, but show confirmations (see docs)  
+-v/--verbose    show detailed output (see docs)  
+--version:      show version  
 ```
+
+
+## Argument order
+Arguments have an order that they are applied. The general idea is that 
+characters are removed/replaced before adding characters.
+
+Arguments are run in the following order:
+1. regex
+2. slice
+3. shave
+4. bracket remove
+5. translate
+6. spaces
+7. case
+8. sequence
+9. prepend
+10. postpend
+11. strip (remove '._ ' chars from end of file)
+12. extention
 
 
 ## Sequences
@@ -49,7 +71,9 @@ The sequence filter uses strings separated by slashes for formatting. Formatters
 represents the filename.
 
 raw/%f
-represents raw string to be placed before/after filename.
+represents raw string to be placed before and after filename.
+e.g. raw/%f
+filename -> rawfilename
 ```
 
 ### Numerical sequence

@@ -6,6 +6,8 @@ from batchren._version import __version__
 
 
 def create_selectable(text, padding=0):
+    if not text:
+        text = 'current working directory'
     sel = VariableSelectable(text)
     item = urwid.AttrMap(urwid.Padding(sel, left=padding), None, focus_map='reversed')
     return item
@@ -132,13 +134,11 @@ class FileListBox(urwid.ListBox):
 
 
 stylesheet = [
-    # stylesheet for the app
     ('titlebar', 'black', 'white'),
-    ('reset button', 'dark green, bold', 'black'),
-    ('quit button', 'dark red, bold', 'black'),
-    ('abort button', 'dark red, bold', 'black'),
+    ('titlebar-divide', 'black', 'black'),
+    ('green button', 'dark green, bold', 'black'),
+    ('red button', 'dark red, bold', 'black'),
     ('reversed', 'standout', ''),
-    ('resetting', 'dark blue', 'black')
 ]
 
 version = 'batchren ' + __version__
@@ -151,13 +151,15 @@ header_cols = urwid.Columns([
 
 header = urwid.Pile([
     urwid.AttrMap(urwid.Padding(header_cols, left=2), 'titlebar'),
-    urwid.Divider()
+    urwid.AttrMap(urwid.Divider(), 'titlebar-divide')
 ])
 
 menu = urwid.Text([
-    ('reset button', u'(r)'), u':reset  ',
-    ('quit button', u'(q)'), u':save and quit  ',
-    ('abort button', u'(c)'), u':abort batchren  ',
+    ('green button', u'ENTER'), u':edit/reorder files  ',
+    ('red button', u'ESC'), u':stop editing current directory  ',
+    ('green button', u'(r)'), u':reset  ',
+    ('red button', u'(q)'), u':save and quit  ',
+    ('red button', u'(c)'), u':abort batchren  ',
 ])
 
 

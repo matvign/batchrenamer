@@ -7,7 +7,7 @@ import re
 from natsort import natsorted, ns
 
 from batchren import _version, renamer, seqObj
-from tui import arrange_tui
+from tui import arrange_tui, selection_tui
 
 BOLD = '\033[1m'
 END = '\033[0m'
@@ -25,7 +25,7 @@ def printArgs(args):
 
 
 def checkOptSet(args):
-    notfilter = {'dryrun', 'quiet', 'verbose', 'path', 'sort'}
+    notfilter = {'dryrun', 'quiet', 'verbose', 'path', 'sort', 'sel'}
     argdict = vars(args)
 
     for argname, argval in argdict.items():
@@ -62,11 +62,15 @@ def main(args):
             print(n)
         print()
 
-    if args.sort == 'man':
-        ret = arrange_tui.main(files)
-        if not ret:
+    if args.sel:
+        files = selection_tui.main(files)
+        if not files:
             return
-        files = ret
+
+    if args.sort == 'man':
+        files = arrange_tui.main(files)
+        if not files:
+            return
     elif args.sort == 'desc':
         files.reverse()
 
@@ -351,6 +355,8 @@ parser.add_argument('-ext', '--extension', metavar='EXT', type=illegalextension,
                     help="change last file extension (e.g. mp4, '')")
 parser.add_argument('-sort', '--sort', choices=['asc', 'desc', 'man'], default='asc',
                     help='sorting order when finding files')
+parser.add_argument('--sel', action='store_true',
+                    help='manually select files from glob results')
 parser.add_argument('--dryrun', action='store_true',
                     help='run without renaming any files')
 outgroup.add_argument('-q', '--quiet', action='store_true',

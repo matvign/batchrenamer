@@ -356,9 +356,9 @@ def getFreeFile(dest):
 
 def run_rename(queue, args):
     q = deque(queue)
-    msg = 'conflict detected, temporarily renaming'
+    msg = 'Conflict detected, temporarily renaming'
     if args.dryrun:
-        print('running with dryrun, files will NOT be renamed')
+        print('Running with dryrun, files will NOT be renamed')
     while q:
         dest, src = q.popleft()
         if os.path.exists(dest):

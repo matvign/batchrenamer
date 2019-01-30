@@ -1,4 +1,4 @@
-# Documentation - v0.5.2
+# Documentation - v0.6.0
 batchren - a batch renamer  
 batchren is a python script for batch renaming files. batchren uses unix style 
 pattern matching to look for files and uses optional arguments to 
@@ -15,40 +15,43 @@ command line. The following is enabled:
 * prefix_chars: only accept dashes for optional arguments
 * fromfile_prefix_char: accept arguments from file
 
-### Arguments:
+### Positional arguments:
 path: specifies the file pattern to search for. If using wildcards, surround the pattern in quotes.  
 Expands pattern or those ending with a slash into directories.  
 e.g. testdir/ -> testdir/\*
 
 ### Optional arguments:  
 ```
-prepend:    prepend text to file  
-postpend:   append text to file  
-spaces:     replace whitespace with specified char. default character is underscore (_)  
-translate:  replaces characters with opposing characters. argument lengths must be equal  
-case:       changes case of file to upper/lower/swap/capitalise word  
-slice:      slices a portion of the file to keep. must follow 'start:end:step' format (can have missing values)  
-shave:      shave some text from the top and/or the bottom of the text. must follow 'head:tail' format, must not be negative
-bracr:      remove curly/round/square brackets from filename. add an optional argument to remove the nth bracket instance.  
-regex:      use regex to replace. a single argument removes that instance. add an optional argument to remove the nth instance.  
-sequence:   apply a sequence to the file  
-extension:  change extension of file (empty extensions are allowed)  
-sort:       after finding files, sort by ascending or descending order. useful for sequences.  
-dryrun:     run without renaming any files
-quiet:      skip output, but show confirmations (see section 1.5)  
-verbose:    show detailed output (see section 1.5)  
-version:    show version  
+-h:             show help text
+-pre            add text before file
+-post           add text after file
+-sp             replace whitespace with specified char. default: '_'
+-tr             translate characters of first argument to second argument. argument lengths must be equal
+-c              change case of file to upper/lower/swap/capitalise word
+-sl             slice a portion of the file to keep. must follow 'start:end:step' format (can have missing values)
+-sh             shave text from top and/or the bottom of file. must follow 'head:tail' format, must not be negative
+-bracr          remove curly/round/square bracket groups from filename. add optional argument to remove the nth bracket group
+-re             remove/replace with regex. remove with one argument, replace with two. use three to replace nth pattern instance
+-seq            apply a sequence to the file
+-ext            change extension of file (empty extensions are allowed)
+
+--sel           after finding files with a file pattern, manually select which files to rename
+--sort          after finding files, sort by ascending, descending or manual. useful for sequences
+-q/--quiet      skip output, but show confirmations (see section 2)  
+-v/--verbose    show detailed output (see section 2)  
+--version:      show version  
 ```
 
 
 ## 1.1.2 Considerations/issues
-It is highly recommended that positionals are placed first followed by optionals.  
+It is highly recommended to place the path argument before optional arguments.  
 This is because some arguments take at *least n* arguments, which messes with parsing.
 ```
 -re PATTERN [REPL] [COUNT], replace the nth pattern found with repl.
 BAD:
 batchren.py -re cat dog catcat
-interprets catcat as the nth instance to remove.
+given all files, remove the 'catcat'th instance of the pattern with dog.  
+gives an error.
 
 GOOD:
 batchren.py catcat -re cat dog 2
@@ -72,12 +75,12 @@ glob.iglob()
 * supports recursion (not that it should be used)
 
 
-# 1.3 File renaming filters
-## 1.3.1 Filters and order
-Filters have a order that they are applied in. The general idea is that 
+# 1.3 File renaming arguments
+## 1.3.1 Argument order
+Arguments have an order that they are applied. The general idea is that 
 characters are removed/replaced before adding characters.
 
-Filters are run in the following order:
+Arguments are run in the following order:
 1. regex
 2. slice
 3. shave
@@ -88,21 +91,22 @@ Filters are run in the following order:
 8. sequence
 9. prepend
 10. postpend
-11. rstrip (remove '._' chars from end of file)
+11. strip (remove '._ ' chars from end of file)
 12. extention
 
 
-## 1.3.2 Filter implementation
+## 1.3.2 Argument implementation
 Filenames are passed in from file pattern matching and split into directory, 
 basename and ext.  
-Each basename is run against a list of filters.  
-Filters are implemented as classes, functions or lambda expressions in a list.  
+Each basename is run against a list of the applicable arguments.  
+Each argument creates a filter that is implemented as classes, functions or 
+lambda expressions in a list.  
 The resulting filename is then recombined and processed to determine if it is
 safe to rename.
 
 
 ## 1.3.3 Regex filter
-Regex filter allows python regex to be used.  
+Regex filter uses Python regex.  
 There may be some untested oddities that occur from inputting python regex as
 bash strings.  
 If an issue occurs with compiling or executing regex, the program (**should**) safely crash.  
@@ -130,9 +134,9 @@ invalid, only takes two values
 
 ## 1.3.5 Bracket remover
 The bracket remover takes a certain bracket type: curly, round or square and
-removes it from the filename.  
-An optional argument can be specified to remove the nth bracket.  
-Internally, it uses the same function from the regex filter.
+removes that bracket group from the filename.  
+An optional argument can be specified to remove the nth bracket group.  
+Internally it uses the same function from the regex filter.
 ```
 e.g. 
 -bracr square
@@ -141,7 +145,7 @@ removes all square brackets and their contents
 -bracr square 1
 remove only the first square bracket found.
 ```
-Bracket remover doesn't work with nested brackets!!
+Bracket remover doesn't work when applied to nested brackets.
 
 
 ## 1.3.6 Sequences
@@ -153,7 +157,9 @@ The sequence filter uses strings separated by slashes for formatting. Formatters
 represents the filename.
 
 raw/%f
-represents raw string to be placed before/after filename.
+represents raw string to be placed before and after filename.
+e.g. raw/%f
+filename -> rawfilename
 ```
 
 ### Numerical sequence
@@ -445,7 +451,7 @@ else
 
 
 ## 2.2 Renamer level
-The renamer level is showing the contents things that can be renamed or have errors.
+The renamer level shows filenames that can be renamed or have errors.
 For conflicts:
 * If quiet, show no conflict information
 * If verbose, show detailed errors
@@ -473,7 +479,8 @@ if dryrun or verbose
 ```
 
 
-# Changelog
+# 3. Version History
+## Changelog
 ## v0.3
 * generate rentable in renamer
 * use str.title over string.capwords
@@ -557,7 +564,6 @@ if dryrun or verbose
 * new: shave filter, remove text from head or/and tail
 * bug fixes/code cleanup
 
-
 ## v0.5.2
 * normalise and expand ('.', '..', '~')
 * remove any '._' from right side of file name
@@ -565,11 +571,13 @@ if dryrun or verbose
 * new: sequence filter :: add modification time
 * bug fixes/code cleanup
 
-
-# Planned updates
 ## v0.6.0
 * new: interactive option for ordering of files
 * new: interactive option for choosing files
+* bug fixes/code cleanup
+
+
+# Planned updates
 
 
 # Documentation changelog
