@@ -7,6 +7,7 @@ import re
 from natsort import natsorted, ns
 
 from batchren import _version, renamer, seqObj
+from tui import arrange_tui
 
 BOLD = '\033[1m'
 END = '\033[0m'
@@ -61,7 +62,12 @@ def main(args):
             print(n)
         print()
 
-    if args.sort == 'desc':
+    if args.sort == 'man':
+        ret = arrange_tui.main(files)
+        if not ret:
+            return
+        files = ret
+    elif args.sort == 'desc':
         files.reverse()
 
     renamer.start_rename(args, files)
@@ -343,7 +349,7 @@ parser.add_argument('-seq', '--sequence', action=SequenceAction,
                     help='apply a sequence to files')
 parser.add_argument('-ext', '--extension', metavar='EXT', type=illegalextension,
                     help="change last file extension (e.g. mp4, '')")
-parser.add_argument('-sort', '--sort', choices=['asc', 'desc'], default='asc',
+parser.add_argument('-sort', '--sort', choices=['asc', 'desc', 'man'], default='asc',
                     help='sorting order when finding files')
 parser.add_argument('--dryrun', action='store_true',
                     help='run without renaming any files')
