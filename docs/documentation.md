@@ -1,10 +1,8 @@
 # Documentation - v0.6.0
 batchren - a batch renamer  
-batchren is a python script for batch renaming files. batchren uses unix style 
-pattern matching to look for files and uses optional arguments to 
-be applied to the set of files found.  
-Files are placed into a set with glob, then renamed based on 
-the optional arguments. 
+batchren is a python script for batch renaming files. batchren 
+uses unix style pattern matching to look for files and uses optional 
+arguments to rename the set of files found.  
 
 
 # 1. Implementation detail
@@ -16,9 +14,10 @@ command line. The following is enabled:
 * fromfile_prefix_char: accept arguments from file
 
 ### Positional arguments:
-path: specifies the file pattern to search for. If using wildcards, surround the pattern in quotes.  
-Expands pattern or those ending with a slash into directories.  
-e.g. testdir/ -> testdir/\*
+path: specifies the file pattern to search for. If wildcards are present, 
+surround the path in quotes.  
+Paths and patterns ending with '/' are automatically expanded.  
+e.g. testdir/ = testdir/\*
 
 ### Optional arguments:  
 ```
@@ -33,7 +32,7 @@ e.g. testdir/ -> testdir/\*
 -bracr          remove curly/round/square bracket groups from filename. add optional argument to remove the nth bracket group
 -re             remove/replace with regex. remove with one argument, replace with two. use three to replace nth pattern instance
 -seq            apply a sequence to the file
--ext            change extension of file (empty extensions are allowed)
+-ext            change extension of file ('' removes the extension)
 
 --sel           after finding files with a file pattern, manually select which files to rename
 --sort          after finding files, sort by ascending, descending or manual. useful for sequences
@@ -44,19 +43,16 @@ e.g. testdir/ -> testdir/\*
 
 
 ## 1.1.2 Considerations/issues
-It is highly recommended to place the path argument before optional arguments.  
-This is because some arguments take at *least n* arguments, which messes with parsing.
+Because some arguments take at *least n* arguments, always place the path argument before optional arguments.  
 ```
 -re PATTERN [REPL] [COUNT], replace the nth pattern found with repl.
-BAD:
-batchren.py -re cat dog catcat
-given all files, remove the 'catcat'th instance of the pattern with dog.  
-gives an error.
 
-GOOD:
-batchren.py catcat -re cat dog 2
-given a file named cat, remove the second instance of the pattern with dog
-i.e. catcat -> catdog
+batchren -re cat cat dog
+Given all files, remove the 'dog'th instance of the pattern with cat. Gives an error.
+
+batchren cat -re cat dog 2
+Given a file named cat, remove the second instance of the pattern with dog
+i.e. cat -> dog
 ```
 
 Arguments that require special characters should be encased in quotes.  
@@ -92,15 +88,15 @@ Arguments are run in the following order:
 9. prepend
 10. postpend
 11. strip (remove '._ ' chars from end of file)
-12. extention
+12. extension
 
 
 ## 1.3.2 Argument implementation
 Filenames are passed in from file pattern matching and split into directory, 
 basename and ext.  
 Each basename is run against a list of the applicable arguments.  
-Each argument creates a filter that is implemented as classes, functions or 
-lambda expressions in a list.  
+Each argument creates a filter that is implemented as a class, function or 
+lambda expression in a list.  
 The resulting filename is then recombined and processed to determine if it is
 safe to rename.
 

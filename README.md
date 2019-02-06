@@ -2,12 +2,14 @@
 
 A script to rename files with various arguments. Supports Unix style file globbing.
 
+
 ## Requirements
 1. Ubuntu 18.04
 2. Python 3.6.7
-3. Pip
+3. pip
 4. natsort (from pypa)
 5. urwid (from pypa)
+
 
 ## Instructions
 1. Download/clone this repo
@@ -15,10 +17,25 @@ A script to rename files with various arguments. Supports Unix style file globbi
 3. run pip install --user dist/batchren-0.6.0-py3-none-any.whl (also downloads natsort & urwid)
 
 
+## Usage
 ### Positional arguments:
-path: specifies the file pattern to search for. If using wildcards, surround the pattern in quotes.  
-Expands pattern or those ending with a slash into directories.  
-e.g. testdir/ -> testdir/\*
+path: specifies the file pattern to search for. If wildcards are present, 
+surround the path in quotes.  
+Paths and patterns ending with '/' are automatically expanded.  
+e.g. testdir/ = testdir/\*
+
+Because some arguments take at *least n* arguments, always place the path argument before optional arguments.  
+```
+-re PATTERN [REPL] [COUNT], replace the count'th pattern found with repl.
+
+batchren -re cat cat dog
+Given all files, remove the 'dog'th instance of the pattern with cat. Gives an error.
+
+batchren cat -re cat dog 2
+Given a file named cat, remove the second instance of the pattern with dog
+i.e. cat -> dog
+```
+
 
 ### Optional arguments:  
 ```
@@ -33,7 +50,7 @@ e.g. testdir/ -> testdir/\*
 -bracr          remove curly/round/square bracket groups from filename. add optional argument to remove the nth bracket group
 -re             replace with regex. remove with one argument, replace with two. use three to replace nth pattern instance
 -seq            apply a sequence to the file
--ext            change extension of file (empty extensions are allowed)
+-ext            change extension of file ('' removes the extension)
 
 --sel           after finding files with a file pattern, manually select which files to rename
 --sort          after finding files, sort by ascending, descending or manual. useful for sequences
@@ -59,7 +76,22 @@ Arguments are run in the following order:
 9. prepend
 10. postpend
 11. strip (remove '._ ' chars from end of file)
-12. extention
+12. extension
+
+
+## Examples
+`batchren -h`: show help  
+`batchren -sp`: replace files with spaces in current directory with '_'  
+`batchren -case lower`: convert files in current directory to lower case  
+`batchren -tr a b`: replace character a with b  
+`batchren -re a`: remove all 'a' characters from files  
+`batchren -re a b`: replace 'a' with 'b'  
+`batchren -re a b 2`: replace the second instance of 'a' with 'b'  
+`batchren '[bla]bla' -bracr square`: remove square brackets in '[bla]bla' -> 'bla'  
+`batchren '[bla]bla[bla]' -bracr square 2`: remove second square bracket '[bla]bla[bla]' -> '[bla]bla'  
+`batchren blafile01 -sl 3`: slice first three characters from blafile  
+`batchren blafilebla -sl 3:-3`: slice first three and last three characters from 'blafilebla' -> 'file'  
+`batchren blafilebla -sh 3:3`: shave first three and last three characters from 'blafilebla' -> 'file'  
 
 
 ## Sequences
@@ -72,7 +104,7 @@ represents the filename.
 
 raw/%f
 represents raw string to be placed before and after filename.
-e.g. raw/%f
+e.g. 'raw/%f'  
 filename -> rawfilename
 ```
 
