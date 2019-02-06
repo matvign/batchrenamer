@@ -3,6 +3,7 @@ import argparse
 import glob
 import os
 import re
+import sre_constants
 
 from natsort import natsorted, ns
 
@@ -49,7 +50,7 @@ def main(args):
         # only include files
         files = natsorted([f for f in glob.iglob(args.path) if os.path.isfile(f)], alg=ns.PATH)
     except OSError as err:
-        parser.error('A error occurred while searching for files... ' + err)
+        parser.error('An error occurred while searching for files: ' + str(err))
 
     if not files:
         print('{:-^30}'.format(BOLD + 'files found' + END))
@@ -211,7 +212,10 @@ class RegexAction(argparse.Action):
             repl_count = int(values[2].strip()) if len(values) == 3 else 0
         except re.error as err:
             # error from compiling regex
-            parser.error(err4 + err.args[0])
+            parser.error(err4 + str(err))
+        except sre_constants.err as sre_err:
+            # extra compilation error for regex
+            parser.error(err4 + str(sre_err))
         except ValueError:
             # error from converting count into int
             parser.error(err3)
@@ -263,9 +267,9 @@ class SequenceAction(argparse.Action):
         try:
             seq = seqObj.SequenceObj(values)
         except ValueError as verr:
-            parser.error(msg + verr.args[0])
+            parser.error(msg + str(verr))
         except TypeError as terr:
-            parser.error(msg + terr.args[0])
+            parser.error(msg + str(terr))
         else:
             namespace.sequence = seq
 

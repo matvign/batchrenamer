@@ -10,21 +10,24 @@ Run this in the top level directory
 parser = bren.parser
 
 
+@pytest.fixture(scope="session")
 @pytest.mark.parametrize("path_args, path_res", [
     # tests for expanding directories
-    (['tests', '-v'], 'tests/*'),
-    (['tests/', '-v'], 'tests/*')
+    (['testdir', '-v'], 'testdir/*'),
+    (['testdir/', '-v'], 'testdir/*'),
+    (['testdir/sub', '-v'], 'testdir/sub/*'),
+    (['testdir/sub/', '-v'], 'testdir/sub/*')
 ])
-def test_parser_expanddir(path_args, path_res):
+def test_parser_expanddir(path_args, path_res, tmpdir):
+    p = tmpdir.mkdir('testdir').sub('sub')
     args = parser.parse_args(path_args)
     print(args)
     assert args.path == path_res
 
 
 @pytest.mark.parametrize("partf_name, partf_res", [
+    # always take the last extension, the rest is the filename
     # filepath, (dirpath, file, ext)
-    # when there is more than one extension, take the last extension
-    # the rest is treated as filename
     ("file", ("", "file", "")),
     ("file.mp4", ("", "file", ".mp4")),
     ("file.mp4.mp5", ("", "file.mp4", ".mp5")),
@@ -40,11 +43,22 @@ def test_partfile_param(partf_name, partf_res):
 
 
 @pytest.mark.parametrize("joinf_name, joinf_res", [
-    # (dirpath, file, ext), (fullname fullpath)
-    # when there is no parent, fullname is just the filename
-    # when parent is present, join parts together
-    # for extensions, remove whitespace and collapse adjacent dots
+    # dirpath is the parent part of a file
+    # bname is the basename of the file w/o extension
+    # ext is the extension of the file
+    # fname is the filename, which is bname combined with ext
+    # newname is dirpath combined with fname
+    #
+    # when there is no parent, newname is the same as fname
+    # bname has left whitespace and '._- ' characters removed on the right
+    # ext has whitespace removed, dots collapsed and dots on left/right removed
+    #
+    # (dirpath, bname, ext), (fname, newname)
     (("", "file", ""), ("file", "file")),
+    (("", "file_", ""), ("file", "file")),
+    (("", "file-", ""), ("file", "file")),
+    (("", "file.", ""), ("file", "file")),
+    (("", "   file    ", ""), ("file", "file")),
     (("parent", "file", "mp4"), ("file.mp4", "parent/file.mp4")),
     (("/parent", "file", "mp4.sav"), ("file.mp4.sav", "/parent/file.mp4.sav")),
     (("parent", "file", "...  e  xt?. ext.  .ext?.."), ("file.ext?.ext.ext?", "parent/file.ext?.ext.ext?"))

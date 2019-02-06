@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import re
+import sre_constants
 import sys
 from collections import deque
 
@@ -43,7 +44,6 @@ def partfile(filepath):
     '''
     dirpath, filename = os.path.split(filepath)
     bname, ext = os.path.splitext(filename)
-    # bname, ext = filename.split('.', 1)
     return (dirpath, bname, ext)
 
 
@@ -53,7 +53,7 @@ def joinpart(dirpath, bname, ext):
     Remove spaces and dots on left and right side of extension.
     Collapse dots in extension.
     '''
-    fname = bname.rstrip('._ ').strip()
+    fname = bname.rstrip('._- ').strip()
     if ext:
         # remove spaces and dots from extensions
         ext = re.sub(r'\.+', '.', ext.replace(' ', '').strip('.'))
@@ -81,10 +81,12 @@ def runfilters(filters, origpath, dirpath, basename):
             else:
                 newname = runf(newname)
         except re.error as re_err:
-            sys.exit('bad regex: ' + re_err)
+            sys.exit('An invalid regex error occurred: ' + str(re_err))
         except OSError as os_err:
             # except oserror from sequences
-            sys.exit('fatal os error ' + os_err)
+            sys.exit('A fatal os error occurred: ' + str(os_err))
+        except Exception as exc:
+            sys.exit('An unforeseen error occurred: ' + str(exc))
 
     return newname
 
@@ -124,7 +126,12 @@ def initfilters(args):
     # create filters in a list
     filters = []
     if args.regex:
-        regex_repl = repl_decorator(*args.regex)
+        try:
+            regex_repl = repl_decorator(*args.regex)
+        except re.error as re_err:
+            sys.exit('An invalid regex error occurred: ' + str(re_err))
+        except sre_constants.error as sre_err:
+            sys.exit('An invalid regex error occurred: ' + str(sre_err))
         filters.append(regex_repl)
 
     if args.slice:
@@ -382,7 +389,9 @@ def rename_file(src, dest):
     try:
         os.rename(src, dest)
     except OSError as err:
-        sys.exit('An error occurred while renaming... ' + err)
+        sys.exit('A filesystem error occurred while renaming: ' + str(err))
+    except Exception as exc:
+        sys.exit('An unforeseen error occurred while renaming: ' + str(exc))
 
 
 def start_rename(args, fileset):
