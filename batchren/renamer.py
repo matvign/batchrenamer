@@ -81,10 +81,10 @@ def runfilters(filters, origpath, dirpath, basename):
             else:
                 newname = runf(newname)
         except re.error as re_err:
-            sys.exit('An invalid regex error occurred: ' + str(re_err))
+            sys.exit('A regex error occurred: ' + str(re_err))
         except OSError as os_err:
             # except oserror from sequences
-            sys.exit('A fatal os error occurred: ' + str(os_err))
+            sys.exit('A filesystem error occurred: ' + str(os_err))
         except Exception as exc:
             sys.exit('An unforeseen error occurred: ' + str(exc))
 
@@ -129,9 +129,9 @@ def initfilters(args):
         try:
             regex_repl = repl_decorator(*args.regex)
         except re.error as re_err:
-            sys.exit('An invalid regex error occurred: ' + str(re_err))
+            sys.exit('A regex compilation error occurred: ' + str(re_err))
         except sre_constants.error as sre_err:
-            sys.exit('An invalid regex error occurred: ' + str(sre_err))
+            sys.exit('A regex compilation error occurred: ' + str(sre_err))
         filters.append(regex_repl)
 
     if args.slice:
