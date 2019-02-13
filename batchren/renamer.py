@@ -103,17 +103,17 @@ def repl_decorator(pattern, repl='', repl_count=0):
         Function to be used with re.sub. Replace words only if count = count.
         Otherwise just replace with the match itself.
         '''
-        if matchobj.group() and replacer.count == repl_count:
+        if matchobj.group() and replacer._count == repl_count:
             ret = repl
         else:
             ret = matchobj.group()
-        replacer.count += 1
+        replacer._count += 1
         return ret
-    replacer.count = 1
+    replacer._count = 1
 
     def repl_nth(x):
         val = re.sub(pattern, replacer, x, repl_count)
-        replacer.count = 1
+        replacer._count = 1
         return val
 
     def repl_all(x):
@@ -142,15 +142,15 @@ def initfilters(args):
         shave = lambda x: x[args.shave[0]][args.shave[1]]
         filters.append(shave)
 
-    if args.bracr:
-        if args.bracr[0] == 'curly':
+    if args.bracket_remove:
+        if args.bracket_remove[0] == 'curly':
             reg_exp = re.compile(r'\{.*?\}')
-        elif args.bracr[0] == 'round':
+        elif args.bracket_remove[0] == 'round':
             reg_exp = re.compile(r'\(.*?\)')
-        elif args.bracr[0] == 'square':
+        elif args.bracket_remove[0] == 'square':
             reg_exp = re.compile(r'\[.*?\]')
 
-        bracr = repl_decorator(reg_exp, '', args.bracr[1])
+        bracr = repl_decorator(reg_exp, '', args.bracket_remove[1])
         filters.append(bracr)
 
     if args.translate:
@@ -314,7 +314,7 @@ def print_rentable(rentable, quiet=False, verbose=False):
             # show detailed output if there were conflicts
             print('the following files have conflicts')
             if '' in conf:
-                # bug with ns.path and empty values, instant crashes!!
+                # workaround for empty values with ns.path
                 conflicts = natsorted(conf.items(), key=lambda x: x[0])
                 conflicts = [conflicts[0], *natsorted(conflicts[1:], key=lambda x: x[0], alg=ns.PATH)]
             else:

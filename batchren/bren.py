@@ -110,10 +110,11 @@ def trim(arg):
 class TranslateAction(argparse.Action):
     '''
     Custom action for translate. Accept two arguments.
-    Give an error if both values are empty.
-    Give an error if there aren't two arguments.
-    Give an error if argument lengths aren't equal.
-    Convert output into a tuple.
+    Create tuple to store both arguments.
+    Give an error if
+        both values are empty
+        there aren't two arguments (handled by nargs=2)
+        argument lengths aren't equal
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         err0 = 'argument -tr/--translate: argument values are empty'
@@ -131,8 +132,10 @@ class TranslateAction(argparse.Action):
 class SliceAction(argparse.Action):
     '''
     Custom action for slices. Accept one argument with slice format.
-    Give an error if we cannot convert to slice object.
-    Give an error if any of the values aren't integers.
+    Give an error if
+        argument value is empty ('')
+        cannot convert to slice object.
+        value is not integer
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         err0 = 'argument -sl/--slice: argument value is empty'
@@ -152,11 +155,13 @@ class SliceAction(argparse.Action):
 class ShaveAction(argparse.Action):
     '''
     Custom action for shave. Accept one argument in 'head:tail' format.
-    Slice values must be positive integers. Create two slice object from values.
-    Give an error if any non-numeric character.
-    Give an error if more than two values.
-    Give an error if both values are None.
-    Give an error if any values are negative.
+    Slice values must be positive integers. Create two slice objects from args.
+    Give an error if
+        argument value is empty ('')
+        more than two values
+        any non-numeric character
+        both values are None
+        any values are negative
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         err0 = 'argument -sh/--shave: argument value is empty'
@@ -192,6 +197,11 @@ class RegexAction(argparse.Action):
     If two arguments, replace all instances of first by second.
     If one argument, remove all instances of first.
     Second argument default is '', third argument default is 0.
+    Give an error if
+        pattern argument is empty ('')
+        no arguments/too many arguments (>3)
+        regex/sre compile error
+        if value is not an integer >= 0
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         err0 = 'argument -re/--regex: pattern argument is empty'
@@ -227,6 +237,10 @@ class BracketAction(argparse.Action):
     Custom action for a bracket remover. Accept multiple arguments.
     Create different patterns with regex depending on bracket type.
     Allow an extra argument to target the nth bracket.
+    Give an error if
+        no arguments/too many arguments (>2)
+        invalid bracket type ('', other...)
+        bracket target is not an integer >= 0
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         choices = ['curly', 'round', 'square']
@@ -253,7 +267,7 @@ class BracketAction(argparse.Action):
             # values[1] cannot be converted to an int
             parser.error(err4)
 
-        namespace.bracr = (values[0], repl_count)
+        namespace.bracket_remove = (values[0], repl_count)
 
 
 class SequenceAction(argparse.Action):
@@ -286,7 +300,7 @@ class CustomFormatter(argparse.HelpFormatter):
             return 'CHARS CHARS'
         elif option_string == '--regex':
             return 'PATTERN [REPL] [COUNT]'
-        elif option_string == '-bracr':
+        elif option_string == '--bracket_remove':
             return '{curly,round,square} [COUNT]'
         else:
             return args_string
@@ -297,25 +311,33 @@ class CustomFormatter(argparse.HelpFormatter):
             return metavar
         else:
             parts = []
-            # default for optionals without parameters:
-            #    -s, --long
             if action.nargs == 0:
+                # default for optionals without parameters:
+                #    -s, --long
                 parts.extend(action.option_strings)
 
-            # default for optional with parameters:
-            #    -s ARGS, --long ARGS
-            # change to:
-            #    -s, ARGS
             else:
-                default = action.dest.upper()
+                # default for optional with parameters:
+                #    -s ARGS, --long ARGS
+                # change to (for all but --sort):
+                #    -s, ARGS
+                #
+                # default = name of argument in upper case
+                # args_string = default metavar
+                # action.option_strings = '-seq, '--sequence'
+                default = self._get_default_metavar_for_optional(action)
                 args_string = self._format_args(action, default)
                 for option_string in action.option_strings:
-                    if option_string[:2] == '--':
+                    if option_string == '--sort':
+                        # cheap hack to accept --sort
+                        pass
+                    elif option_string[:2] == '--':
                         # skip long optionals with parameters
                         continue
                     parts.append('%s' % option_string)
                 args_string = self._hack_metavar(option_string, args_string)
                 parts[-1] += ' %s' % args_string
+
             return ', '.join(parts)
 
 
@@ -345,7 +367,7 @@ parser.add_argument('-sl', '--slice', action=SliceAction,
 parser.add_argument('-sh', '--shave', type=trim, action=ShaveAction,
                     metavar='head:tail',
                     help='shave head and/or tail from string')
-parser.add_argument('-bracr', nargs='*', type=trim, action=BracketAction,
+parser.add_argument('-bracr', '--bracket_remove', nargs='*', type=trim, action=BracketAction,
                     help='remove contents of bracket type')
 parser.add_argument('-re', '--regex', nargs='*', action=RegexAction,
                     help='specify pattern to remove/replace')
@@ -357,7 +379,7 @@ parser.add_argument('-seq', '--sequence', action=SequenceAction,
                     help='apply a sequence to files')
 parser.add_argument('-ext', '--extension', metavar='EXT', type=illegalextension,
                     help="change last file extension (e.g. mp4, '')")
-parser.add_argument('-sort', '--sort', choices=['asc', 'desc', 'man'], default='asc',
+parser.add_argument('--sort', choices=['asc', 'desc', 'man'], default='asc',
                     help='sorting order when finding files')
 parser.add_argument('--sel', action='store_true',
                     help='manually select files from glob results')

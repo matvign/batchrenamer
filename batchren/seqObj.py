@@ -87,9 +87,9 @@ class SequenceObj:
 
         def do_increment(ch, start_ch, end_ch):
             '''
-            if (a - z) keep incrementing or reset when = end
-            if (A - Z) keep incrementing or reset when = end
-            if (a - Z) keep incrementing until z, then switch to uppercase
+            if (a - z) increment or reset when = end
+            if (A - Z) increment or reset when = end
+            if (a - Z) increment until z, then switch to uppercase
                 and reset when = end
             if (A - z) don't increment
             if (A - None) don't increment (handled externally)
@@ -115,20 +115,20 @@ class SequenceObj:
                     if end_ch:
                         tmp = do_increment(item, start_ch, end_ch)
                         if st[count] != tmp:
-                            # stop incrementing if we've incremented something
+                            # stop incrementing list if we've incremented something
                             st[count] = tmp
                             if tmp != start_ch:
                                 break
 
     def _md_generator(self, arg):
-        # Return modification time with date
+        # Return modification date of file
         tstamp = getmtime(arg)
         return datetime.fromtimestamp(tstamp).strftime('%Y-%m-%d')
 
     def _mt_generator(self, arg):
-        # Return modification time with time
+        # Return modification time of file
         tstamp = getmtime(arg)
-        return datetime.fromtimestamp(tstamp).strftime('%H.%M.%S')
+        return datetime.fromtimestamp(tstamp).strftime('%H:%M:%S')
 
     def _parse_num(self, arg):
         '''

@@ -62,7 +62,7 @@ def main(files):
     app.run()
 
     if app.abort:
-        print('batchren operation was aborted')
+        print('Batch Rename operation was aborted')
         return None
     else:
         ret = []

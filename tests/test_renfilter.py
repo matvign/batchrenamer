@@ -17,10 +17,10 @@ def test_parser_version():
     # tests for prepend
     # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
-    ('PRE_', 'FILE', '', 'FILE', 'PRE_FILE'),
-    ('PRE_', 'file', '', 'file', 'PRE_file'),
-    ('PRE_', 'parent/file', 'parent', 'file', 'PRE_file'),
-    ('PRE_', 'file.mp4', '', 'file.mp4', 'PRE_file.mp4')
+    ('PRE_', '', '', 'FILE', 'PRE_FILE'),
+    ('PRE_', '', '', 'file', 'PRE_file'),
+    ('PRE_', '', 'parent', 'file', 'PRE_file'),
+    ('PRE_', '', '', 'file.mp4', 'PRE_file.mp4')
 ])
 def test_filter_prepend(pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res):
     args = parser.parse_args(['-pre', pre_arg])
@@ -34,8 +34,8 @@ def test_filter_prepend(pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res):
     # tests for postpend
     # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
-    ('_POST', 'file', '', 'file', 'file_POST'),
-    ('_POST', 'parent/file', 'parent', 'file', 'file_POST'),
+    ('_POST', '', '', 'file', 'file_POST'),
+    ('_POST', '', 'parent', 'file', 'file_POST'),
 ])
 def test_filter_postpend(post_arg, post_origpath, post_dirpath, post_fname, post_res):
     args = parser.parse_args(['-post', post_arg])
@@ -49,11 +49,11 @@ def test_filter_postpend(post_arg, post_origpath, post_dirpath, post_fname, post
     # tests for space
     # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
-    ('_', 'file a', '', 'file a', 'file_a'),
-    ('', 'file a', '', 'file a', 'filea'),
-    ('.', 'file b', '', 'file b', 'file.b'),
-    ('THIS', 'file c', '', 'file c', 'fileTHISc'),
-    ('.', 'f i l e', '', 'f i l e', 'f.i.l.e')
+    ('_', '', '', 'file a', 'file_a'),
+    ('', '', '', 'file a', 'filea'),
+    ('.', '', '', 'file b', 'file.b'),
+    ('THIS', '', '', 'file c', 'fileTHISc'),
+    ('.', '', '', 'f i l e', 'f.i.l.e')
 ])
 def test_filter_spaces(sp_arg, sp_origpath, sp_dirpath, sp_fname, sp_res):
     args = parser.parse_args(['-sp', sp_arg])
@@ -77,19 +77,19 @@ def test_filter_spaces_extra():
     # tests for case
     # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
-    ('upper', 'file', '', 'file', 'FILE'),
-    ('upper', 'file1', '', 'file1', 'FILE1'),
-    ('lower', 'FILE', '', 'FILE', 'file'),
-    ('lower', 'FILE1', '', 'FILE1', 'file1'),
-    ('swap', 'fIle', '', 'fIle', 'FiLE'),
-    ('swap', 'fIle1', '', 'fIle1', 'FiLE1'),
-    ('cap', 'file name', '', 'file name', 'File Name'),
-    ('cap', 'file1 1name', '', 'file1 1name', 'File1 1Name'),
-    ('cap', 'file1_1name', '', 'file1_1name', 'File1_1Name'),
-    ('cap', 'file1.1name', '', 'file1.1name', 'File1.1Name'),
-    ('upper  ', 'file', '', 'file', 'FILE'),
-    ('lower  ', 'FILE', '', 'FILE', 'file'),
-    ('swap   ', 'fIle', '', 'fIle', 'FiLE')
+    ('upper', '', '', 'file', 'FILE'),
+    ('upper', '', '', 'file1', 'FILE1'),
+    ('lower', '', '', 'FILE', 'file'),
+    ('lower', '', '', 'FILE1', 'file1'),
+    ('swap', '', '', 'fIle', 'FiLE'),
+    ('swap', '', '', 'fIle1', 'FiLE1'),
+    ('cap', '', '', 'file name', 'File Name'),
+    ('cap', '', '', 'file1 1name', 'File1 1Name'),
+    ('cap', '', '', 'file1_1name', 'File1_1Name'),
+    ('cap', '', '', 'file1.1name', 'File1.1Name'),
+    ('upper  ', '', '', 'file', 'FILE'),
+    ('lower  ', '', '', 'FILE', 'file'),
+    ('swap   ', '', '', 'fIle', 'FiLE')
 ])
 def test_filter_cases(c_arg, c_origpath, c_dirpath, c_fname, c_res):
     args = parser.parse_args(['-c', c_arg])
@@ -119,9 +119,9 @@ def test_filter_case_err(c_errarg):
     # tests for translate
     # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
-    (['a', 'b'], 'filea', '', 'filea', 'fileb'),
-    (['fle', 'tbi'], 'filea', '', 'filea', 'tibia'),
-    (['1', '2'], 'file1', '', 'file1', 'file2')
+    (['a', 'b'], '', '', 'filea', 'fileb'),
+    (['fle', 'tbi'], '', '', 'filea', 'tibia'),
+    (['1', '2'], '', '', 'file1', 'file2')
 ])
 def test_filter_translate(tr_arg, tr_origpath, tr_dirpath, tr_fname, tr_res):
     args = parser.parse_args(['-tr', *tr_arg])
@@ -133,13 +133,13 @@ def test_filter_translate(tr_arg, tr_origpath, tr_dirpath, tr_fname, tr_res):
 
 @pytest.mark.parametrize("tr_errargs", [
     # errors for translate parser
-    # let nargs=2 handle length of arguments
-    # translate expects two arguments, both same length
+    # error if no values, both values are empty or not same length
+    # note: argparse handles len(args) > 2
     (['-v']),
-    (['a']),
+    (['', '', '-v']),
     (['a', '-v']),
-    # (['a', 'b', 'c', '-v']),  # let argparse deal with this error
-    (['a', 'bc', '-v'])
+    (['a', 'bc', '-v']),
+    (['', 'bc', '-v'])
 ])
 def test_filter_translate_err(tr_errargs):
     with pytest.raises(SystemExit) as err:
@@ -152,8 +152,9 @@ def test_filter_translate_err(tr_errargs):
     # tests for slice
     # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
-    (':4', 'filea', '', 'filea', 'file'),
-    ('1:5', 'filea', '', 'filea', 'ilea')
+    (':4', '', '', 'filea', 'file'),
+    ('1:5', '', '', 'filea', 'ilea'),
+    ('2:', '', '', 'filea', 'lea')
 ])
 def test_filter_slice(sl_arg, sl_origpath, sl_dirpath, sl_fname, sl_res):
     args = parser.parse_args(['-sl', sl_arg])
@@ -165,12 +166,18 @@ def test_filter_slice(sl_arg, sl_origpath, sl_dirpath, sl_fname, sl_res):
 
 @pytest.mark.parametrize("sl_errargs", [
     # errors for slice parser
+    # error if slice is empty, cannot convert into slice object,
+    # value is not an integer
+    # note: argparse handles len(args) > 1
     (['-v']),
-    (['a', 'b', '-v']),
-    (['a', 'b', 'c', '-v']),
+    (['', '-v']),
+    (['1:2:3:', '-v']),
     (['1:2:3:4', '-v']),
     (['1:2:3:4:', '-v']),
     (['a:', '-v']),
+    (['a:1', '-v']),
+    (['1:b', '-v']),
+    ([':b', '-v']),
     (['a:b', '-v']),
     (['a:b:c', '-v']),
     (['a::c', '-v']),
@@ -188,9 +195,9 @@ def test_filter_slice_err(sl_errargs):
     # tests for shave
     # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
-    (':1', 'filea', '', 'filea', 'file'),
-    ('1:', 'filea', '', 'filea', 'ilea'),
-    ('1:1', 'filea', '', 'filea', 'ile')
+    (':1', '', '', 'filea', 'file'),
+    ('1:', '', '', 'filea', 'ilea'),
+    ('1:1', '', '', 'filea', 'ile')
 ])
 def test_filter_shave(sh_arg, sh_origpath, sh_dirpath, sh_fname, sh_res):
     args = parser.parse_args(['-sh', sh_arg])
@@ -202,19 +209,29 @@ def test_filter_shave(sh_arg, sh_origpath, sh_dirpath, sh_fname, sh_res):
 
 @pytest.mark.parametrize("sh_errargs", [
     # errors for shave parser
+    # error if value is empty, non-numeric character,
+    # more than two values, both values are none,
+    # any value is negative
+    # note: argparse handles len(args) > 1
     (['-v']),
-    (['1a', '-v']),
+    (['', '-v']),
     (['a', '-v']),
     (['a:', '-v']),
-    (['a:b', '-v']),
     ([':b', '-v']),
-    (['a:b:c', '-v']),
+    (['a:b', '-v']),
+    (['1:b', '-v']),
+    (['a:1', '-v']),
     (['1:2:3', '-v']),
-    (['1:a', '-v']),
+    (['1:2:3:', '-v']),
+    (['1:2:3:4', '-v']),
+    (['a:b:c', '-v']),
+    ([':', '-v']),
+    (['-1:', '-v']),
+    ([':-1', '-v']),
     (['1:-1', '-v']),
     (['-1:1', '-v']),
-    (['-1:', '-v']),
-    ([':-1', '-v'])
+    (['1:-1:5', '-v']),
+    (['-1:1:5', '-v']),
 ])
 def test_filter_shave_err(sh_errargs):
     with pytest.raises(SystemExit) as err:
@@ -227,20 +244,21 @@ def test_filter_shave_err(sh_errargs):
     # tests for bracket removal
     # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
-    (['round'], '(filea)file(file)', '', '(filea)file(file)', 'file'),
-    (['round'], 'filea', '', 'filea', 'filea'),
-    (['round '], 'filea', '', 'filea', 'filea'),
-    (['round'], '(file)(file)(file)file', '', '(file)(file)(file)file', 'file'),
-    (['round', '1'], '(file)file(file)', '', '(file)file(file)', 'file(file)'),
-    (['  round  ', ' 1 '], '(file)file(file)', '', '(file)file(file)', 'file(file)'),
-    (['round', '2'], '(file)file(file)', '', '(file)file(file)', '(file)file'),
-    (['round', '3'], '(file)file(file)', '', '(file)file(file)', '(file)file(file)'),
-    (['square', '1'], '[file]file[file]', '', '[file]file[file]', 'file[file]'),
-    (['square', '2'], '[file]file[file]', '', '[file]file[file]', '[file]file'),
-    (['square', '3'], '[file]file[file]', '', '[file]file[file]', '[file]file[file]'),
-    (['curly', '1'], '{file}file{file}', '', '{file}file{file}', 'file{file}'),
-    (['curly', '2'], '{file}file{file}', '', '{file}file{file}', '{file}file'),
-    (['curly', '3'], '{file}file{file}', '', '{file}file{file}', '{file}file{file}'),
+    (['round'], '', '', '(filea)file(file)', 'file'),
+    (['round'], '', '', 'filea', 'filea'),
+    (['round '], '', '', 'filea', 'filea'),
+    (['round'], '', '', '(file)(file)(file)file', 'file'),
+    (['round', '0'], '', '', '(file)(file)(file)file', 'file'),
+    (['round', '1'], '', '', '(file)file(file)', 'file(file)'),
+    (['  round  ', ' 1 '], '', '', '(file)file(file)', 'file(file)'),
+    (['round', '2'], '', '', '(file)file(file)', '(file)file'),
+    (['round', '3'], '', '', '(file)file(file)', '(file)file(file)'),
+    (['square', '1'], '', '', '[file]file[file]', 'file[file]'),
+    (['square', '2'], '', '', '[file]file[file]', '[file]file'),
+    (['square', '3'], '', '', '[file]file[file]', '[file]file[file]'),
+    (['curly', '1'], '', '', '{file}file{file}', 'file{file}'),
+    (['curly', '2'], '', '', '{file}file{file}', '{file}file'),
+    (['curly', '3'], '', '', '{file}file{file}', '{file}file{file}'),
 ])
 def test_filter_bracr(bracr_arg, bracr_origpath, bracr_dirpath, bracr_fname, bracr_res):
     args = parser.parse_args(['-bracr', *bracr_arg])
@@ -252,14 +270,22 @@ def test_filter_bracr(bracr_arg, bracr_origpath, bracr_dirpath, bracr_fname, bra
 
 
 @pytest.mark.parametrize("bracr_errargs", [
+    # errors for bracket remove
+    # error if no arguments, too many arguments
+    # first argument not in (round, square, curly)
+    # second argument is not an integer >= 0
+    # nargs = *, so argparse doesn't handle len(args) > 2
     (['-v']),
     (['something', '-v']),
     (['roun', '-v']),
     (['CURLY', '-v']),
     (['ROUND', '-v']),
     (['SQUARE', '-v']),
-    (['SOMETHING', 'HERE', '-v']),
-    (['10', '-v'])
+    (['curly', 'HERE', '-v']),
+    (['curly', '', '-v']),
+    (['curly', '1a', '-v']),
+    (['curly', '-1', '-v']),
+    (['curly', '1', '2', '-v'])     # len(args) > 2
 ])
 def test_filter_bracr_err(bracr_errargs):
     with pytest.raises(SystemExit) as err:
@@ -272,17 +298,17 @@ def test_filter_bracr_err(bracr_errargs):
     # tests for regex
     # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
-    (['f', 'p'], 'file', '', 'file', 'pile'),
-    (['fi', 'pa'], 'file', '', 'file', 'pale'),
-    (['d', 'e'], 'fiddle', '', 'fiddle', 'fieele'),
-    (['d'], 'fiddle', '', 'fiddle', 'file'),                # remove all 'd'
-    (['d', 'l'], 'fiddle', '', 'fiddle', 'fillle'),         # replace all 'd' with 'l'
-    (['d', 'l', '1'], 'fiddle', '', 'fiddle', 'fildle'),    # replace 1st 'd' with 'l'
-    (['d', '', '1'], 'diddily', '', 'diddily', 'iddily'),
-    (['d', '', '4'], 'diddily do', '', 'diddily do', 'diddily o'),
+    (['f', 'p'], '', '', 'file', 'pile'),
+    (['fi', 'pa'], '', '', 'file', 'pale'),
+    (['d', 'e'], '', '', 'fiddle', 'fieele'),
+    (['d'], '', '', 'fiddle', 'file'),                # remove all 'd'
+    (['d', 'l'], '', '', 'fiddle', 'fillle'),         # replace all 'd' with 'l'
+    (['d', 'l', '1'], '', '', 'fiddle', 'fildle'),    # replace 1st 'd' with 'l'
+    (['d', '', '1'], '', '', 'diddily', 'iddily'),
+    (['d', '', '4'], '', '', 'diddily do', 'diddily o'),
     # replace 5th 'd', which doesn't exist, so do nothing
-    (['d', '', '5'], 'diddily do', '', 'diddily do', 'diddily do'),
-    (['\\d+', 'no.2'], '02bla', '', '02bla', 'no.2bla')
+    (['d', '', '5'], '', '', 'diddily do', 'diddily do'),
+    (['\\d+', 'no.2'], '', '', '02bla', 'no.2bla')
 ])
 def test_filter_regex(re_arg, re_origpath, re_dirpath, re_fname, re_res):
     args = parser.parse_args(['-re', *re_arg])
@@ -295,9 +321,10 @@ def test_filter_regex(re_arg, re_origpath, re_dirpath, re_fname, re_res):
 
 @pytest.mark.parametrize("re_errargs", [
     # errors for regex
+    # nargs = *, so argparse doesn't handle len(args) > 3
     (['-v']),
     (['', '-v']),
-    (['a', 'b', '2', '2'])
+    (['a', 'b', '2', '2', '-v'])  # len(args) > 3
 ])
 def test_filter_re_err(re_errargs):
     with pytest.raises(SystemExit) as err:
