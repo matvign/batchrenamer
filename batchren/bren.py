@@ -43,7 +43,7 @@ def main(args):
 
     if not checkOptSet(args):
         parser.print_usage()
-        print("\nno optional arguments set for renaming")
+        print("\nNo optional arguments set for renaming")
         return
 
     try:

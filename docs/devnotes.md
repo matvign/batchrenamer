@@ -28,12 +28,10 @@ ignore = E128, E501, E731, W292, W391, W505, F841
 Using lambdas in place of functions is bad style. But brevity of lambdas looks nice. I like things that look nice.  
 
 
-## Paths and extensions
-The last extension is grabbed by default. This isn't bad, but maybe it might not be what you want.  
-Not sure how useful this would even be. If I wanted to all suffixes of a filename I could write something
-up on my own... or use pathlib.
+## Extensions
+The last extension is grabbed by default. This isn't bad, but it might not be what you want. Ideally this should be customizable.  
 
-If I'm going to use pathlib for all suffixes of a filename, I might as well use it everywhere. Not a commitment I'm willing to make just yet.
+The simplest way to grab all extensions is using pathlib.suffixes. If I'm going to use pathlib for all suffixes of a filename, I might as well use it everywhere. Not a commitment I'm willing to make just yet.
 
 
 ## Regex replace nth
@@ -52,8 +50,7 @@ Replacing the nth value in regex is done by abusing re.sub, closures/decorators 
 
 ## Bracket remover
 Bracket remover doesn't remove different types of brackets and doesn't work with nested brackets.  
-If nested brackets aren't common and we don't have to remove multiple brackets at a time, then
-maybe I won't write anything for it. Could be an interesting exercise I guess.
+If nested brackets aren't common and removing multiple bracket types at a time, then maybe I won't write anything for it. Could be an interesting exercise I guess.
 
 
 ## Exceptions
@@ -63,8 +60,8 @@ I guess I'll leave it... for now.
 
 
 ## Sequences
-Strings are joined from lists each time we want a sequence. Not sure if good or bad.
-We could use a static string, but its a bit verbose and ugly.
+Strings are joined from lists each time we want a sequence. This is nice and simple.  
+We could be picky about when to join strings, but it could get a bit hairy.
 
 
 ## Packaging

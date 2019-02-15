@@ -253,12 +253,12 @@ e.g. %md/_/%f
 represents the time that a file was last modified. 
 
 e.g. %mt/_/%f
-18.00.37_file1
-18.30.37_file2
-19.30.37_file3
+18:00:37_file1
+18:30:37_file2
+19:30:37_file3
 
 e.g. %md/./%mt/_/%f
-2019-11-16.19.10.37_file
+2019-11-16.19:10:37_file
 ```
 
 # 1.4 Processing rename information
@@ -577,6 +577,9 @@ if dryrun or verbose
 
 
 # Documentation changelog
+15/2/2019
+* updated to v0.6.0
+
 4/11/2018
 * updated planned updates for v0.5
 

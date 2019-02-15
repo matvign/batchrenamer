@@ -4,7 +4,15 @@ from batchren import bren, renamer, _version
 
 '''
 tests for filters of names
-Run this in the top level directory
+Run 'pytest' in the top level directory
+
+origpath and dirpath is only used in sequences.
+
+argparse will only raise a systemexit when nargs = n and len(args) < n
+it does not handle len(args) > n.
+
+argparse does not handle anything for nargs = *, which means
+we can test for both len(args) < n, len(args) > n
 '''
 parser = bren.parser
 
@@ -15,7 +23,6 @@ def test_parser_version():
 
 @pytest.mark.parametrize("pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res", [
     # tests for prepend
-    # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
     ('PRE_', '', '', 'FILE', 'PRE_FILE'),
     ('PRE_', '', '', 'file', 'PRE_file'),
@@ -32,7 +39,6 @@ def test_filter_prepend(pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res):
 
 @pytest.mark.parametrize("post_arg, post_origpath, post_dirpath, post_fname, post_res", [
     # tests for postpend
-    # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
     ('_POST', '', '', 'file', 'file_POST'),
     ('_POST', '', 'parent', 'file', 'file_POST'),
@@ -47,7 +53,6 @@ def test_filter_postpend(post_arg, post_origpath, post_dirpath, post_fname, post
 
 @pytest.mark.parametrize("sp_arg, sp_origpath, sp_dirpath, sp_fname, sp_res", [
     # tests for space
-    # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
     ('_', '', '', 'file a', 'file_a'),
     ('', '', '', 'file a', 'filea'),
@@ -75,14 +80,18 @@ def test_filter_spaces_extra():
 
 @pytest.mark.parametrize("c_arg, c_origpath, c_dirpath, c_fname, c_res", [
     # tests for case
-    # origpath and dirpath is only used for sequences
+    # case is only applied to the filename, not any extension
+    # which is why extensions aren't tested here
     # arg, origpath, dirpath, filename, expected result
     ('upper', '', '', 'file', 'FILE'),
     ('upper', '', '', 'file1', 'FILE1'),
     ('lower', '', '', 'FILE', 'file'),
     ('lower', '', '', 'FILE1', 'file1'),
-    ('swap', '', '', 'fIle', 'FiLE'),
-    ('swap', '', '', 'fIle1', 'FiLE1'),
+    ('swap', '', '', 'FILE', 'file'),
+    ('swap', '', '', 'file', 'FILE'),
+    ('swap', '', '', 'fiLE', 'FIle'),
+    ('swap', '', '', 'FIle', 'fiLE'),
+    ('cap', '', '', 'FileName', 'Filename'),
     ('cap', '', '', 'file name', 'File Name'),
     ('cap', '', '', 'file1 1name', 'File1 1Name'),
     ('cap', '', '', 'file1_1name', 'File1_1Name'),
@@ -106,7 +115,6 @@ def test_filter_cases(c_arg, c_origpath, c_dirpath, c_fname, c_res):
     (['garbage', '-v']),
     (['bug', '-v']),
     (['1', '-v']),
-    (['1', '2', '-v'])
 ])
 def test_filter_case_err(c_errarg):
     with pytest.raises(SystemExit) as err:
@@ -117,7 +125,6 @@ def test_filter_case_err(c_errarg):
 
 @pytest.mark.parametrize("tr_arg, tr_origpath, tr_dirpath, tr_fname, tr_res", [
     # tests for translate
-    # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
     (['a', 'b'], '', '', 'filea', 'fileb'),
     (['fle', 'tbi'], '', '', 'filea', 'tibia'),
@@ -150,7 +157,6 @@ def test_filter_translate_err(tr_errargs):
 
 @pytest.mark.parametrize("sl_arg, sl_origpath, sl_dirpath, sl_fname, sl_res", [
     # tests for slice
-    # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
     (':4', '', '', 'filea', 'file'),
     ('1:5', '', '', 'filea', 'ilea'),
@@ -193,7 +199,6 @@ def test_filter_slice_err(sl_errargs):
 
 @pytest.mark.parametrize("sh_arg, sh_origpath, sh_dirpath, sh_fname, sh_res", [
     # tests for shave
-    # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
     (':1', '', '', 'filea', 'file'),
     ('1:', '', '', 'filea', 'ilea'),
@@ -242,7 +247,6 @@ def test_filter_shave_err(sh_errargs):
 
 @pytest.mark.parametrize("bracr_arg, bracr_origpath, bracr_dirpath, bracr_fname, bracr_res", [
     # tests for bracket removal
-    # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
     (['round'], '', '', '(filea)file(file)', 'file'),
     (['round'], '', '', 'filea', 'filea'),
@@ -269,12 +273,26 @@ def test_filter_bracr(bracr_arg, bracr_origpath, bracr_dirpath, bracr_fname, bra
     assert newname == bracr_res
 
 
+@pytest.mark.parametrize("bracr_rec_arg, bracr_type", [
+    # special test cases for bracr
+    # bracr doesn't handle recursive brackets and should fail
+    ('((file))file', 'round'),
+    ('[[file]]file', 'square'),
+    ('{{file}}file', 'curly')
+])
+def test_filter_bracr_extra(bracr_rec_arg, bracr_type):
+    args = parser.parse_args(['-bracr', bracr_type])
+    filters = renamer.initfilters(args)
+    newname = renamer.runfilters(filters, '', '', bracr_rec_arg)
+    assert newname != 'file'
+
+
 @pytest.mark.parametrize("bracr_errargs", [
     # errors for bracket remove
     # error if no arguments, too many arguments
     # first argument not in (round, square, curly)
     # second argument is not an integer >= 0
-    # nargs = *, so argparse doesn't handle len(args) > 2
+    # nargs = *, so argparse doesn't handle argument lengths
     (['-v']),
     (['something', '-v']),
     (['roun', '-v']),
@@ -296,7 +314,6 @@ def test_filter_bracr_err(bracr_errargs):
 
 @pytest.mark.parametrize("re_arg, re_origpath, re_dirpath, re_fname, re_res", [
     # tests for regex
-    # origpath and dirpath is only used for sequences
     # arg, origpath, dirpath, filename, expected result
     (['f', 'p'], '', '', 'file', 'pile'),
     (['fi', 'pa'], '', '', 'file', 'pale'),
@@ -321,7 +338,7 @@ def test_filter_regex(re_arg, re_origpath, re_dirpath, re_fname, re_res):
 
 @pytest.mark.parametrize("re_errargs", [
     # errors for regex
-    # nargs = *, so argparse doesn't handle len(args) > 3
+    # nargs = *, so argparse doesn't handle argument lengths
     (['-v']),
     (['', '-v']),
     (['a', 'b', '2', '2', '-v'])  # len(args) > 3
