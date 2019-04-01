@@ -5,21 +5,19 @@ uses unix style pattern matching to look for files and uses optional
 arguments to rename the set of files found.  
 
 
-# 1. Implementation detail
-# 1.1.1 Batchren argument parsing
-argparse is the module used to implement argument parsing from the
-command line. The following is enabled:
-* epilog: prints version after help
-* prefix_chars: only accept dashes for optional arguments
-* fromfile_prefix_char: accept arguments from file
+# 1. Usage
+## 1.1 Positional arguments:
+path: specifies the file pattern to search for.  
 
-### Positional arguments:
-path: specifies the file pattern to search for. If wildcards are present, 
-surround the path in quotes.  
-Paths and patterns ending with '/' are automatically expanded.  
-e.g. testdir/ = testdir/\*
+Paths ending with '/' are automatically expanded.  
+If there are special characters in your file, surround the path in quotes.  
+See examples for more information.
 
-### Optional arguments:  
+Because some arguments take at *least n* arguments, place the path argument before optional arguments.  
+See **section 1.3** for examples.
+
+
+## 1.2 Optional arguments:  
 ```
 -h:             show help text
 -pre            add text before file
@@ -36,33 +34,52 @@ e.g. testdir/ = testdir/\*
 
 --sel           after finding files with a file pattern, manually select which files to rename
 --sort          after finding files, sort by ascending, descending or manual. useful for sequences
--q/--quiet      skip output, but show confirmations (see section 2)  
--v/--verbose    show detailed output (see section 2)  
+-q/--quiet      skip output, but show confirmations (see **section 3**)  
+-v/--verbose    show detailed output (see **section 3**)  
 --version:      show version  
 ```
 
+## 1.3 Examples
+### File searching
+#### Pattern escaping
+When using pattern matching characters **(`[], *, ?`)** surround 
+the pattern in quotes.  
+e.g. `'lecture0*'`
 
-## 1.1.2 Considerations/issues
-Because some arguments take at *least n* arguments, always place the path argument before optional arguments.  
-```
--re PATTERN [REPL] [COUNT], replace the nth pattern found with repl.
+#### Directory expansion
+Patterns that end in a slash are automatically expanded.  
+e.g. `'testdir/'` -> `'testdir/*'`
 
-batchren -re cat cat dog
-Given all files, remove the 'dog'th instance of the pattern with cat. Gives an error.
+#### Escaping pattern matching
+To interpret pattern matching characters as literal use `[]`.  
+`'[[]Funny[]] file.mkv'`: interpret text in brackets as literal. Matches `'[Funny] file.mkv'`.  
+`'something[*]'`: interpret asterisk as literal. Matches `'something*'`.  
+`'nothing[?]'`: interpret question mark as literal. Matches `'nothing?'`.
 
-batchren cat -re cat dog 2
-Given a file named cat, remove the second instance of the pattern with dog
-i.e. cat -> dog
-```
+### Usage examples
+`batchren -h`: show help  
+`batchren -sp`: replace files with spaces in current directory with '_'  
+`batchren -case lower`: convert files in current directory to lower case  
+`batchren -tr a b`: replace character a with b  
+`batchren -re a`: remove all 'a' characters from files  
+`batchren -re a b`: replace 'a' with 'b'  
+`batchren -re a b 2`: replace the second instance of 'a' with 'b'  
+`batchren -bracr square`: remove all square brackets and their contents  
+`batchren -bracr square 2`: remove second square bracket and its contents  
+`batchren -sl 3`: slice first three characters from files  
+`batchren -sl 3:-3`: slice slice first three and last three characters files  
+`batchren -sh 3:3`: shave first three and last three characters from files  
 
-Arguments that require special characters should be encased in quotes.  
-e.g. `batchren.py 'testdir/*' -tr '[]' '()'`
 
-Arguments with only one argument starting with a hypen should use equals before it.  
-e.g. `-arg='-val'`  
+# 2. Implementation detail
+## 2.1 Batchren argument parsing
+argparse is the module used to implement argument parsing from the
+command line. The following is enabled:
+* epilog: prints notification and link to readme for examples.
+* prefix_chars: only accept dashes for optional arguments
+* fromfile_prefix_char: accept arguments from file
 
-
-# 1.2 File and pattern matching
+## 2.2 File and pattern matching
 Unix style pattern matching is implmented using the python glob module.
 
 glob.iglob()
@@ -70,9 +87,15 @@ glob.iglob()
 * doesn't include hidden files
 * supports recursion (not that it should be used)
 
+## 2.3 File renaming arguments
+Filenames are passed in from file pattern matching and split into directory, 
+basename and ext.  
+Each basename is run against a list of the applicable arguments.  
+Each argument creates a filter that is implemented as a class, function or 
+lambda expression in a list.  
+The resulting filename is then recombined and processed to determine if it is
+safe to rename.
 
-# 1.3 File renaming arguments
-## 1.3.1 Argument order
 Arguments have an order that they are applied. The general idea is that 
 characters are removed/replaced before adding characters.
 
@@ -91,24 +114,14 @@ Arguments are run in the following order:
 12. extension
 
 
-## 1.3.2 Argument implementation
-Filenames are passed in from file pattern matching and split into directory, 
-basename and ext.  
-Each basename is run against a list of the applicable arguments.  
-Each argument creates a filter that is implemented as a class, function or 
-lambda expression in a list.  
-The resulting filename is then recombined and processed to determine if it is
-safe to rename.
-
-
-## 1.3.3 Regex filter
+### 2.3.1 Regex filter
 Regex filter uses Python regex.  
 There may be some untested oddities that occur from inputting python regex as
 bash strings.  
-If an issue occurs with compiling or executing regex, the program (**should**) safely crash.  
+If an issue occurs with compiling or executing regex, the program **should** safely crash.  
 
 
-## 1.3.4 Shave filter
+### 2.3.2 Shave filter
 The shave filter is a convenient variation of the slice filter that performs 
 slicing on the ends of a file.  
 Unlike the slice filter, shave only takes two slice values, one for head 
@@ -128,7 +141,7 @@ invalid, only takes two values
 ```
 
 
-## 1.3.5 Bracket remover
+### 2.3.3 Bracket remover
 The bracket remover takes a certain bracket type: curly, round or square and
 removes that bracket group from the filename.  
 An optional argument can be specified to remove the nth bracket group.  
@@ -144,10 +157,10 @@ remove only the first square bracket found.
 Bracket remover doesn't work when applied to nested brackets.
 
 
-## 1.3.6 Sequences
+### 2.3.4 Sequences
 The sequence filter uses strings separated by slashes for formatting. Formatters begin with **%** and must be followed by **f**, **n**, **a**, **md**, or **mt** to be a valid formatter. Sequences reset with different directories.
 
-### File format
+#### File format
 ```
 %f
 represents the filename.
@@ -158,11 +171,11 @@ e.g. raw/%f
 filename -> rawfilename
 ```
 
-### Numerical sequence
+#### Numerical sequence
 ```
-%n/_/%f
-represents a number sequence followed by filename.
-Starts counting at 1 with 0 padded by default.
+%n
+represents a number sequence starting at 1
+with 0 padded by default.
 
 e.g. %n/_/%f
 01_file
@@ -189,9 +202,9 @@ e.g. %n3:2:9:2
 002_file
 ```
 
-### Alphabetical sequence
+#### Alphabetical sequence
 ```
-%f/_/%a
+%a
 represents a letter sequence starting at 'a' and resetting when greater than 'z'.
 
 e.g. %f/_/%a
@@ -220,26 +233,28 @@ aa (complete reset)
 represents a letter sequence, but with a width multiplier of 2.
 e.g. %a2:a:z = %a:aa:zz (z is multiplied by 2)
 
-Default characters for missing values are 'a' and 'z' 
+Missing values are filled with default characters 'a' or 'z' 
 (includes missing values due to multiplier).
-e.g. %a:a: = %a:a:z
+e.g. %a:a:   = %a:a:z
      %a2:a:z = %a:a:zz = %a:aa:zz
 
-When start is longer than end, the missing values are filled with None
-and not incremented.
-e.g. %a:aa:z = %a:aa:z(None) -> aa, ba, ca, da, ea, ..., za, aa
+When start is longer than end, missing values are filled with the 
+default character and not incremented.
+e.g. %a:aa:z = %a:aa:z(a) 
+     -> aa, ba, ca, ..., za, aa
 
-When end is longer than start, the missing values are filled with 'a'
-and is incremented as usual.
+When end is longer than start, missing values are filled with 'a'
+and incremented as usual.
 e.g. %a:a:zz = %a:aa:zz
+     -> aa, ab, ac, ..., az, ba, ..., zz
 
 Uppercase and lowercase sequencing is supported.
 Note that lowercase goes to uppercase, but NOT vice versa.
-i.e. %a:a:A -> a, b, c, ..., z, A
+e.g. %a:a:Z -> a, ..., z, A, ..., Z 
      %a:A:a -> A, A, A, ..., A, A
 ```
 
-### Time format
+#### Time format
 ```
 %md
 represents the date that a file was last modified.
@@ -261,8 +276,8 @@ e.g. %md/./%mt/_/%f
 2019-11-16.19:10:37_file
 ```
 
-# 1.4 Processing rename information
-## 1.4.1 Processing renamed strings
+# 2.4 Processing rename information
+## 2.4.1 Processing renamed strings
 After filtering filenames, we categorise them into a nested dict:
 ```python
 rentable = {
@@ -291,7 +306,7 @@ Unresolvable conflicts are srcs from conflicts. Anything that attempts
 to rename to a file in this field is a conflict.
 
 
-## 1.4.2 Conflict resolution
+## 2.4.2 Conflict resolution
 There are different renaming conflicts that can occur:
 1. a file name has not changed
 2. the base name is empty (e.g. parent/file -> parent/)
@@ -362,7 +377,7 @@ dir
 ```
 
 
-## 1.4.3 Cycle resolution
+## 2.4.3 Cycle resolution
 Cycles happen when each file wants to be renamed to the next.
 ```
 dir
@@ -416,11 +431,11 @@ dir
     fileg           -> filea (conflict, filea is marked as unusable)
 ```
 
-# 2. Displaying information
+# 3. Displaying information
 There are different behaviours depending on the arguments quiet, verbose and dryrun. 
 Quiet and verbose cannot be set at the same time.
 
-## 2.1 Parser level
+## 3.1 Parser level
 The parser level is where arguments are read in.  
 The following applies:
 * If error with arguments, show error, quit
@@ -446,7 +461,7 @@ else
 ```
 
 
-## 2.2 Renamer level
+## 3.2 Renamer level
 The renamer level shows filenames that can be renamed or have errors.
 For conflicts:
 * If quiet, show no conflict information
@@ -475,7 +490,7 @@ if dryrun or verbose
 ```
 
 
-# 3. Version History
+# 4. Version History
 ## Changelog
 ## v0.3
 * generate rentable in renamer
@@ -568,15 +583,22 @@ if dryrun or verbose
 * bug fixes/code cleanup
 
 ## v0.6.0
-* new: interactive option for ordering of files
+* new: interactive option for ordering files
 * new: interactive option for choosing files
 * bug fixes/code cleanup
 
 
 # Planned updates
+## v0.6.1
+* new: interactive option to select/unselect all files
+* new: literal argument to interpret filenames literally
+* bug fixes
 
 
 # Documentation changelog
+1/4/2019
+* updated docs
+
 15/2/2019
 * updated to v0.6.0
 

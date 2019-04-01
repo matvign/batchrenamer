@@ -4,6 +4,7 @@ import glob
 import os
 import re
 import sre_constants
+import textwrap
 
 from natsort import natsorted, ns
 
@@ -86,8 +87,8 @@ def expanddir(path):
     path = os.path.expanduser(os.path.normpath(path))
     if path[-1] == '/':
         return path + '*'
-    elif os.path.isdir(path):
-        return os.path.join(path, '*')
+    # elif os.path.isdir(path):
+    #     return os.path.join(path, '*')
     return path
 
 
@@ -288,7 +289,7 @@ class SequenceAction(argparse.Action):
             namespace.sequence = seq
 
 
-class CustomFormatter(argparse.HelpFormatter):
+class CustomFormatter(argparse.RawTextHelpFormatter):
     '''
     Custom formatter for argparse.
     Skip long optionals that have parameters.
@@ -346,9 +347,12 @@ parser = argparse.ArgumentParser(
     usage='%(prog)s path [options]',
     formatter_class=CustomFormatter,
     description='Batch Renamer - a script for renaming files',
-    epilog="note: all special characters should be escaped using quotes. If hyphen is in beginning of argument, use -arg='-val'",
+    epilog=textwrap.dedent('''\
+    note: files containing special characters should be escaped with quotes.
+    Visit https://github.com/matvign/batchrenamer for examples.
+    '''),
     prefix_chars='-',           # only allow arguments with minus (default)
-    fromfile_prefix_chars='@'   # allow arguments from file input
+    fromfile_prefix_chars='@',  # allow arguments from file input
 )
 outgroup = parser.add_mutually_exclusive_group()
 

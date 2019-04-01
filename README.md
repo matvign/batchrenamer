@@ -14,27 +14,18 @@ A script to rename files with various arguments. Supports Unix style file globbi
 ## Instructions
 1. Download/clone this repo
 2. cd into directory
-3. run pip install --user dist/batchren-0.6.0-py3-none-any.whl (also downloads natsort & urwid)
+3. run `pip install --user dist/batchren-0.6.0-py3-none-any.whl` (also downloads natsort & urwid)
 
 
 ## Usage
 ### Positional arguments:
-path: specifies the file pattern to search for. If wildcards are present, 
-surround the path in quotes.  
-Paths and patterns ending with '/' are automatically expanded.  
-e.g. testdir/ = testdir/\*
+path: specifies the file pattern to search for.  
 
-Because some arguments take at *least n* arguments, always place the path argument before optional arguments.  
-```
--re PATTERN [REPL] [COUNT], replace the count'th pattern found with repl.
+Paths ending with '/' are automatically expanded.  
+If there are special characters in your file, surround the path in quotes.  
+See examples for more information.
 
-batchren -re cat cat dog
-Given all files, remove the 'dog'th instance of the pattern with cat. Gives an error.
-
-batchren cat -re cat dog 2
-Given a file named cat, remove the second instance of the pattern with dog
-i.e. cat -> dog
-```
+Because some arguments take at *least n* arguments, place the path argument before optional arguments.  
 
 
 ### Optional arguments:  
@@ -80,6 +71,24 @@ Arguments are run in the following order:
 
 
 ## Examples
+### File searching
+#### Pattern escaping
+When using pattern matching characters **(`[], *, ?`)** surround 
+the pattern in quotes.  
+e.g. `'lecture0*'`
+
+#### Directory expansion
+Patterns that end in a slash are automatically expanded.  
+e.g. `'testdir/'` -> `'testdir/*'`
+
+#### Escaping pattern matching
+To interpret pattern matching characters as literal use `[]`.  
+`'[[]Funny[]] file.mkv'`: interpret text in brackets as literal. Matches `'[Funny] file.mkv'`.  
+`'something[*]'`: interpret asterisk as literal. Matches `'something*'`.  
+`'nothing[?]'`: interpret question mark as literal. Matches `'nothing?'`.
+
+
+### Usage examples
 `batchren -h`: show help  
 `batchren -sp`: replace files with spaces in current directory with '_'  
 `batchren -case lower`: convert files in current directory to lower case  
@@ -87,11 +96,11 @@ Arguments are run in the following order:
 `batchren -re a`: remove all 'a' characters from files  
 `batchren -re a b`: replace 'a' with 'b'  
 `batchren -re a b 2`: replace the second instance of 'a' with 'b'  
-`batchren '[bla]bla' -bracr square`: remove square brackets in '[bla]bla' -> 'bla'  
-`batchren '[bla]bla[bla]' -bracr square 2`: remove second square bracket '[bla]bla[bla]' -> '[bla]bla'  
-`batchren blafile01 -sl 3`: slice first three characters from blafile  
-`batchren blafilebla -sl 3:-3`: slice first three and last three characters from 'blafilebla' -> 'file'  
-`batchren blafilebla -sh 3:3`: shave first three and last three characters from 'blafilebla' -> 'file'  
+`batchren -bracr square`: remove all square brackets and their contents  
+`batchren -bracr square 2`: remove second square bracket and its contents  
+`batchren -sl 3`: slice first three characters from files  
+`batchren -sl 3:-3`: slice slice first three and last three characters files  
+`batchren -sh 3:3`: shave first three and last three characters from files  
 
 
 ## Sequences
@@ -141,7 +150,7 @@ e.g. %n3:2:9:2
 
 ### Alphabetical sequence
 ```
-%f/_/%a
+%a
 represents a letter sequence starting at 'a' and resetting when greater than 'z'.
 
 e.g. %f/_/%a
@@ -170,22 +179,24 @@ aa (complete reset)
 represents a letter sequence, but with a width multiplier of 2.
 e.g. %a2:a:z = %a:aa:zz (z is multiplied by 2)
 
-Default characters for missing values are 'a' and 'z' 
+Missing values are filled with default characters 'a' or 'z' 
 (includes missing values due to multiplier).
-e.g. %a:a: = %a:a:z
+e.g. %a:a:   = %a:a:z
      %a2:a:z = %a:a:zz = %a:aa:zz
 
-When start is longer than end, the missing values are filled with None
-and not incremented.
-e.g. %a:aa:z = %a:aa:z(None) -> aa, ba, ca, da, ea, ..., za, aa
+When start is longer than end, missing values are filled with the 
+default character and not incremented.
+e.g. %a:aa:z = %a:aa:z(a) 
+     -> aa, ba, ca, ..., za, aa
 
-When end is longer than start, the missing values are filled with 'a'
-and is incremented as usual.
+When end is longer than start, missing values are filled with 'a'
+and incremented as usual.
 e.g. %a:a:zz = %a:aa:zz
+     -> aa, ab, ac, ..., az, ba, ..., zz
 
 Uppercase and lowercase sequencing is supported.
 Note that lowercase goes to uppercase, but NOT vice versa.
-i.e. %a:a:A -> a, b, c, ..., z, A
+e.g. %a:a:Z -> a, ..., z, A, ..., Z 
      %a:A:a -> A, A, A, ..., A, A
 ```
 
@@ -193,7 +204,6 @@ i.e. %a:a:A -> a, b, c, ..., z, A
 ```
 %md
 represents the date that a file was last modified.
-
 e.g. %md/_/%f
 2019-11-14_file1
 2019-11-15_file2
@@ -201,7 +211,6 @@ e.g. %md/_/%f
 
 %mt
 represents the time that a file was last modified. 
-
 e.g. %mt/_/%f
 18.00.37_file1
 18.30.37_file2

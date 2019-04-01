@@ -128,7 +128,7 @@ class SequenceObj:
     def _mt_generator(self, arg):
         # Return modification time of file
         tstamp = getmtime(arg)
-        return datetime.fromtimestamp(tstamp).strftime('%H:%M:%S')
+        return datetime.fromtimestamp(tstamp).strftime('%H.%M.%S')
 
     def _parse_num(self, arg):
         '''
