@@ -2,7 +2,6 @@ import re
 from datetime import datetime
 from enum import Enum
 from itertools import zip_longest
-from string import ascii_lowercase
 from os.path import getmtime
 
 
@@ -83,8 +82,8 @@ class SequenceObj:
         Lowercase increments to uppercase, but NOT vice-versa
         '''
         # convert start, end into list of chars
-        start = [*start] if start is not None else ['a']
-        end = [*(depth * end)] if end is not None else depth * ['z']
+        start = list(start) if start is not None else ['a']
+        end = list(depth * end) if end is not None else depth * ['z']
         if len(start) < len(end):
             # fill start with starting char a
             # a:zzz --> aaa:zzz
@@ -103,12 +102,12 @@ class SequenceObj:
             if (A - z) don't increment
             if (A - None) don't increment (handled externally)
             '''
-            if start_ch in ascii_lowercase and end_ch in ascii_lowercase:
+            if start_ch.islower() and end_ch.islower():
                 return chr(ord(ch) + 1) if ch < end_ch else start_ch
-            elif start_ch not in ascii_lowercase and end_ch not in ascii_lowercase:
+            elif start_ch.isupper() and end_ch.isupper():
                 return chr(ord(ch) + 1) if ch < end_ch else start_ch
-            elif start_ch in ascii_lowercase and end_ch not in ascii_lowercase:
-                if ch in ascii_lowercase:
+            elif start_ch.islower() and end_ch.isupper():
+                if ch.islower():
                     return chr(ord(ch) + 1) if ch != 'z' else 'A'
                 return chr(ord(ch) + 1) if ch < end_ch else start_ch
             return ch
@@ -163,6 +162,7 @@ class SequenceObj:
         except ValueError as err:
             raise ValueError(msg3)
         if sum(1 for n in sl if n and n < 0):
+            # check for negative numbers, skip None values
             raise ValueError(msg3)
         gen = self._num_generator(depth, *sl)
         self.rules.append((SequenceType.SEQ, gen))
@@ -195,7 +195,7 @@ class SequenceObj:
         # %a[depth]:start:end or
         # %n[depth]:start:end:step
         msg = 'invalid sequence formatter '
-        val = arg[1:]  # strip % from arg
+        val = arg[1:]  # remove % from arg
         if not val:
             # arg was %, just add it as raw string
             self.rules.append((SequenceType.RAW, "%"))

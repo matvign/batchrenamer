@@ -4,26 +4,32 @@ import pytest
 from batchren import renamer, bren
 
 '''
-tests for misc functions that do certain things.
+tests for misc functions in renamer
 Run this in the top level directory
+
+tmpdir is a py.path.local object, more details here:
+https://py.readthedocs.io/en/latest/path.html
 '''
 parser = bren.parser
 
 
-@pytest.fixture(scope="session")
 @pytest.mark.parametrize("path_args, path_res", [
     # tests for expanding directories
-    (['testdir', '-v'], 'testdir/*'),
-    (['testdir/', '-v'], 'testdir/*'),
-    (['testdir/sub', '-v'], 'testdir/sub/*'),
-    (['testdir/sub/', '-v'], 'testdir/sub/*'),
-    (['testdir/sub/file', '-v'], 'testdir/sub/file'),
-    (['testdir/sub/file/', '-v'], 'testdir/sub/file/*')
+    (['sub/', '-v'], 'sub/*'),
+    (['sub', '-v'], 'sub/*'),
+    (['sub/ssub', '-v'], 'sub/ssub/*'),
+    # not a directory, don't change anything
+    (['file.txt', '-v'], 'file.txt')
 ])
 def test_parser_expanddir(path_args, path_res, tmpdir):
-    p = tmpdir.mkdir('testdir').sub('sub')
+    # create directory structure
+    tmpdir.mkdir('sub').mkdir('ssub')
+    tmpdir.chdir()
+
     args = parser.parse_args(path_args)
-    print(args)
+    print('tmpdir:', tmpdir)
+    print('args.path:', args.path)
+    print('path_res:', path_res)
     assert args.path == path_res
 
 

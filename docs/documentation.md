@@ -9,7 +9,7 @@ arguments to rename the set of files found.
 ## 1.1 Positional arguments:
 path: specifies the file pattern to search for.  
 
-Paths ending with '/' are automatically expanded.  
+Paths that are directories are automatically expanded.  
 If there are special characters in your file, surround the path in quotes.  
 See examples for more information.
 
@@ -38,10 +38,11 @@ See examples for more information.
 --version:      show version  
 ```
 
+
 ## 1.3 Usage
 ### Positional Arguments
 By default batchren searches for all files in the current working directory.
-If the file pattern is a directory or ends with a `'/'`, batchren will expand into the directory.
+If the file pattern is a directory batchren will expand into the directory.
 
 batchren also supports wild characters **(`[], *, ?`)**. Surround file patterns in quotes when using pattern matching characters.
 

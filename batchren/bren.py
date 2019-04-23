@@ -12,11 +12,11 @@ def expand_dir(path):
     '''
     Custom type for directories.
     Add '*' if path is a directory or if path ends with '/'
+    Otherwise return the path unaltered
     '''
     path = os.path.expanduser(os.path.normpath(path))
-    if path[-1] == '/':
-        return path + '*'
-    elif os.path.isdir(path):
+    print(path)
+    if os.path.isdir(path):
         return os.path.join(path, '*')
     return path
 

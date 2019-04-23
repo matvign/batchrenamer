@@ -6,6 +6,20 @@ BOLD = '\033[1m'
 END = '\033[0m'
 
 
+def askQuery():
+    valid = {"yes": True, "y": True, "ye": True,
+             "no": False, "n": False, "q": False}
+
+    while True:
+        choice = input('Proceed with renaming? [y/n] ').lower()
+        if choice == '':
+            return True
+        elif choice in valid:
+            return valid[choice]
+        else:
+            print("Please respond with 'yes' or 'no'")
+
+
 def printArgs(args):
     print('{:-^30}'.format(BOLD + 'arguments' + END))
     for argname, argval in sorted(vars(args).items()):

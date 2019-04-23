@@ -5,15 +5,11 @@ import os
 
 from natsort import natsorted, ns
 
-from batchren import bren, renamer, helper
+from batchren import renamer, helper
 from tui import arrange_tui, selection_tui
-
-parser = bren.parser
 
 BOLD = helper.BOLD
 END = helper.END
-
-args = parser.parse_args()
 
 
 def main(args, parser):
@@ -58,8 +54,3 @@ def main(args, parser):
         files.reverse()
 
     renamer.start_rename(args, files)
-
-
-if __name__ == '__main__':
-    main(args, parser)
-    print('Exiting...')

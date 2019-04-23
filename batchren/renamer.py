@@ -7,10 +7,10 @@ from collections import deque
 
 from natsort import natsorted, ns
 
-from batchren import seqObj
+from batchren import helper, seqObj
 
-BOLD = '\033[1m'
-END = '\033[0m'
+BOLD = helper.BOLD
+END = helper.END
 
 issues = {
     # issuecodes for rentable
@@ -21,21 +21,6 @@ issues = {
     4: 'shared name conflict',
     5: 'unresolvable conflict'
 }
-
-
-def askQuery(question):
-    valid = {"yes": True, "y": True, "ye": True,
-             "no": False, "n": False, "q": False}
-
-    while True:
-        print(question, "[y/n] ", end='')
-        choice = input().lower()
-        if choice == '':
-            return True
-        elif choice in valid:
-            return valid[choice]
-        else:
-            print("Please respond with 'yes' or 'no'")
 
 
 def partfile(filepath):
@@ -400,5 +385,5 @@ def start_rename(args, fileset):
     rentable = renfilter(args, fileset)
     q = print_rentable(rentable, args.quiet, args.verbose)
 
-    if q and askQuery('Proceed with renaming?'):
+    if q and helper.askQuery():
         run_rename(q, args)

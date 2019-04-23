@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
 import pytest
 
+from batchren import main
 from batchren import bren, renamer, _version
 
 '''
@@ -13,12 +15,53 @@ it does not handle len(args) > n.
 
 argparse does not handle anything for nargs = *, which means
 we can test for both len(args) < n, len(args) > n
+
+tmpdir is a py.path.local object, more details here:
+https://py.readthedocs.io/en/latest/path.html
 '''
 parser = bren.parser
 
 
 def test_parser_version():
-    assert _version.__version__ == '0.6.0'
+    assert _version.__version__ == '0.6.1'
+
+
+def pairwise(lst1, lst2, tmpdir=None):
+    if len(lst1) != len(lst2):
+        raise Exception('list lengths must be equal!')
+    it1, it2 = iter(lst1), iter(lst2)
+    try:
+        while True:
+            if not tmpdir:
+                yield next(it1), next(it2)
+            else:
+                yield tmpdir.join(next(it1)), tmpdir.join(next(it2))
+    except StopIteration:
+        return
+
+
+@pytest.mark.parametrize("pre_args, pre_before, pre_after", [
+    (['-pre', 'pre_', '-v'], ['file1', 'file2'], ['pre_file1', 'pre_file2']),
+    (['-pre', 'pre_', '-v'], ['FILE1', 'FILE2'], ['pre_FILE1', 'pre_FILE2'])
+])
+def test_rename_filter(pre_args, pre_before, pre_after, tmpdir, monkeypatch):
+    monkeypatch.setattr('builtins.input', lambda x: 'y')
+    before_lst, after_lst = [], []
+    for before, after in pairwise(pre_before, pre_after, tmpdir):
+        before.write(before)
+        before_lst.append(before)
+        after_lst.append(after)
+
+        assert before.check(file=1)
+        assert after.check(file=0)
+
+    tmpdir.chdir()
+    args = parser.parse_args(pre_args)
+    main.main(args, parser)
+    for before, after in pairwise(before_lst, after_lst):
+        assert before.check(file=0)
+        assert after.check(file=1)
+        assert after.read() == before
 
 
 @pytest.mark.parametrize("pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res", [
