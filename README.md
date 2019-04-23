@@ -14,7 +14,7 @@ A script to rename files with various arguments. Supports Unix style file globbi
 ## Instructions
 1. Download/clone this repo
 2. cd into directory
-3. run `pip install --user dist/batchren-0.6.0-py3-none-any.whl` (also downloads natsort & urwid)
+3. run `pip install --user dist/batchren-0.6.1-py3-none-any.whl` (also downloads natsort & urwid)
 
 
 ## Usage

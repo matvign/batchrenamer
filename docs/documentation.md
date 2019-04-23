@@ -1,4 +1,4 @@
-# Documentation - v0.6.0
+# Documentation - v0.6.1
 batchren - a batch renamer  
 batchren is a python script for batch renaming files. batchren 
 uses unix style pattern matching to look for files and uses optional 
@@ -32,6 +32,7 @@ See **section 1.3** for examples.
 -seq            apply a sequence to the file
 -ext            change extension of file ('' removes the extension)
 
+--esc           escape pattern matching characters
 --sel           after finding files with a file pattern, manually select which files to rename
 --sort          after finding files, sort by ascending, descending or manual. useful for sequences
 -q/--quiet      skip output, but show confirmations (see **section 3**)  
@@ -39,71 +40,63 @@ See **section 1.3** for examples.
 --version:      show version  
 ```
 
-## 1.3 Examples
-### File searching
-#### Pattern escaping
-When using pattern matching characters **(`[], *, ?`)** surround 
-the pattern in quotes.  
-e.g. `'lecture0*'`
+## 1.3 Usage
+### Positional Arguments
+By default batchren searches for all files in the current working directory.
+If the file pattern is a directory or ends with a `'/'`, batchren will expand into the directory.
 
-#### Directory expansion
-Patterns that end in a slash are automatically expanded.  
-e.g. `'testdir/'` -> `'testdir/*'`
+batchren also supports wild characters **(`[], *, ?`)**. Surround file patterns in quotes when using pattern matching characters.
 
-#### Escaping pattern matching
-To interpret pattern matching characters as literal use `[]`.  
-`'[[]Funny[]] file.mkv'`: interpret text in brackets as literal. Matches `'[Funny] file.mkv'`.  
-`'something[*]'`: interpret asterisk as literal. Matches `'something*'`.  
-`'nothing[?]'`: interpret question mark as literal. Matches `'nothing?'`.
+To escape pattern characters use [] or use the `--esc` option.
 
-### Usage examples
-`batchren -h`: show help  
-`batchren -sp`: replace files with spaces in current directory with '_'  
-`batchren -case lower`: convert files in current directory to lower case  
-`batchren -tr a b`: replace character a with b  
-`batchren -re a`: remove all 'a' characters from files  
-`batchren -re a b`: replace 'a' with 'b'  
-`batchren -re a b 2`: replace the second instance of 'a' with 'b'  
-`batchren -bracr square`: remove all square brackets and their contents  
-`batchren -bracr square 2`: remove second square bracket and its contents  
-`batchren -sl 3`: slice first three characters from files  
-`batchren -sl 3:-3`: slice slice first three and last three characters files  
-`batchren -sh 3:3`: shave first three and last three characters from files  
+#### Examples
+`batchren 'testdir/' -pre file`: equivalent to 'testdir/*'  
+`batchren 'lecture0*' -pre file`: finds all files   starting with lecture0* and prepends 'file'  
+`batchren 'file[*] -pre f`: looks for 'file*'  
+`batchren 'file[?] -pre f`: looks for 'file?'  
+`batchren '[[]720p] file.mp4'`: looks for '[720p] file.mp4'  
 
 
-# 2. Implementation detail
-## 2.1 Batchren argument parsing
-argparse is the module used to implement argument parsing from the
-command line. The following is enabled:
-* epilog: prints notification and link to readme for examples.
-* prefix_chars: only accept dashes for optional arguments
-* fromfile_prefix_char: accept arguments from file
+### Optional Arguments
+There are optional arguments that do not rename files, but do influence the results.
 
-## 2.2 File and pattern matching
-Unix style pattern matching is implmented using the python glob module.
+#### Escape
+`batchren --esc [CHARS]`  
+Escape pattern matching characters from `path` positional argument.
+Accepts characters from `'*?[]'`. Escapes characters from the string.
 
-glob.iglob()
-* simplest with the most support
-* doesn't include hidden files
-* supports recursion (not that it should be used)
+##### Examples
+`batchren --esc`: escape all pattern matching characters `'*?[]'`  
+`batchren --esc '*?'`: escape pattern matching characters `'*?'`  
+`batchren --esc '[]'`: escape range brackets  
+`batchren --esc '['`: escape range brackets (same as above)  
+`batchren --esc ']'`: escape range brackets (same as above)  
 
-## 2.3 File renaming arguments
-Filenames are passed in from file pattern matching and split into directory, 
-basename and ext.  
-Each basename is run against a list of the applicable arguments.  
-Each argument creates a filter that is implemented as a class, function or 
-lambda expression in a list.  
-The resulting filename is then recombined and processed to determine if it is
-safe to rename.
 
+#### Select
+`batchren --sel`  
+Manually select files to rename after pattern matching.
+
+
+#### Sort
+`batchren --sort {asc, desc, man}`  
+Sort order of files found through file matching and the select option. Useful for sequences.
+
+##### Examples
+`batchren --sort asc`: sort files in ascending order  
+`batchren --sort desc`: sort files in descending order  
+`batchren --sort man`: sort files manually. Opens interactive text-user interface.  
+
+
+### Renaming Arguments
 Arguments have an order that they are applied. The general idea is that 
 characters are removed/replaced before adding characters.
 
-Arguments are run in the following order:
+Renaming arguments are run in the following order:
 1. regex
-2. slice
-3. shave
-4. bracket remove
+2. bracket remove
+3. slice
+4. shave
 5. translate
 6. spaces
 7. case
@@ -114,61 +107,98 @@ Arguments are run in the following order:
 12. extension
 
 
-### 2.3.1 Regex filter
-Regex filter uses Python regex.  
-There may be some untested oddities that occur from inputting python regex as
-bash strings.  
-If an issue occurs with compiling or executing regex, the program **should** safely crash.  
+#### Prepend/Postpend
+`batchren -pre TEXT -post TEXT`  
+Prepend/postpend adds text before or after files.
+
+##### Examples
+`batchren -pre 'text'`: add `'text'` before files  
+`batchren -post 'text'`: add `'text'` after files  
+`batchren -pre 'text' -post 'text'`: add `'text'` before and after files  
 
 
-### 2.3.2 Shave filter
-The shave filter is a convenient variation of the slice filter that performs 
-slicing on the ends of a file.  
-Unlike the slice filter, shave only takes two slice values, one for head 
-and one for tail.  
-Values can be ommitted for head and/or tail slicing.  
-Negative integers are not allowed in the shave values.
+#### Space
+`batchren -sp [REPL]`  
+Change whitespace to the specified character. Default is `'_'`.
 
-The slice filter can do everything the shave filter does. Shave exists purely for 
-convenience.
-```
-e.g. 
--sh 4:2
-removes 4 characters from the front and 2 characters from the back
-
--sh 4:2:0
-invalid, only takes two values
-```
+##### Examples
+`batchren -sp`: replace whitespace in files with `'_'`  
+`batchren -sp '.'`: replace whitespace in files with `'.'`
 
 
-### 2.3.3 Bracket remover
-The bracket remover takes a certain bracket type: curly, round or square and
-removes that bracket group from the filename.  
+#### Translate
+`batchren -tr CHARS CHARS`  
+Translate characters from one to another. Accepts two arguments. Both arguments must be equal in length.
+
+##### Examples
+`batchren -tr a b`: translate `'a's to 'b's`  
+`batchren -tr ab cd`: translate `'a's to 'c's` and `'b's to 'd's`
+
+
+#### Case
+`batchren -c {upper, lower, swap, cap}`  
+Change case of files. Accepts one of either upper, lower, cap or swap.
+
+##### Examples
+`batchren -c lower`: make all files lower case  
+`batchren -c upper`: make all files upper case  
+`batchren -c swap`: swap case of all files  
+`batchren -c cap`: capitalise words in the file. Works with `'_-'` separated files  
+
+
+#### Slice
+`batchren -sl start:end:step`  
+Slice a portion of files. Accepts python slice format.
+
+##### Examples
+`batchren -sl 1:3`: take characters starting from 1st index to 3rd index  
+`batchren -sl 1:10:2`: take characters starting from 1st index to 10th index, skipping every second index  
+`batchren -sl 3:-3`: remove first and last three characters
+
+
+#### Shave
+`batchren -sh head:tail`  
+Shave a portion of files. Convenient option that is the same as removing first and last n characters.
+
+##### Examples
+`batchren -sh 3:3`: shave first and last three characters
+
+
+#### Bracket Remove
+`batchren -bracr {curly, round, square} [COUNT]`  
+Remove brackets and their contents. Bracket remover accepts one of either curly, round or square.  
 An optional argument can be specified to remove the nth bracket group.  
-Internally it uses the same function from the regex filter.
-```
-e.g. 
--bracr square
-removes all square brackets and their contents
 
--bracr square 1
-remove only the first square bracket found.
-```
-Bracket remover doesn't work when applied to nested brackets.
+##### Examples
+`batchren -bracr square`: removes all square brackets and their contents  
+`batchren -bracr square 1`: remove first square bracket and its contents
 
 
-### 2.3.4 Sequences
-The sequence filter uses strings separated by slashes for formatting. Formatters begin with **%** and must be followed by **f**, **n**, **a**, **md**, or **mt** to be a valid formatter. Sequences reset with different directories.
+#### Regex
+`batchren -re PATTERN [REPL] [COUNT]`
+Use regex to replace contents. Accepts up to three arguments.
+* If one argument, remove instances of PATTERN
+* If two arguments, replace all instances PATTERN by REPL
+* If three arguments, replace COUNT'th instance of PATTERN by REPL
+  
+Second argument default is ''.
+
+##### Examples
+Under construction...
+
+
+#### Sequences
+The sequence options uses strings separated by slashes for formatting. Formatters begin with **%** and must be followed by **f**, **n**, **a**, **md**, or **mt** to be a valid formatter. Sequences reset with different directories.
 
 #### File format
 ```
 %f
 represents the filename.
 
-raw/%f
+raw/%f/raw
 represents raw string to be placed before and after filename.
-e.g. raw/%f
-filename -> rawfilename
+e.g. raw/%f/raw
+filename -> rawfilenameraw
 ```
 
 #### Numerical sequence
@@ -276,8 +306,96 @@ e.g. %md/./%mt/_/%f
 2019-11-16.19:10:37_file
 ```
 
-# 2.4 Processing rename information
-## 2.4.1 Processing renamed strings
+
+# 2. Displaying information
+There are different behaviours depending on the arguments quiet, verbose and dryrun. 
+Quiet and verbose cannot be set at the same time.
+
+## 2.1 Parser level
+The parser level is where arguments are read in.  
+The following applies:
+* If error with arguments, show error, quit
+* If verbose, show arguments used
+* If no optional arguments set, quit
+* If no files found, quit
+* If verbose, show files found
+```
+if argumenterror:
+    show error with arguments
+    quit
+if verbose:
+    show arguments used
+if no optional arguments set
+    show 'no optional arguments set for renaming'
+    quit
+else
+    if no files found
+        show 'no files found'
+        quit
+    if verbose
+        show files found
+```
+
+
+## 2.2 Renamer level
+The renamer level shows filenames that can be renamed or have errors.
+For conflicts:
+* If quiet, show no conflict information
+* If verbose, show detailed errors
+* If not quiet, not verbose, no errors, show nothing
+* If not quiet, not verbose, errors exist, show files that won't be renamed
+* If dryrun or verbose, show files as they are renamed
+```
+if quiet
+    show nothing
+elif verbose
+    if conflicts
+        show detailed errors
+    else
+        show 'no conflicts found'
+elif not quiet and not verbose and conflicts
+    show files that won't be renamed
+
+if renames
+    show files to be renamed
+else
+    show 'no files to rename'
+
+if dryrun or verbose
+    show files as they are renamed
+```
+
+
+# 3. Implementation detail
+## 3.1 Batchren argument parsing
+argparse is the module used to implement argument parsing from the
+command line. The following is enabled:
+* epilog: prints notification and link to readme for examples.
+* prefix_chars: only accept dashes for optional arguments
+* fromfile_prefix_char: accept arguments from file
+
+
+## 3.2 File and pattern matching
+Unix style pattern matching is implmented using the python glob module.
+
+glob.iglob()
+* simplest with the most support
+* doesn't include hidden files
+* supports recursion (not that it should be used)
+
+
+## 3.3 File renaming arguments
+Filenames are passed in from file pattern matching and split into directory, 
+basename and ext.  
+Each basename is run against a list of the applicable arguments.  
+Each argument places is implemented as a class, function or 
+lambda expression in a list.  
+The resulting filename is then recombined and processed to determine if it is
+safe to rename.
+
+
+# 3.4 Processing rename information
+## 3.4.1 Processing renamed strings
 After filtering filenames, we categorise them into a nested dict:
 ```python
 rentable = {
@@ -306,7 +424,7 @@ Unresolvable conflicts are srcs from conflicts. Anything that attempts
 to rename to a file in this field is a conflict.
 
 
-## 2.4.2 Conflict resolution
+## 3.4.2 Conflict resolution
 There are different renaming conflicts that can occur:
 1. a file name has not changed
 2. the base name is empty (e.g. parent/file -> parent/)
@@ -377,7 +495,7 @@ dir
 ```
 
 
-## 2.4.3 Cycle resolution
+## 3.4.3 Cycle resolution
 Cycles happen when each file wants to be renamed to the next.
 ```
 dir
@@ -429,64 +547,6 @@ dir
     filec           -> filed (removed by cascade)
     filed           -> fil/ed (invalid name, cascade on filed)
     fileg           -> filea (conflict, filea is marked as unusable)
-```
-
-# 3. Displaying information
-There are different behaviours depending on the arguments quiet, verbose and dryrun. 
-Quiet and verbose cannot be set at the same time.
-
-## 3.1 Parser level
-The parser level is where arguments are read in.  
-The following applies:
-* If error with arguments, show error, quit
-* If verbose, show arguments used
-* If no optional arguments set, quit
-* If no files found, quit
-* If verbose, show files found
-```
-if argumenterror:
-    show error with arguments
-    quit
-if verbose:
-    show arguments used
-if no optional arguments set
-    show 'no optional arguments set for renaming'
-    quit
-else
-    if no files found
-        show 'no files found'
-        quit
-    if verbose
-        show files found
-```
-
-
-## 3.2 Renamer level
-The renamer level shows filenames that can be renamed or have errors.
-For conflicts:
-* If quiet, show no conflict information
-* If verbose, show detailed errors
-* If not quiet, not verbose, no errors, show nothing
-* If not quiet, not verbose, errors exist, show files that won't be renamed
-* If dryrun or verbose, show files as they are renamed
-```
-if quiet
-    show nothing
-elif verbose
-    if conflicts
-        show detailed errors
-    else
-        show 'no conflicts found'
-elif not quiet and not verbose and conflicts
-    show files that won't be renamed
-
-if renames
-    show files to be renamed
-else
-    show 'no files to rename'
-
-if dryrun or verbose
-    show files as they are renamed
 ```
 
 
@@ -593,47 +653,3 @@ if dryrun or verbose
 * new: interactive option to select/unselect all files
 * new: literal argument to interpret filenames literally
 * bug fixes
-
-
-# Documentation changelog
-1/4/2019
-* updated docs
-
-15/2/2019
-* updated to v0.6.0
-
-4/11/2018
-* updated planned updates for v0.5
-
-7/10/2018
-* updated planned updates for v0.4.3
-
-3/10/2018
-* updated v0.4.2 and planned updates
-
-3/9/2018
-* changed planned updates for v0.4.2
-
-1/9/2018
-* changed planned updates for 0.3.6 - 0.4.1
-* added proper category for 1.3 and 1.4
-
-30/07/2018
-* updated documentation to v0.3.5
-
-29/07/2018
-* added more conflict conditions
-* updated documentation to v0.3.3
-
-28/07/2018
-* updated to markdown
-* changed contents of planned updates
-* updated missing version number
-
-26/07/2018
-* updated documentation to v0.3.1
-* updated planned updates
-
-25/07/2018
-* updated documentation to include planned updates
-* updated to reflect current code

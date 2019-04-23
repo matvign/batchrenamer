@@ -65,9 +65,9 @@ def main(files):
         print('Batch Rename operation was aborted')
         return None
     else:
-        ret = []
+        res = []
         wdgt = app.widget.body
         for n in wdgt.body:
             if n.base_widget.state:
-                ret.append(n.base_widget.label)
-        return ret
+                res.append(n.base_widget.label)
+        return res

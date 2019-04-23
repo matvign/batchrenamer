@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="batchren",
-    version="0.6.0",
+    version="0.6.1",
     author="Andrew Au",
     author_email="andrew.ch.au@outlook.com",
     description="A command line batch renamer",
@@ -19,7 +19,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
     ],
-    install_requires=['natsort==5.5.0', 'urwid==2.0.1'],
+    install_requires=['natsort==6.0.0', 'urwid==2.0.1'],
     python_requires='~=3.5',
     scripts=['bin/batchren']
 )

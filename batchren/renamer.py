@@ -94,30 +94,33 @@ def runfilters(filters, origpath, dirpath, basename):
 def repl_decorator(pattern, repl='', repl_count=0):
     '''
     Return one of two different functions.
-    1. Normal re.sub with exceptions.
+    1. Normal re.sub
     2. re.sub with counter that removes nth instance.
-       Abuse function attributes for a counter.
+       Use function attribute as a counter.
     '''
+    def repl_all(x):
+        return re.sub(pattern, repl, x)
+
     def replacer(matchobj):
         '''
-        Function to be used with re.sub. Replace words only if count = count.
-        Otherwise just replace with the match itself.
+        Function to be used with re.sub.
+        Replace string match with repl if count = count.
+        Otherwise return the string match
         '''
         if matchobj.group() and replacer._count == repl_count:
-            ret = repl
+            res = repl
         else:
-            ret = matchobj.group()
+            res = matchobj.group()
         replacer._count += 1
-        return ret
+        return res
+
+    # initialise all replacer functions to one
     replacer._count = 1
 
     def repl_nth(x):
         val = re.sub(pattern, replacer, x, repl_count)
         replacer._count = 1
         return val
-
-    def repl_all(x):
-        return re.sub(pattern, repl, x)
 
     return repl_all if not repl_count else repl_nth
 
@@ -134,14 +137,6 @@ def initfilters(args):
             sys.exit('A regex compilation error occurred: ' + str(sre_err))
         filters.append(regex_repl)
 
-    if args.slice:
-        slash = lambda x: x[args.slice]
-        filters.append(slash)
-
-    if args.shave:
-        shave = lambda x: x[args.shave[0]][args.shave[1]]
-        filters.append(shave)
-
     if args.bracket_remove:
         if args.bracket_remove[0] == 'curly':
             reg_exp = re.compile(r'\{.*?\}')
@@ -152,6 +147,14 @@ def initfilters(args):
 
         bracr = repl_decorator(reg_exp, '', args.bracket_remove[1])
         filters.append(bracr)
+
+    if args.slice:
+        slash = lambda x: x[args.slice]
+        filters.append(slash)
+
+    if args.shave:
+        shave = lambda x: x[args.shave[0]][args.shave[1]]
+        filters.append(shave)
 
     if args.translate:
         translmap = str.maketrans(*args.translate)
@@ -205,7 +208,7 @@ def renfilter(args, files):
         dirpath, bname, ext = partfile(src)
         bname = runfilters(filters, src, dirpath, bname)
 
-        # change extension, allow empty extensions
+        # change extension, allow '' as an extension
         if args.extension is not None:
             ext = args.extension
 
@@ -314,9 +317,8 @@ def print_rentable(rentable, quiet=False, verbose=False):
             # show detailed output if there were conflicts
             print('the following files have conflicts')
             if '' in conf:
-                # workaround for empty values with ns.path
-                conflicts = natsorted(conf.items(), key=lambda x: x[0])
-                conflicts = [conflicts[0], *natsorted(conflicts[1:], key=lambda x: x[0], alg=ns.PATH)]
+                # workaround for empty values with ns.PATH
+                conflicts = [('', conf.pop('')), *natsorted(conf.items(), key=lambda x: x[0], alg=ns.PATH)]
             else:
                 conflicts = natsorted(conf.items(), key=lambda x: x[0], alg=ns.PATH)
 
@@ -351,7 +353,7 @@ def print_rentable(rentable, quiet=False, verbose=False):
     return renames
 
 
-def getFreeFile(dest):
+def getFreeName(dest):
     count = 1
     while(True):
         temp = dest + '_' + str(count)
@@ -369,7 +371,7 @@ def run_rename(queue, args):
     while q:
         dest, src = q.popleft()
         if os.path.exists(dest):
-            temp = getFreeFile(dest)
+            temp = getFreeName(dest)
             if args.verbose or args.dryrun:
                 print(msg, "'{}' to '{}'".format(src, temp))
             if not args.dryrun:

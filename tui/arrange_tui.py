@@ -186,5 +186,5 @@ def main(files):
         print('Batch Rename operation was aborted')
         return None
     else:
-        ret = app.widget.body.get_output()
-        return ret
+        res = app.widget.body.get_output()
+        return res

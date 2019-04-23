@@ -16,7 +16,9 @@ parser = bren.parser
     (['testdir', '-v'], 'testdir/*'),
     (['testdir/', '-v'], 'testdir/*'),
     (['testdir/sub', '-v'], 'testdir/sub/*'),
-    (['testdir/sub/', '-v'], 'testdir/sub/*')
+    (['testdir/sub/', '-v'], 'testdir/sub/*'),
+    (['testdir/sub/file', '-v'], 'testdir/sub/file'),
+    (['testdir/sub/file/', '-v'], 'testdir/sub/file/*')
 ])
 def test_parser_expanddir(path_args, path_res, tmpdir):
     p = tmpdir.mkdir('testdir').sub('sub')
