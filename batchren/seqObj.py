@@ -1,8 +1,17 @@
 import re
 from datetime import datetime
+from enum import Enum
 from itertools import zip_longest
 from string import ascii_lowercase
 from os.path import getmtime
+
+
+class SequenceType(Enum):
+    FILE = 0
+    RAW = 1
+    SEQ = 2
+    MDATE = 3
+    MTIME = 4
 
 
 class SequenceObj:
@@ -18,19 +27,19 @@ class SequenceObj:
             self.curdir = dirpath
         st = ''
         for t, r in self.rules:
-            if t == "seq":
+            if t == SequenceType.SEQ:
                 if self.curdir != dirpath:
                     self.curdir = dirpath
                     st += r.send('reset')
                 else:
                     st += next(r)
-            elif t == "file":
+            elif t == SequenceType.FILE:
                 st += filename
-            elif t == 'mdate':
+            elif t == SequenceType.MDATE:
                 st += r(origpath)
-            elif t == 'mtime':
+            elif t == SequenceType.MTIME:
                 st += r(origpath)
-            elif t == "raw":
+            elif t == SequenceType.RAW:
                 st += r
         return st
 
@@ -156,7 +165,7 @@ class SequenceObj:
         if sum(1 for n in sl if n and n < 0):
             raise ValueError(msg3)
         gen = self._num_generator(depth, *sl)
-        self.rules.append(("seq", gen))
+        self.rules.append((SequenceType.SEQ, gen))
 
     def _parse_alpha(self, arg):
         '''
@@ -180,7 +189,7 @@ class SequenceObj:
         if sum(1 for x in args[1:] if x and not x.isalpha()):
             raise ValueError(msg3)
         gen = self._alpha_generator(depth, *args[1:])
-        self.rules.append(("seq", gen))
+        self.rules.append((SequenceType.SEQ, gen))
 
     def _parse_seq(self, arg):
         # %a[depth]:start:end or
@@ -189,7 +198,7 @@ class SequenceObj:
         val = arg[1:]  # strip % from arg
         if not val:
             # arg was %, just add it as raw string
-            self.rules.append(("raw", "%"))
+            self.rules.append((SequenceType.RAW, "%"))
         elif val[0] == 'n':
             self._parse_num(val)
         elif val[0] == 'a':
@@ -210,23 +219,23 @@ class SequenceObj:
 
             if n == '%f':
                 # '' is a dummy value for consistency
-                self.rules.append(('file', ''))
+                self.rules.append((SequenceType.FILE, ''))
                 self.fbit = True
             elif n == '%md':
-                self.rules.append(('mdate', self._md_generator))
+                self.rules.append((SequenceType.MDATE, self._md_generator))
             elif n == '%mt':
-                self.rules.append(('mtime', self._mt_generator))
+                self.rules.append((SequenceType.MTIME, self._mt_generator))
             elif n == '%n':
                 # create a default num sequence
                 numgen = self._num_generator()
-                self.rules.append(("seq", numgen))
+                self.rules.append((SequenceType.SEQ, numgen))
             elif n == '%a':
                 # create a default alphabetical sequence
                 alphagen = self._alpha_generator()
-                self.rules.append(("seq", alphagen))
+                self.rules.append((SequenceType.SEQ, alphagen))
             elif n[0] != '%':
                 # add raw string
-                self.rules.append(("raw", n))
+                self.rules.append((SequenceType.RAW, n))
             else:
                 # this is a sequence with arguments, parse it
                 self._parse_seq(n)

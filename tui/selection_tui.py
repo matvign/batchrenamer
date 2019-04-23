@@ -6,6 +6,7 @@ from batchren._version import __version__
 stylesheet = [
     ('titlebar', 'black', 'white'),
     ('titlebar-divide', 'black', 'black'),
+    ('select button', 'dark green, bold', 'black'),
     ('reset button', 'dark green, bold', 'black'),
     ('quit button', 'dark red, bold', 'black'),
     ('abort button', 'dark red, bold', 'black'),
@@ -28,7 +29,8 @@ header = urwid.Pile([
 ])
 
 menu = urwid.Text([
-    ('reset button', u'(r)'), u':reset  ',
+    ('select button', u'(a)'), u':select all  ',
+    ('reset button', u'(r)'), u':unselect all  ',
     ('quit button', u'(q)'), u':save and quit  ',
     ('abort button', u'(c)'), u':abort batchren  ',
 ])
@@ -42,10 +44,16 @@ def create_checkbox(text):
 def main(files):
     def handle_input(key):
         if key == 'R' or key == 'r':
-            # send a signal to reset files
+            # send a signal to unselect files
             wdgt = app.widget.body
             for n in wdgt.body:
                 n.base_widget.set_state(False)
+            wdgt.focus_position = 0
+        elif key == 'A' or key == 'a':
+            # send a signal to select all files
+            wdgt = app.widget.body
+            for n in wdgt.body:
+                n.base_widget.set_state(True)
             wdgt.focus_position = 0
         elif key == 'C' or key == 'c':
             # send a signal to abort batchren
@@ -62,7 +70,7 @@ def main(files):
     app.run()
 
     if app.abort:
-        print('Batch Rename operation was aborted')
+        print('Batch rename was aborted')
         return None
     else:
         res = []
