@@ -13,9 +13,6 @@ Paths ending with '/' are automatically expanded.
 If there are special characters in your file, surround the path in quotes.  
 See examples for more information.
 
-Because some arguments take at *least n* arguments, place the path argument before optional arguments.  
-See **section 1.3** for examples.
-
 
 ## 1.2 Optional arguments:  
 ```
@@ -35,6 +32,7 @@ See **section 1.3** for examples.
 --esc           escape pattern matching characters
 --sel           after finding files with a file pattern, manually select which files to rename
 --sort          after finding files, sort by ascending, descending or manual. useful for sequences
+--dryrun        run without renaming any files
 -q/--quiet      skip output, but show confirmations (see **section 3**)  
 -v/--verbose    show detailed output (see **section 3**)  
 --version:      show version  
@@ -49,9 +47,13 @@ batchren also supports wild characters **(`[], *, ?`)**. Surround file patterns 
 
 To escape pattern characters use [] or use the `--esc` option.
 
+Because some arguments take at *least n* arguments, place the `path` argument before optional arguments.  
+
+
 #### Examples
-`batchren 'testdir/' -pre file`: equivalent to 'testdir/*'  
-`batchren 'lecture0*' -pre file`: finds all files   starting with lecture0* and prepends 'file'  
+`batchren -pre file`: finds all files and prepends 'file'  
+`batchren 'dir/' -pre file`: prepend 'file' to all files in `dir`  
+`batchren 'lecture0*' -pre file`: finds all files starting with lecture0* and prepends 'file'  
 `batchren 'file[*] -pre f`: looks for 'file*'  
 `batchren 'file[?] -pre f`: looks for 'file?'  
 `batchren '[[]720p] file.mp4'`: looks for '[720p] file.mp4'  
@@ -75,7 +77,7 @@ Accepts characters from `'*?[]'`. Escapes characters from the string.
 
 #### Select
 `batchren --sel`  
-Manually select files to rename after pattern matching.
+Manually select files to rename after pattern matching. Opens interactive text-user interface.
 
 
 #### Sort
@@ -185,6 +187,15 @@ Second argument default is ''.
 
 ##### Examples
 Under construction...
+
+
+#### Extension
+`batchren -ext EXT`  
+Change extension of files. Adds extension if it exists, otherwise replaces existing extension.
+
+##### Examples
+`batchren -ext mp4`: change file extension to `mp4`  
+`batchren -ext ''`: remove all file extensions  
 
 
 #### Sequences

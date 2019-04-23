@@ -25,7 +25,7 @@ Paths ending with '/' are automatically expanded.
 If there are special characters in your file, surround the path in quotes.  
 See examples for more information.
 
-Because some arguments take at *least n* arguments, place the path argument before optional arguments.  
+Because some arguments take at *least n* arguments, place the `path` argument before optional arguments.  
 
 
 ### Optional arguments:  
@@ -39,14 +39,16 @@ Because some arguments take at *least n* arguments, place the path argument befo
 -sl             slice a portion of the file to keep. must follow 'start:end:step' format (can have missing values)
 -sh             shave text from top and/or the bottom of file. must follow 'head:tail' format, must not be negative
 -bracr          remove curly/round/square bracket groups from filename. add optional argument to remove the nth bracket group
--re             replace with regex. remove with one argument, replace with two. use three to replace nth pattern instance
+-re             remove/replace with regex. remove with one argument, replace with two. use three to replace nth pattern instance
 -seq            apply a sequence to the file
 -ext            change extension of file ('' removes the extension)
 
+--esc           escape pattern matching characters
 --sel           after finding files with a file pattern, manually select which files to rename
 --sort          after finding files, sort by ascending, descending or manual. useful for sequences
--q/--quiet      skip output, but show confirmations (see docs)  
--v/--verbose    show detailed output (see docs)  
+--dryrun        run without renaming any files
+-q/--quiet      skip output, but show confirmations  
+-v/--verbose    show detailed output  
 --version:      show version  
 ```
 
@@ -71,57 +73,181 @@ Arguments are run in the following order:
 
 
 ## Examples
-### File searching
-#### Pattern escaping
-When using pattern matching characters **(`[], *, ?`)** surround 
-the pattern in quotes.  
-e.g. `'lecture0*'`
+### Positional Arguments
+By default batchren searches for all files in the current working directory.
+If the file pattern is a directory or ends with a `'/'`, batchren will expand into the directory.
 
-#### Directory expansion
-Patterns that end in a slash are automatically expanded.  
-e.g. `'testdir/'` -> `'testdir/*'`
+batchren also supports wild characters **(`[], *, ?`)**. Surround file patterns in quotes when using pattern matching characters.
 
-#### Escaping pattern matching
-To interpret pattern matching characters as literal use `[]`.  
-`'[[]Funny[]] file.mkv'`: interpret text in brackets as literal. Matches `'[Funny] file.mkv'`.  
-`'something[*]'`: interpret asterisk as literal. Matches `'something*'`.  
-`'nothing[?]'`: interpret question mark as literal. Matches `'nothing?'`.
+To escape pattern characters use `[]` or use the `--esc` option.
 
-
-### Usage examples
-`batchren -h`: show help  
-`batchren -sp`: replace files with spaces in current directory with '_'  
-`batchren -case lower`: convert files in current directory to lower case  
-`batchren -tr a b`: replace character a with b  
-`batchren -re a`: remove all 'a' characters from files  
-`batchren -re a b`: replace 'a' with 'b'  
-`batchren -re a b 2`: replace the second instance of 'a' with 'b'  
-`batchren -bracr square`: remove all square brackets and their contents  
-`batchren -bracr square 2`: remove second square bracket and its contents  
-`batchren -sl 3`: slice first three characters from files  
-`batchren -sl 3:-3`: slice slice first three and last three characters files  
-`batchren -sh 3:3`: shave first three and last three characters from files  
+#### Examples
+`batchren -pre file`: finds all files and prepends 'file'  
+`batchren 'dir/' -pre file`: prepend 'file' to all files in `dir`  
+`batchren 'lecture0*' -pre file`: finds all files starting with lecture0* and prepends 'file'  
+`batchren 'file[*] -pre f`: looks for 'file*'  
+`batchren 'file[?] -pre f`: looks for 'file?'  
+`batchren '[[]720p] file.mp4'`: looks for '[720p] file.mp4'  
 
 
-## Sequences
-The sequence filter uses strings separated by slashes for formatting. Formatters begin with **%** and must be followed by **f**, **n**, **a**, **md**, or **mt** to be a valid formatter. Sequences reset with different directories.
+### Optional Arguments
+There are optional arguments that do not rename files, but do influence the results.
 
-### File format
+#### Escape
+`batchren --esc [CHARS]`  
+Escape pattern matching characters from `path` positional argument.
+Accepts characters from `'*?[]'`. Escapes characters from the string.
+
+##### Examples
+`batchren --esc`: escape all pattern matching characters `'*?[]'`  
+`batchren --esc '*?'`: escape pattern matching characters `'*?'`  
+`batchren --esc '[]'`: escape range brackets  
+`batchren --esc '['`: escape range brackets (same as above)  
+`batchren --esc ']'`: escape range brackets (same as above)  
+
+
+#### Select
+`batchren --sel`  
+Manually select files to rename after pattern matching.
+
+
+#### Sort
+`batchren --sort {asc, desc, man}`  
+Sort order of files found through file matching and the select option. Useful for sequences.
+
+##### Examples
+`batchren --sort asc`: sort files in ascending order  
+`batchren --sort desc`: sort files in descending order  
+`batchren --sort man`: sort files manually. Opens interactive text-user interface.  
+
+
+### Renaming Arguments
+Arguments have an order that they are applied. The general idea is that 
+characters are removed/replaced before adding characters.
+
+Renaming arguments are run in the following order:
+1. regex
+2. bracket remove
+3. slice
+4. shave
+5. translate
+6. spaces
+7. case
+8. sequence
+9. prepend
+10. postpend
+11. strip (remove '._ ' chars from end of file)
+12. extension
+
+
+#### Prepend/Postpend
+`batchren -pre TEXT -post TEXT`  
+Prepend/postpend adds text before or after files.
+
+##### Examples
+`batchren -pre 'text'`: add `'text'` before files  
+`batchren -post 'text'`: add `'text'` after files  
+`batchren -pre 'text' -post 'text'`: add `'text'` before and after files  
+
+
+#### Space
+`batchren -sp [REPL]`  
+Change whitespace to the specified character. Default is `'_'`.
+
+##### Examples
+`batchren -sp`: replace whitespace in files with `'_'`  
+`batchren -sp '.'`: replace whitespace in files with `'.'`
+
+
+#### Translate
+`batchren -tr CHARS CHARS`  
+Translate characters from one to another. Accepts two arguments. Both arguments must be equal in length.
+
+##### Examples
+`batchren -tr a b`: translate `'a's to 'b's`  
+`batchren -tr ab cd`: translate `'a's to 'c's` and `'b's to 'd's`
+
+
+#### Case
+`batchren -c {upper, lower, swap, cap}`  
+Change case of files. Accepts one of either upper, lower, cap or swap.
+
+##### Examples
+`batchren -c lower`: make all files lower case  
+`batchren -c upper`: make all files upper case  
+`batchren -c swap`: swap case of all files  
+`batchren -c cap`: capitalise words in the file. Works with `'_-'` separated files  
+
+
+#### Slice
+`batchren -sl start:end:step`  
+Slice a portion of files. Accepts python slice format.
+
+##### Examples
+`batchren -sl 1:3`: take characters starting from 1st index to 3rd index  
+`batchren -sl 1:10:2`: take characters starting from 1st index to 10th index, skipping every second index  
+`batchren -sl 3:-3`: remove first and last three characters
+
+
+#### Shave
+`batchren -sh head:tail`  
+Shave a portion of files. Convenient option that is the same as removing first and last n characters.
+
+##### Examples
+`batchren -sh 3:3`: shave first and last three characters
+
+
+#### Bracket Remove
+`batchren -bracr {curly, round, square} [COUNT]`  
+Remove brackets and their contents. Bracket remover accepts one of either curly, round or square.  
+An optional argument can be specified to remove the nth bracket group.  
+
+##### Examples
+`batchren -bracr square`: removes all square brackets and their contents  
+`batchren -bracr square 1`: remove first square bracket and its contents
+
+
+#### Regex
+`batchren -re PATTERN [REPL] [COUNT]`
+Use regex to replace contents. Accepts up to three arguments.
+* If one argument, remove instances of PATTERN
+* If two arguments, replace all instances PATTERN by REPL
+* If three arguments, replace COUNT'th instance of PATTERN by REPL
+  
+Second argument default is ''.
+
+##### Examples
+Under construction...
+
+
+#### Extension
+`batchren -ext EXT`  
+Change extension of files. Adds extension if it exists, otherwise replaces existing extension.
+
+##### Examples
+`batchren -ext mp4`: change file extension to `mp4`  
+`batchren -ext ''`: remove all file extensions  
+
+
+#### Sequences
+The sequence options uses strings separated by slashes for formatting. Formatters begin with **%** and must be followed by **f**, **n**, **a**, **md**, or **mt** to be a valid formatter. Sequences reset with different directories.
+
+#### File format
 ```
 %f
 represents the filename.
 
-raw/%f
+raw/%f/raw
 represents raw string to be placed before and after filename.
-e.g. 'raw/%f'  
-filename -> rawfilename
+e.g. raw/%f/raw
+filename -> rawfilenameraw
 ```
 
-### Numerical sequence
+#### Numerical sequence
 ```
-%n/_/%f
-represents a number sequence followed by filename.
-Starts counting at 1 with 0 padded by default.
+%n
+represents a number sequence starting at 1
+with 0 padded by default.
 
 e.g. %n/_/%f
 01_file
@@ -148,7 +274,7 @@ e.g. %n3:2:9:2
 002_file
 ```
 
-### Alphabetical sequence
+#### Alphabetical sequence
 ```
 %a
 represents a letter sequence starting at 'a' and resetting when greater than 'z'.
@@ -200,10 +326,11 @@ e.g. %a:a:Z -> a, ..., z, A, ..., Z
      %a:A:a -> A, A, A, ..., A, A
 ```
 
-### Time format
+#### Time format
 ```
 %md
 represents the date that a file was last modified.
+
 e.g. %md/_/%f
 2019-11-14_file1
 2019-11-15_file2
@@ -211,11 +338,12 @@ e.g. %md/_/%f
 
 %mt
 represents the time that a file was last modified. 
+
 e.g. %mt/_/%f
-18.00.37_file1
-18.30.37_file2
-19.30.37_file3
+18:00:37_file1
+18:30:37_file2
+19:30:37_file3
 
 e.g. %md/./%mt/_/%f
-2019-11-16.19.10.37_file
+2019-11-16.19:10:37_file
 ```
