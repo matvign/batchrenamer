@@ -73,7 +73,7 @@ class SequenceObj:
                 if end and i > end:
                     i = start
 
-    def _alpha_generator(depth=1, start='a', end='z'):
+    def _alpha_generator(self, depth=1, start='a', end='z'):
         '''
         Generator function for letters given a depth, start, end.
         Start is where sequencing begins. Consists only of letters.
@@ -179,16 +179,22 @@ class SequenceObj:
         msg1 = 'invalid depth for alphabetical sequence'
         msg2 = 'too many arguments for alphabetical sequence'
         msg3 = 'argument contains non-alphabetical character(s)'
-        args = [x.strip() if x.strip() else None for x in arg.split(':')]
+        args = arg.split(':')
         matchobj = re.match(r'^(a)(\d*)$', args[0])
         if not matchobj:
             raise ValueError(msg1)
         elif len(args) > 3:
             raise TypeError(msg2)
         depth = int(matchobj.group(2)) if matchobj.group(2) else 1
-        if sum(1 for x in args[1:] if x and not x.isalpha()):
-            raise ValueError(msg3)
-        gen = self._alpha_generator(depth, *args[1:])
+        sl = []
+        for x in args[1:]:
+            if x == '':
+                sl.append(None)
+            else:
+                if not re.match('^[a-zA-Z]+$', x):
+                    raise ValueError(msg3)
+                sl.append(x)
+        gen = self._alpha_generator(depth, *sl)
         self.rules.append((SequenceType.SEQ, gen))
 
     def _parse_seq(self, arg):
