@@ -15,7 +15,6 @@ def expand_dir(path):
     Otherwise return the path unaltered
     '''
     path = os.path.expanduser(os.path.normpath(path))
-    print(path)
     if os.path.isdir(path):
         return os.path.join(path, '*')
     return path
