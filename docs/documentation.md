@@ -660,9 +660,12 @@ dir
 * new: interactive option for choosing files
 * bug fixes/code cleanup
 
-
-# Planned updates
 ## v0.6.1
 * new: interactive option to select/unselect all files
 * new: literal argument to interpret filenames literally
 * bug fixes
+
+
+# Planned updates
+## v0.6.2
+* new: create dependent sequences
