@@ -17,9 +17,9 @@ class VariableSelectable(urwid.SelectableIcon):
     '''
     SelectableIcon that toggles focus
     '''
-    def __init__(self, text, cursor_position=1):
+    def __init__(self, text, cursor_position=0):
         self.enable_focus = True
-        super(VariableSelectable, self).__init__(text, cursor_position)
+        super().__init__(text, cursor_position)
 
     def toggle_focus(self):
         self.enable_focus = not self.enable_focus
