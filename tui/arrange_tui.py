@@ -49,10 +49,10 @@ class ControlBox(urwid.ListBox):
             lstbox = urwid.BoxAdapter(FileListBox(key, val), height=len(val))
             lst.extend([icon, lstbox, urwid.Divider()])
         body = urwid.SimpleFocusListWalker(lst)
-        super(ControlBox, self).__init__(body)
+        super().__init__(body)
 
     def keypress(self, size, key):
-        key = super(ControlBox, self).keypress(size, key)
+        key = super().keypress(size, key)
         if key == 'esc':
             pos = self.focus_position
             self.body[pos].toggle_focus()   # disable selection on filelistbox
@@ -97,10 +97,10 @@ class FileListBox(urwid.ListBox):
 
         lst = [create_selectable(f, 4) for f in self.files]
         body = urwid.SimpleFocusListWalker(lst)
-        super(FileListBox, self).__init__(body)
+        super().__init__(body)
 
     def keypress(self, size, key):
-        key = super(FileListBox, self).keypress(size, key)
+        key = super().keypress(size, key)
         if key != 'enter':
             return key
 
