@@ -11,7 +11,7 @@ from batchren import _version, seqObj
 def expand_dir(path):
     '''
     Custom type for directories.
-    Add '*' if path is a directory or if path ends with '/'
+    Add '*' if path is a directory
     Otherwise return the path unaltered
     '''
     path = os.path.expanduser(os.path.normpath(path))

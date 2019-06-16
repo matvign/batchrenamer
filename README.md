@@ -58,9 +58,9 @@ characters are removed/replaced before adding characters.
 
 Arguments are run in the following order:
 1. regex
-2. slice
-3. shave
-4. bracket remove
+2. bracket remove
+3. slice
+4. shave
 5. translate
 6. spaces
 7. case
