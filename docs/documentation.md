@@ -46,7 +46,7 @@ If the file pattern is a directory batchren will expand into the directory.
 
 batchren also supports wild characters **(`[], *, ?`)**. Surround file patterns in quotes when using pattern matching characters.
 
-To escape pattern characters use [] or use the `--esc` option.
+To escape pattern characters use `[]` or use the `--esc` option.
 
 Because some arguments take at *least n* arguments, place the `path` argument before optional arguments.  
 
@@ -91,7 +91,7 @@ Sort order of files found through file matching and the select option. Useful fo
 `batchren --sort man`: sort files manually. Opens interactive text-user interface.  
 
 
-### Renaming Arguments
+### File Renaming Arguments
 Arguments have an order that they are applied. The general idea is that 
 characters are removed/replaced before adding characters.
 
@@ -109,6 +109,7 @@ Renaming arguments are run in the following order:
 11. strip (remove '._ ' chars from end of file)
 12. extension
 
+The absence of file renaming arguments terminates the program.
 
 #### Prepend/Postpend
 `batchren -pre TEXT -post TEXT`  
@@ -134,8 +135,8 @@ Change whitespace to the specified character. Default is `'_'`.
 Translate characters from one to another. Accepts two arguments. Both arguments must be equal in length.
 
 ##### Examples
-`batchren -tr a b`: translate `'a's to 'b's`  
-`batchren -tr ab cd`: translate `'a's to 'c's` and `'b's to 'd's`
+`batchren -tr a b`: translate `'a's` to `'b's`  
+`batchren -tr ab cd`: translate `'a's` to `'c's` and `'b's` to `'d's`
 
 
 #### Case
@@ -184,7 +185,7 @@ Use regex to replace contents. Accepts up to three arguments.
 * If two arguments, replace all instances PATTERN by REPL
 * If three arguments, replace COUNT'th instance of PATTERN by REPL
   
-Second argument default is ''.
+Second argument default is "".
 
 ##### Examples
 Under construction...

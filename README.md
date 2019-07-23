@@ -120,23 +120,8 @@ Sort order of files found through file matching and the select option. Useful fo
 `batchren --sort man`: sort files manually. Opens interactive text-user interface.  
 
 
-### Renaming Arguments
-Arguments have an order that they are applied. The general idea is that 
-characters are removed/replaced before adding characters.
-
-Renaming arguments are run in the following order:
-1. regex
-2. bracket remove
-3. slice
-4. shave
-5. translate
-6. spaces
-7. case
-8. sequence
-9. prepend
-10. postpend
-11. strip (remove '._ ' chars from end of file)
-12. extension
+### File Renaming Arguments
+The following arguments are used to rename files. The absence of file renaming arguments terminates the program.
 
 
 #### Prepend/Postpend
@@ -213,7 +198,7 @@ Use regex to replace contents. Accepts up to three arguments.
 * If two arguments, replace all instances PATTERN by REPL
 * If three arguments, replace COUNT'th instance of PATTERN by REPL
   
-Second argument default is ''.
+Second argument default is "".
 
 ##### Examples
 Under construction...
@@ -229,7 +214,7 @@ Change extension of files. Adds extension if it exists, otherwise replaces exist
 
 
 #### Sequences
-The sequence options uses strings separated by slashes for formatting. Formatters begin with **%** and must be followed by **f**, **n**, **a**, **md**, or **mt** to be a valid formatter. Sequences reset with different directories.
+The sequence option uses strings separated by slashes for formatting. Formatters begin with **%** and must be followed by **f**, **n**, **a**, **md**, or **mt** to be a valid formatter. Sequences reset with different directories.
 
 #### File format
 ```
