@@ -18,8 +18,9 @@ issues = {
     1: 'new name cannot be empty',
     2: 'new name cannot start with .',
     3: 'new name cannot contain /',
-    4: 'shared name conflict',
-    5: 'unresolvable conflict'
+    4: 'new name cannot exceed 255 characters',
+    5: 'shared name conflict',
+    6: 'unresolvable conflict'
 }
 
 
@@ -35,8 +36,8 @@ def partfile(filepath):
 def joinpart(dirpath, bname, ext):
     '''
     Combine directory path, base name and extension.
-    Remove spaces and dots on left and right side of extension.
-    Collapse dots in extension.
+    Remove spaces and collapse dots from extension. 
+    Remove dots on lhs+rhs of extension
     '''
     fname = bname.rstrip('._- ').strip()
     if ext:
@@ -209,7 +210,7 @@ def assign_rentable(rentable, fileset, dest, bname, src):
     if dest in rentable['conflicts']:
         # this name is already in conflict, add src to conflicts
         rentable['conflicts'][dest]['srcs'].append(src)
-        rentable['conflicts'][dest]['err'].add(4)
+        rentable['conflicts'][dest]['err'].add(5)
         errset = rentable['conflicts'][dest]['err']
         cascade(rentable, src)
 
@@ -217,7 +218,7 @@ def assign_rentable(rentable, fileset, dest, bname, src):
         # this name is taken, invalidate both names
         if dest == src:
             errset.add(0)
-        errset.add(4)
+        errset.add(5)
 
         temp = rentable['renames'][dest]
         del rentable['renames'][dest]
@@ -227,14 +228,14 @@ def assign_rentable(rentable, fileset, dest, bname, src):
 
     elif dest in rentable['unresolvable']:
         # file won't be renamed, assign to unresolvable
-        errset.add(5)
+        errset.add(6)
         rentable['conflicts'][dest] = {'srcs': [src], 'err': errset}
         cascade(rentable, src)
 
     else:
         if dest not in fileset and os.path.exists(dest):
             # file exists but not in fileset, assign to unresolvable
-            errset.add(5)
+            errset.add(6)
 
         if dest == src:
             # name hasn't changed, don't rename this
@@ -250,6 +251,9 @@ def assign_rentable(rentable, fileset, dest, bname, src):
         if '/' in bname:
             # / usually indicates some kind of directory
             errset.add(3)
+
+        if len(dest) > 255:
+            errset.add(4)
 
         if errset:
             rentable['conflicts'][dest] = {'srcs': [src], 'err': errset}

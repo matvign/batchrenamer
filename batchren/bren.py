@@ -204,7 +204,6 @@ class BracketAction(argparse.Action):
         err3 = 'invalid choice for bracket type'
         err4 = 'bracket target is not a number'
         err5 = 'cannot remove negative bracket match'
-        repl_count = 0
         if not len(values):
             parser.error(argtype + err1)
         elif len(values) > 2:
