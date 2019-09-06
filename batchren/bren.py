@@ -5,7 +5,7 @@ import re
 import sre_constants
 import textwrap
 
-from batchren import _version, seqObj
+from batchren import _version, StringSeq
 
 
 def expand_dir(path):
@@ -59,15 +59,12 @@ class TranslateAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         argtype = 'argument -tr/--translate: '
         err0 = 'argument values are empty'
-        err2 = 'arguments must be equal length'
-        # error 1 is handled by argparse nargs=2
-        # err1 = 'expected two arguments'
-        # if len(values) != 2:
-        #     parser.error(err1)
+        err1 = 'arguments must be equal length'
+        # argparse handles arguments errors for argument length != 2
         if sum(1 for n in values if not n):
             parser.error(argtype + err0)
         if len(values[0]) != len(values[1]):
-            parser.error(argtype + err2)
+            parser.error(argtype + err1)
         namespace.translate = tuple(values)
 
 
@@ -234,7 +231,7 @@ class SequenceAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         argtype = 'argument -seq/--sequence: '
         try:
-            seq = seqObj.SequenceObj(values)
+            seq = StringSeq.StringSequence(values)
         except ValueError as verr:
             parser.error(argtype + str(verr))
         except TypeError as terr:
@@ -289,7 +286,7 @@ class CustomFormatter(argparse.RawTextHelpFormatter):
 
                 for option_string in action.option_strings:
                     if option_string in long_options:
-                        # cheap hack to accept some long options
+                        # allow long options that don't have short options
                         pass
                     elif option_string[:2] == '--':
                         # skip long optionals with parameters

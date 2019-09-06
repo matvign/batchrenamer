@@ -7,10 +7,8 @@ from collections import deque
 
 from natsort import natsorted, ns
 
-from batchren import helper, seqObj
+from batchren import helper, StringSeq
 
-BOLD = helper.BOLD
-END = helper.END
 
 issues = {
     # issuecodes for rentable
@@ -24,46 +22,45 @@ issues = {
 }
 
 
-def partfile(filepath):
+def partfile(path):
     '''
     Split filepath into dir, base name and extension
     '''
-    dirpath, filename = os.path.split(filepath)
-    bname, ext = os.path.splitext(filename)
-    return (dirpath, bname, ext)
+    dirpath, filename = os.path.split(path)
+    basename, ext = os.path.splitext(filename)
+    return (dirpath, basename, ext)
 
 
-def joinpart(dirpath, bname, ext):
+def joinpart(dirpath, basename, ext):
     '''
     Combine directory path, base name and extension.
-    Remove spaces and collapse dots from extension. 
-    Remove dots on lhs+rhs of extension
+    Remove spaces, then strip and collapse dots.
+    Return filename and new path
     '''
-    fname = bname.rstrip('._- ').strip()
+    filename = basename.rstrip('. ').strip()
     if ext:
-        # remove spaces and dots from extensions
+        # remove spaces, then strip and collapse dots
         ext = re.sub(r'\.+', '.', ext.replace(' ', '').strip('.'))
-        fname += '.' + ext
+        filename += '.' + ext
 
-    newname = fname
+    path = filename
     if dirpath:
-        newname = os.path.join(dirpath, fname)
+        path = os.path.join(dirpath, filename)
 
-    return (fname, newname)
+    return (filename, path)
 
 
-def runfilters(filters, origpath, dirpath, basename):
+def runfilters(filters, path, dirpath, filename):
     '''
     Function to run filters.
-    Dirpath and Origpath are used in sequences.
-    Dirpath is used for resetting sequences on different directories.
-    Origpath is used for getting modification time in sequences.
+    path is used for getting modification time in sequences.
+    dirpath is used for resetting sequences on different directories.
     '''
-    newname = basename
+    newname = filename
     for runf in filters:
         try:
-            if isinstance(runf, seqObj.SequenceObj):
-                newname = runf(origpath, dirpath, newname)
+            if isinstance(runf, StringSeq.StringSequence):
+                newname = runf(path, dirpath, newname)
             else:
                 newname = runf(newname)
         except re.error as re_err:
@@ -79,7 +76,7 @@ def runfilters(filters, origpath, dirpath, basename):
 
 def repl_decorator(pattern, repl='', repl_count=0):
     '''
-    Return one of two different functions.
+    Return one of two functions:
     1. Normal re.sub
     2. re.sub with counter that removes nth instance.
        Use function attribute as a counter.
@@ -186,26 +183,29 @@ def renfilter(args, files):
         'conflicts': {},
         'unresolvable': set()
     }
+
+    # use for constant lookup time
     fileset = set(files)
 
     filters = initfilters(args)
     for src in files:
-        # split filename into directory, basename and extension
-        dirpath, bname, ext = partfile(src)
-        bname = runfilters(filters, src, dirpath, bname)
+        # split path into directory, basename and extension
+        dirpath, basename, ext = partfile(src)
+
+        basename = runfilters(filters, src, dirpath, basename)
 
         # change extension, allow '' as an extension
         if args.extension is not None:
             ext = args.extension
 
-        # recombine as file+ext, path+file+ext
-        bname, dest = joinpart(dirpath, bname, ext)
-        assign_rentable(rentable, fileset, dest, bname, src)
+        # recombine as filename+ext, path+filename+ext
+        bname, dest = joinpart(dirpath, basename, ext)
+        assign_rentable(rentable, fileset, src, dest, bname)
 
     return rentable
 
 
-def assign_rentable(rentable, fileset, dest, bname, src):
+def assign_rentable(rentable, fileset, src, dest, bname):
     errset = set()
     if dest in rentable['conflicts']:
         # this name is already in conflict, add src to conflicts
@@ -252,7 +252,7 @@ def assign_rentable(rentable, fileset, dest, bname, src):
             # / usually indicates some kind of directory
             errset.add(3)
 
-        if len(dest) > 255:
+        if len(bname) > 255:
             errset.add(4)
 
         if errset:
@@ -301,7 +301,7 @@ def print_rentable(rentable, quiet=False, verbose=False):
         pass
 
     elif verbose:
-        print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
+        print('{:-^30}'.format(helper.BOLD + 'issues/conflicts' + helper.END))
         if unres:
             # show detailed output if there were conflicts
             print('the following files have conflicts')
@@ -323,13 +323,13 @@ def print_rentable(rentable, quiet=False, verbose=False):
     elif unres:
         # don't show anything if there weren't conflicts
         # otherwise show files that can't be renamed
-        print('{:-^30}'.format(BOLD + 'issues/conflicts' + END))
+        print('{:-^30}'.format(helper.BOLD + 'issues/conflicts' + helper.END))
         print('the following files will NOT be renamed')
         print(*["'{}'".format(s) for s in natsorted(unres, alg=ns.PATH)], '', sep='\n')
 
     # always show this output
     # return list of tuples (dest, src) sorted by src
-    print('{:-^30}'.format(BOLD + 'rename' + END))
+    print('{:-^30}'.format(helper.BOLD + 'rename' + helper.END))
     renames = natsorted(ren.items(), key=lambda x: x[1], alg=ns.PATH)
     if renames:
         print('the following files can be renamed:')

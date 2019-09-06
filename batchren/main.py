@@ -8,9 +8,6 @@ from natsort import natsorted, ns
 from batchren import renamer, helper
 from tui import arrange_tui, selection_tui
 
-BOLD = helper.BOLD
-END = helper.END
-
 
 def main(args, parser):
     if args.verbose:
@@ -31,12 +28,12 @@ def main(args, parser):
         raise argparse.ArgumentParser.error('An error occurred while searching for files: ' + str(err))
 
     if not files:
-        print('{:-^30}'.format(BOLD + 'files found' + END))
+        print('{:-^30}'.format(helper.BOLD + 'files found' + helper.END))
         print('no files found\n')
         return
 
     if args.verbose:
-        print('{:-^30}'.format(BOLD + 'files found' + END))
+        print('{:-^30}'.format(helper.BOLD + 'files found' + helper.END))
         for n in files:
             print(n)
         print()

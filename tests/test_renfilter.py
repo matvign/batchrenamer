@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 import pytest
 
-from batchren import main
-from batchren import bren, renamer, _version
+from batchren import main, bren, renamer
 
 '''
 tests for filters of names
@@ -22,10 +21,6 @@ https://py.readthedocs.io/en/latest/path.html
 parser = bren.parser
 
 
-def test_parser_version():
-    assert _version.__version__ == '0.6.1'
-
-
 def pairwise(lst1, lst2, tmpdir=None):
     if len(lst1) != len(lst2):
         raise Exception('list lengths must be equal!')
@@ -40,11 +35,27 @@ def pairwise(lst1, lst2, tmpdir=None):
         return
 
 
+@pytest.mark.parametrize("pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res", [
+    # tests for prepend
+    # arg, origpath, dirpath, filename, expected result
+    ('PRE_', '', '', 'FILE', 'PRE_FILE'),
+    ('PRE_', '', '', 'file', 'PRE_file'),
+    ('PRE_', '', 'parent', 'file', 'PRE_file'),
+    ('PRE_', '', '', 'file.mp4', 'PRE_file.mp4')
+])
+def test_filter_prepend(pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res):
+    args = parser.parse_args(['-pre', pre_arg])
+    filters = renamer.initfilters(args)
+    newname = renamer.runfilters(filters, pre_origpath, pre_dirpath, pre_fname)
+    print('oldname: {} --> newname: {}'.format(pre_fname, newname))
+    assert newname == pre_res
+
+
 @pytest.mark.parametrize("pre_args, pre_before, pre_after", [
     (['-pre', 'pre_', '-v'], ['file1', 'file2'], ['pre_file1', 'pre_file2']),
     (['-pre', 'pre_', '-v'], ['FILE1', 'FILE2'], ['pre_FILE1', 'pre_FILE2'])
 ])
-def test_rename_filter(pre_args, pre_before, pre_after, tmpdir, monkeypatch):
+def test_rename_prepend(pre_args, pre_before, pre_after, tmpdir, monkeypatch):
     monkeypatch.setattr('builtins.input', lambda x: 'y')
     before_lst, after_lst = [], []
     for before, after in pairwise(pre_before, pre_after, tmpdir):
@@ -62,22 +73,6 @@ def test_rename_filter(pre_args, pre_before, pre_after, tmpdir, monkeypatch):
         assert before.check(file=0)
         assert after.check(file=1)
         assert after.read() == before
-
-
-@pytest.mark.parametrize("pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res", [
-    # tests for prepend
-    # arg, origpath, dirpath, filename, expected result
-    ('PRE_', '', '', 'FILE', 'PRE_FILE'),
-    ('PRE_', '', '', 'file', 'PRE_file'),
-    ('PRE_', '', 'parent', 'file', 'PRE_file'),
-    ('PRE_', '', '', 'file.mp4', 'PRE_file.mp4')
-])
-def test_filter_prepend(pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res):
-    args = parser.parse_args(['-pre', pre_arg])
-    filters = renamer.initfilters(args)
-    newname = renamer.runfilters(filters, pre_origpath, pre_dirpath, pre_fname)
-    print('oldname: {} --> newname: {}'.format(pre_fname, newname))
-    assert newname == pre_res
 
 
 @pytest.mark.parametrize("post_arg, post_origpath, post_dirpath, post_fname, post_res", [

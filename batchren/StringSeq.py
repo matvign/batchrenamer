@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import re
 from datetime import datetime
 from enum import Enum
@@ -13,15 +14,14 @@ class SequenceType(Enum):
     MTIME = 4
 
 
-class SequenceObj:
+class StringSequence:
     def __init__(self, args):
-        self.fbit = False
         self.rules = []
         self.curdir = None
         self.args = args
         self._parse_args(args)
 
-    def __call__(self, origpath, dirpath, filename):
+    def __call__(self, path, dirpath, filename):
         if not self.curdir:
             self.curdir = dirpath
         st = ''
@@ -35,24 +35,21 @@ class SequenceObj:
             elif t == SequenceType.FILE:
                 st += filename
             elif t == SequenceType.MDATE:
-                st += r(origpath)
+                st += r(path)
             elif t == SequenceType.MTIME:
-                st += r(origpath)
+                st += r(path)
             elif t == SequenceType.RAW:
                 st += r
         return st
 
     def __str__(self):
-        return self.args
+        return self.get_argstr()
 
     def get_argstr(self):
         return self.args
 
     def get_rules(self):
         return self.rules
-
-    def has_fileformat(self):
-        return self.fbit
 
     def _num_generator(self, depth=2, start=1, end=None, step=1):
         '''
@@ -138,7 +135,7 @@ class SequenceObj:
         tstamp = getmtime(arg)
         return datetime.fromtimestamp(tstamp).strftime('%H.%M.%S')
 
-    def _parse_num(self, arg):
+    def _parse_num(self, args):
         '''
         Parse the arguments as a number sequence
         %n[depth]:start:end
@@ -150,15 +147,15 @@ class SequenceObj:
         msg1 = 'invalid depth for number sequence'
         msg2 = 'too many arguments for number sequence'
         msg3 = 'non-positive integer value in number sequence'
-        args = arg.split(':')
-        matchobj = re.match(r'^(n)(\d*)$', args[0])
+        seq_args = args.split(':')
+        matchobj = re.match(r'^(n)(\d*)$', seq_args[0])
         if not matchobj:
             raise ValueError(msg1)
-        elif len(args) > 4:
+        elif len(seq_args) > 4:
             raise TypeError(msg2)
         depth = int(matchobj.group(2)) if matchobj.group(2) else 2
         try:
-            sl = [int(x.strip()) if x.strip() else None for x in args[1:]]
+            sl = [int(x.strip()) if x.strip() else None for x in seq_args[1:]]
         except ValueError as err:
             raise ValueError(msg3)
         if sum(1 for n in sl if n and n < 0):
@@ -167,7 +164,7 @@ class SequenceObj:
         gen = self._num_generator(depth, *sl)
         self.rules.append((SequenceType.SEQ, gen))
 
-    def _parse_alpha(self, arg):
+    def _parse_alpha(self, args):
         '''
         Parse the arguments as an alphabetical sequence
         %a[depth]:start:end
@@ -179,8 +176,8 @@ class SequenceObj:
         msg1 = 'invalid depth for alphabetical sequence'
         msg2 = 'too many arguments for alphabetical sequence'
         msg3 = 'argument contains non-alphabetical character(s)'
-        args = arg.split(':')
-        matchobj = re.match(r'^(a)(\d*)$', args[0])
+        seq_args = args.split(':')
+        matchobj = re.match(r'^(a)(\d*)$', seq_args[0])
         if not matchobj:
             raise ValueError(msg1)
         elif len(args) > 3:
@@ -226,7 +223,6 @@ class SequenceObj:
             if n == '%f':
                 # '' is a dummy value for consistency
                 self.rules.append((SequenceType.FILE, ''))
-                self.fbit = True
             elif n == '%md':
                 self.rules.append((SequenceType.MDATE, self._md_generator))
             elif n == '%mt':

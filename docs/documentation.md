@@ -4,7 +4,6 @@ batchren is a python script for batch renaming files. batchren
 uses unix style pattern matching to look for files and uses optional 
 arguments to rename the set of files found.  
 
-
 # 1. Usage
 ## 1.1 Positional arguments:
 path: specifies the file pattern to search for.  
@@ -12,7 +11,6 @@ path: specifies the file pattern to search for.
 Paths that are directories are automatically expanded.  
 If there are special characters in your file, surround the path in quotes.  
 See examples for more information.
-
 
 ## 1.2 Optional arguments:  
 ```
@@ -38,7 +36,6 @@ See examples for more information.
 --version:      show version  
 ```
 
-
 ## 1.3 Usage
 ### Positional Arguments
 By default batchren searches for all files in the current working directory.
@@ -49,7 +46,6 @@ batchren also supports wild characters **(`[], *, ?`)**. Surround file patterns 
 To escape pattern characters use `[]` or use the `--esc` option.
 
 Because some arguments take at *least n* arguments, place the `path` argument before optional arguments.  
-
 
 #### Examples
 `batchren -pre file`: finds all files and prepends 'file'  
@@ -79,7 +75,6 @@ Accepts characters from `'*?[]'`. Escapes characters from the string.
 #### Select
 `batchren --sel`  
 Manually select files to rename after pattern matching. Opens interactive text-user interface.
-
 
 #### Sort
 `batchren --sort {asc, desc, man}`  
@@ -203,7 +198,7 @@ Change extension of files. Adds extension if it exists, otherwise replaces exist
 #### Sequences
 The sequence options uses strings separated by slashes for formatting. Formatters begin with **%** and must be followed by **f**, **n**, **a**, **md**, or **mt** to be a valid formatter. Sequences reset with different directories.
 
-#### File format
+##### File format
 ```
 %f
 represents the filename.
@@ -214,7 +209,7 @@ e.g. raw/%f/raw
 filename -> rawfilenameraw
 ```
 
-#### Numerical sequence
+##### Numerical sequence
 ```
 %n
 represents a number sequence starting at 1
@@ -245,7 +240,7 @@ e.g. %n3:2:9:2
 002_file
 ```
 
-#### Alphabetical sequence
+##### Alphabetical sequence
 ```
 %a
 represents a letter sequence starting at 'a' and resetting when greater than 'z'.
@@ -297,7 +292,7 @@ e.g. %a:a:Z -> a, ..., z, A, ..., Z
      %a:A:a -> A, A, A, ..., A, A
 ```
 
-#### Time format
+##### Timestamps
 ```
 %md
 represents the date that a file was last modified.
@@ -321,8 +316,8 @@ e.g. %md/./%mt/_/%f
 
 
 # 2. Displaying information
-There are different behaviours depending on the arguments quiet, verbose and dryrun. 
-Quiet and verbose cannot be set at the same time.
+Different console output will be produced depending on the quiet, verbose or dryrun
+arguments. Quiet and verbose options cannot be run at the same time.
 
 ## 2.1 Parser level
 The parser level is where arguments are read in.  
@@ -348,7 +343,6 @@ else
     if verbose
         show files found
 ```
-
 
 ## 2.2 Renamer level
 The renamer level shows filenames that can be renamed or have errors.
@@ -387,7 +381,6 @@ command line. The following is enabled:
 * prefix_chars: only accept dashes for optional arguments
 * fromfile_prefix_char: accept arguments from file
 
-
 ## 3.2 File and pattern matching
 Unix style pattern matching is implmented using the python glob module.
 
@@ -395,7 +388,6 @@ glob.iglob()
 * simplest with the most support
 * doesn't include hidden files
 * supports recursion (not that it should be used)
-
 
 ## 3.3 File renaming arguments
 Filenames are passed in from file pattern matching and split into directory, 
@@ -506,7 +498,6 @@ dir
   fileE   -> fileE (not picked up by glob)
   fileF   -> fileE (conflict with fileE, unresolvable)
 ```
-
 
 ## 3.4.3 Cycle resolution
 Cycles happen when each file wants to be renamed to the next.
@@ -668,4 +659,4 @@ dir
 
 # Planned updates
 ## v0.6.2
-* new: create dependent sequences
+* ???

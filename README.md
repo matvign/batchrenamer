@@ -2,19 +2,30 @@
 
 A script to rename files with various arguments. Supports Unix style file globbing.
 
-
 ## Requirements
 1. Ubuntu 18.04
 2. Python 3.6.7
 3. pip
 4. natsort (from pypa)
 5. urwid (from pypa)
-
+6. virtualenv
 
 ## Instructions
 1. Download/clone this repo
-2. cd into directory
-3. run `pip install --user dist/batchren-0.6.1-py3-none-any.whl` (also downloads natsort & urwid)
+2. Change into directory for this repo
+3. Run `make install`
+
+## Developing
+1. Download/clone this repo
+2. Change into directory for this repo
+3. `virtualenv venv -p python3.6`
+4. `source venv/bin/activate`
+5. `pip install -r requirements.txt`
+6. Code...
+7. `make build`
+8. Deactivate `virtualenv`
+9. `make remove`
+10. `make install`
 
 
 ## Usage
@@ -70,7 +81,6 @@ Arguments are run in the following order:
 11. strip (remove '._ ' chars from end of file)
 12. extension
 
-
 ## Examples
 ### Positional Arguments
 By default batchren searches for all files in the current working directory.
@@ -109,7 +119,6 @@ Accepts characters from `'*?[]'`. Escapes characters from the string.
 `batchren --sel`  
 Manually select files to rename after pattern matching.
 
-
 #### Sort
 `batchren --sort {asc, desc, man}`  
 Sort order of files found through file matching and the select option. Useful for sequences.
@@ -122,7 +131,6 @@ Sort order of files found through file matching and the select option. Useful fo
 
 ### File Renaming Arguments
 The following arguments are used to rename files. The absence of file renaming arguments terminates the program.
-
 
 #### Prepend/Postpend
 `batchren -pre TEXT -post TEXT`  
@@ -310,7 +318,7 @@ e.g. %a:a:Z -> a, ..., z, A, ..., Z
      %a:A:a -> A, A, A, ..., A, A
 ```
 
-#### Time format
+#### Timestamps
 ```
 %md
 represents the date that a file was last modified.
