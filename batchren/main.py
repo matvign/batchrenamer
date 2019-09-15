@@ -28,19 +28,18 @@ def main(args, parser):
         raise argparse.ArgumentParser.error('An error occurred while searching for files: ' + str(err))
 
     if not files:
-        print('{:-^30}'.format(helper.BOLD + 'files found' + helper.END))
-        print('no files found\n')
+        helper.print_nofiles()
         return
 
     if args.verbose:
-        print('{:-^30}'.format(helper.BOLD + 'files found' + helper.END))
-        for n in files:
-            print(n)
-        print()
+        helper.print_found()
 
     if args.sel:
         files = selection_tui.main(files)
-        if not files:
+        if files is None:
+            return
+        elif files == []:
+            print('No files selected')
             return
 
     if args.sort == 'man':

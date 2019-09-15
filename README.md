@@ -8,7 +8,7 @@ A script to rename files with various arguments. Supports Unix style file globbi
 3. pip
 4. natsort (from pypa)
 5. urwid (from pypa)
-6. virtualenv
+6. virtualenv (developers only)
 
 ## Instructions
 1. Download/clone this repo

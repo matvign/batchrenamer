@@ -20,7 +20,19 @@ def askQuery():
             print("Please respond with 'yes' or 'no'")
 
 
-def printArgs(args):
+def print_nofiles():
+    print('{:-^30}'.format(BOLD + 'files found' + END))
+    print('no files found\n')
+
+
+def print_found(files):
+    print('{:-^30}'.format(BOLD + 'files found' + END))
+    for n in files:
+        print(n)
+    print()
+
+
+def print_args(args):
     print('{:-^30}'.format(BOLD + 'arguments' + END))
     for argname, argval in sorted(vars(args).items()):
         if argval is False:
