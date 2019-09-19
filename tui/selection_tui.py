@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import urwid
 
 from batchren._version import __version__
@@ -24,20 +25,19 @@ class FileListBox(urwid.ListBox):
 
 
 class FileSelector:
-    palette = [
-        ('titlebar', 'black', 'light gray'),
-        ('titlebar-divide', 'black', 'black'),
-        ('select button', 'dark green, bold', 'black'),
-        ('reset button', 'dark green, bold', 'black'),
-        ('quit button', 'dark red, bold', 'black'),
-        ('abort button', 'dark red, bold', 'black'),
-        ('reversed', 'standout', ''),
-        ('buttn', 'light gray', 'black'),
-        ('buttnf', 'light gray', 'black', 'bold'),
-    ]
-
     def __init__(self, files):
         self.status = True
+        self.palette = [
+            ('titlebar', 'black', 'light gray'),
+            ('titlebar-divide', 'black', 'black'),
+            ('select button', 'dark green, bold', 'black'),
+            ('reset button', 'dark green, bold', 'black'),
+            ('quit button', 'dark red, bold', 'black'),
+            ('abort button', 'dark red, bold', 'black'),
+            ('reversed', 'standout', ''),
+            ('buttn', 'light gray', 'black'),
+            ('buttnf', 'light gray', 'black', 'bold'),
+        ]
         header_cols = urwid.Columns([
             ('weight', 5, urwid.Text(version)),
             ('weight', 7, urwid.Text(u'manual file selection'))
@@ -48,13 +48,15 @@ class FileSelector:
             urwid.AttrMap(urwid.Padding(header_cols, left=2), 'titlebar'),
             urwid.AttrMap(urwid.Divider(), 'titlebar-divide')
         ])
-        self.menu = urwid.Text([
+        self.footer = urwid.Text([
             ('select button', u'(a)'), u':select all  ',
             ('reset button', u'(r)'), u':unselect all  ',
             ('quit button', u'(q)'), u':save and quit  ',
             ('abort button', u'(c)'), u':abort batchren  ',
         ])
-        self.view = urwid.Frame(header=self.header, body=self.body, footer=self.menu)
+        self.view = urwid.Frame(header=self.header,
+            body=self.body,
+            footer=self.footer)
 
     def unhandled_input(self, key):
         if key in ('a', 'A'):
@@ -81,9 +83,10 @@ class FileSelector:
         self.loop.run()
 
         if self.status:
+            # operation success, return selected files
             return self.body.get_selected()
         else:
-            # operation abort, return None
+            # operation aborted, return None
             print('Batch rename was aborted')
             return None
 
@@ -91,3 +94,7 @@ class FileSelector:
 def main(files):
     tui = FileSelector(files)
     return tui.main()
+
+
+if __name__ == '__main__':
+    main()
