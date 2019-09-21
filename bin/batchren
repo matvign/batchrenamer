@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-from batchren import main, bren
+from batchren.bren import parser
+from batchren import main
 
-parser = bren.parser
 args = parser.parse_args()
 
 if __name__ == '__main__':
-    main.main(args, parser)
+    main.main(args)
     print('Exiting...')

@@ -22,26 +22,40 @@ issues = {
 }
 
 
-def partfile(path):
-    '''
-    Split filepath into dir, base name and extension
-    '''
+def partfile(path, mode=False):
+    ''' Split directory into directory, basename and/or extension '''
     dirpath, filename = os.path.split(path)
-    basename, ext = os.path.splitext(filename)
+    if not mode:
+        # default, extract extensions
+        basename, ext = os.path.splitext(filename)
+    else:
+        # raw, don't extract extension
+        basename, ext = filename, ''
+
     return (dirpath, basename, ext)
 
 
-def joinpart(dirpath, basename, ext):
+def joinpart(dirpath, basename, ext, mode=False):
     '''
-    Combine directory path, base name and extension.
-    Remove spaces, then strip and collapse dots.
-    Return filename and new path
+    Combine directory path, basename and extension.
+    Strip spaces in basename
+    Remove spaces and strip+collapse dots in extension
+    Return the new filename and the full path
     '''
-    filename = basename.rstrip('. ').strip()
+    filename = basename
+    if not mode:
+        # default, process filename before applying extension
+        filename = filename.strip()
+
     if ext:
-        # remove spaces, then strip and collapse dots
+        # remove spaces, strip and collapse dots from extension
+        # remove trailing dots from filename and add extension
         ext = re.sub(r'\.+', '.', ext.replace(' ', '').strip('.'))
-        filename += '.' + ext
+        filename = filename.strip('.') + '.' + ext
+
+    if mode:
+        # raw, process filename after applying extension
+        filename = filename.strip()
 
     path = filename
     if dirpath:
@@ -50,13 +64,13 @@ def joinpart(dirpath, basename, ext):
     return (filename, path)
 
 
-def runfilters(filters, path, dirpath, filename):
+def runfilters(filters, path, dirpath, basename):
     '''
     Function to run filters.
     path is used for getting modification time in sequences.
     dirpath is used for resetting sequences on different directories.
     '''
-    newname = filename
+    newname = basename
     for runf in filters:
         try:
             if isinstance(runf, StringSeq.StringSequence):
@@ -162,11 +176,11 @@ def initfilters(args):
     if args.sequence:
         filters.append(args.sequence)
 
-    if args.prepend:
+    if args.prepend is not None:
         prepend = lambda x: args.prepend + x
         filters.append(prepend)
 
-    if args.postpend:
+    if args.postpend is not None:
         postpend = lambda x: x + args.postpend
         filters.append(postpend)
 
@@ -190,17 +204,17 @@ def renfilter(args, files):
     filters = initfilters(args)
     for src in files:
         # split path into directory, basename and extension
-        dirpath, basename, ext = partfile(src)
+        dirpath, bname, ext = partfile(src, args.raw)
 
-        basename = runfilters(filters, src, dirpath, basename)
+        bname = runfilters(filters, src, dirpath, bname)
 
         # change extension, allow '' as an extension
         if args.extension is not None:
             ext = args.extension
 
-        # recombine as filename+ext, path+filename+ext
-        bname, dest = joinpart(dirpath, basename, ext)
-        assign_rentable(rentable, fileset, src, dest, bname)
+        # recombine as basename+ext, path+basename+ext
+        basename, dest = joinpart(dirpath, bname, ext, args.raw)
+        assign_rentable(rentable, fileset, src, dest, basename)
 
     return rentable
 

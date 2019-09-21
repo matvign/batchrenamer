@@ -6,10 +6,11 @@ import os
 from natsort import natsorted, ns
 
 from batchren import renamer, helper
+from batchren.bren import parser
 from tui import arrange_tui, selection_tui
 
 
-def main(args, parser):
+def main(args):
     if args.verbose:
         helper.printArgs(args)
 

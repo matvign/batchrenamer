@@ -14,7 +14,7 @@ def expand_dir(path):
     Add '*' if path is a directory
     Otherwise return the path unaltered
     '''
-    path = os.path.expanduser(os.path.normpath(path))
+    path = os.path.normpath(path)
     if os.path.isdir(path):
         return os.path.join(path, '*')
     return path
@@ -266,7 +266,7 @@ class CustomFormatter(argparse.RawTextHelpFormatter):
 
         else:
             parts = []
-            long_options = ['--sort', '--esc']
+            long_options = ['--sort', '--esc', '--raw']
             if action.nargs == 0:
                 # if the optional doesn't take a value, format is:
                 #    -s, --long
@@ -310,11 +310,12 @@ parser = argparse.ArgumentParser(
     prefix_chars='-',           # only allow arguments with minus (default)
     fromfile_prefix_chars='@',  # allow arguments from file input
 )
-outgroup = parser.add_mutually_exclusive_group()
+
+exclgroup = parser.add_mutually_exclusive_group()
 
 parser.add_argument('-sp', '--spaces', nargs='?', const='_',
                     metavar='REPL',
-                    help='replace whitespaces with specified (default: _)')
+                    help='replace whitespace with specified (default: _)')
 parser.add_argument('-tr', '--translate', nargs=2, action=TranslateAction,
                     help='translate characters from one to another')
 parser.add_argument('-c', '--case',
@@ -323,12 +324,12 @@ parser.add_argument('-c', '--case',
                     help='convert filename case')
 parser.add_argument('-sl', '--slice', action=SliceAction,
                     metavar='start:end:step',
-                    help='slice a portion of the filename')
+                    help='rename to character slice of file')
 parser.add_argument('-sh', '--shave', type=trim, action=ShaveAction,
                     metavar='head:tail',
-                    help='shave head and/or tail from string')
+                    help='remove characters from head and/or tail of file')
 parser.add_argument('-bracr', '--bracket_remove', nargs='*', type=trim, action=BracketAction,
-                    help='remove contents of bracket type')
+                    help='remove bracket type and its contents')
 parser.add_argument('-re', '--regex', nargs='*', action=RegexAction,
                     help='specify pattern to remove/replace')
 parser.add_argument('-pre', '--prepend', metavar='STR',
@@ -339,18 +340,19 @@ parser.add_argument('-seq', '--sequence', action=SequenceAction,
                     help='apply a sequence to files')
 parser.add_argument('-ext', '--extension', metavar='EXT', type=validate_ext,
                     help="change last file extension (e.g. mp4, '')")
-parser.add_argument('--sort', choices=['asc', 'desc', 'man'],
-                    default='asc',
+parser.add_argument('--raw', action='store_true',
+                    help='treat extension as part of filename')
+parser.add_argument('--sort', choices=['asc', 'desc', 'man'], default='asc',
                     help='sorting order when finding files')
 parser.add_argument('--sel', action='store_true',
                     help='manually select files from pattern match')
 parser.add_argument('--esc', nargs='?', const='*?[]', type=validate_esc,
-                    help='escape literal characters')
+                    help="escape literal characters ('*?[]')")
 parser.add_argument('--dryrun', action='store_true',
                     help='run without renaming any files')
-outgroup.add_argument('-q', '--quiet', action='store_true',
+exclgroup.add_argument('-q', '--quiet', action='store_true',
                     help='skip output, but show confirmations')
-outgroup.add_argument('-v', '--verbose', action='store_true',
+exclgroup.add_argument('-v', '--verbose', action='store_true',
                     help='show detailed output')
 parser.add_argument('--version', action='version', version=_version.__version__)
 parser.add_argument('path', nargs='?', default='*', type=expand_dir,

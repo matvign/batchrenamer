@@ -44,7 +44,7 @@ def print_args(args):
 
 
 def check_optional(args):
-    notfilter = {'dryrun', 'quiet', 'verbose', 'path', 'sort', 'sel', 'esc'}
+    notfilter = {'dryrun', 'quiet', 'verbose', 'path', 'sort', 'sel', 'esc', 'raw'}
     argdict = vars(args)
 
     for argname, argval in argdict.items():
