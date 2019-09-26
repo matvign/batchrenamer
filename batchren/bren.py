@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 import argparse
+import glob
 import os
 import re
 import sre_constants
 import textwrap
 
-from batchren import _version, StringSeq
+from natsort import natsorted, ns
+
+from batchren import _version
+from batchren import helper, renamer, StringSeq
+from batchren.tui import arrange_tui, selection_tui
 
 
 def expand_dir(path):
@@ -340,14 +345,14 @@ parser.add_argument('-seq', '--sequence', action=SequenceAction,
                     help='apply a sequence to files')
 parser.add_argument('-ext', '--extension', metavar='EXT', type=validate_ext,
                     help="change last file extension (e.g. mp4, '')")
+parser.add_argument('--esc', nargs='?', const='*?[]', type=validate_esc,
+                    help="escape literal characters ('*?[]')")
 parser.add_argument('--raw', action='store_true',
                     help='treat extension as part of filename')
 parser.add_argument('--sort', choices=['asc', 'desc', 'man'], default='asc',
-                    help='sorting order when finding files')
+                    help='rename files found in specific order')
 parser.add_argument('--sel', action='store_true',
                     help='manually select files from pattern match')
-parser.add_argument('--esc', nargs='?', const='*?[]', type=validate_esc,
-                    help="escape literal characters ('*?[]')")
 parser.add_argument('--dryrun', action='store_true',
                     help='run without renaming any files')
 exclgroup.add_argument('-q', '--quiet', action='store_true',
@@ -357,3 +362,49 @@ exclgroup.add_argument('-v', '--verbose', action='store_true',
 parser.add_argument('--version', action='version', version=_version.__version__)
 parser.add_argument('path', nargs='?', default='*', type=expand_dir,
                     help='target file/directory')
+
+
+def main():
+    args = parser.parse_args()
+    if args.verbose:
+        helper.print_args(args)
+
+    if not helper.check_optional(args):
+        parser.print_usage()
+        print("\nNo optional arguments set for renaming")
+        return
+
+    if args.esc:
+        args.path = helper.escape_path(args.path, args.esc)
+
+    try:
+        # only include files
+        files = [f for f in glob.iglob(args.path, recursive=True) if os.path.isfile(f)]
+        files = natsorted(files, reverse=False, alg=ns.PATH)
+
+    except OSError as err:
+        raise argparse.ArgumentParser.error('An error occurred while searching for files: ' + str(err))
+
+    if not files:
+        helper.print_nofiles()
+        return
+
+    if args.sel:
+        files = selection_tui.main(files)
+        if files is None:
+            return
+        elif files == []:
+            print('No files selected')
+            return
+
+    if args.sort == 'man':
+        files = arrange_tui.main(files)
+        if not files:
+            return
+    elif args.sort == 'desc':
+        files.reverse()
+
+    if args.verbose:
+        helper.print_found(files)
+
+    renamer.start_rename(args, files)

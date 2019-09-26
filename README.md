@@ -1,14 +1,15 @@
 # Batchren
 
-A script to rename files with various arguments. Supports Unix style file globbing.
+Batchren is a python script for batch renaming files.  
+Batchren uses unix style pattern matching to look for files and uses optional 
+arguments to rename the set of files found.  
 
 ## Requirements
 1. Ubuntu 18.04
-2. Python 3.6.7
+2. Python 3.6.8
 3. pip
 4. natsort (from pypa)
 5. urwid (from pypa)
-6. virtualenv (developers only)
 
 ## Instructions
 1. Download/clone this repo
@@ -24,12 +25,11 @@ A script to rename files with various arguments. Supports Unix style file globbi
 6. Code...
 7. `make build`
 8. Deactivate `virtualenv`
-9. `make remove`
-10. `make install`
+9. `make remove && make install`
 
 
 ## Usage
-### Positional arguments:
+### Positional arguments
 path: specifies the file pattern to search for.  
 
 Paths that are directories are automatically expanded.  
@@ -46,19 +46,22 @@ Because some arguments take at *least n* arguments, place the `path` argument be
 -sp             replace whitespace with specified char. default: '_'
 -tr             translate characters of first argument to second argument. argument lengths must be equal
 -c              change case of file to upper/lower/swap/capitalise word
--sl             slice a portion of the file to keep. must follow 'start:end:step' format (can have missing values)
--sh             shave text from top and/or the bottom of file. must follow 'head:tail' format, must not be negative
--bracr          remove curly/round/square bracket groups from filename. add optional argument to remove the nth bracket group
+-sl             rename files to character slice of file. follows 'start:end:step' format (can have missing values)
+-sh             remove characters from head and/or tail of file. follows 'head:tail' format, must not be negative
+-bracr          remove curly/round/square brackets and its contents. add optional argument to remove the nth bracket group
 -re             remove/replace with regex. remove with one argument, replace with two. use three to replace nth pattern instance
 -seq            apply a sequence to the file
 -ext            change extension of file ('' removes the extension)
 
 --esc           escape pattern matching characters
---sel           after finding files with a file pattern, manually select which files to rename
+--raw           treat extension as part of filename
+
 --sort          after finding files, sort by ascending, descending or manual. useful for sequences
+--sel           after finding files with a file pattern, manually select which files to rename
+
 --dryrun        run without renaming any files
--q/--quiet      skip output, but show confirmations  
--v/--verbose    show detailed output  
+-q/--quiet      skip output, but show confirmations (see **section 3**)  
+-v/--verbose    show detailed output (see **section 3**)  
 --version:      show version  
 ```
 
@@ -67,7 +70,7 @@ Because some arguments take at *least n* arguments, place the `path` argument be
 Arguments have an order that they are applied. The general idea is that 
 characters are removed/replaced before adding characters.
 
-Arguments are run in the following order:
+Renaming arguments are run in the following order:
 1. regex
 2. bracket remove
 3. slice
@@ -78,8 +81,8 @@ Arguments are run in the following order:
 8. sequence
 9. prepend
 10. postpend
-11. strip (remove '._ ' chars from end of file)
-12. extension
+11. strip (remove whitespace from ends of file)
+12. extension (remove whitespace and collapse dots)
 
 ## Examples
 ### Positional Arguments
@@ -88,7 +91,7 @@ If the file pattern is a directory batchren will expand into the directory.
 
 batchren also supports wild characters **(`[], *, ?`)**. Surround file patterns in quotes when using pattern matching characters.
 
-To escape pattern characters use `[]` or use the `--esc` option.
+To escape pattern characters use `[]` or the `--esc` option.
 
 #### Examples
 `batchren -pre file`: finds all files and prepends 'file'  
@@ -127,6 +130,15 @@ Sort order of files found through file matching and the select option. Useful fo
 `batchren --sort asc`: sort files in ascending order  
 `batchren --sort desc`: sort files in descending order  
 `batchren --sort man`: sort files manually. Opens interactive text-user interface.  
+
+
+#### Raw
+`batchren --raw`  
+Treat extension as part of filename. Use if you want to ignore extensions.
+
+##### Examples
+`batchren file.mp4 -post bla`: renames file to `filebla.mp4`  
+`batchren file.mp4 -post bla --raw`: renames file to `file.mp4bla`
 
 
 ### File Renaming Arguments

@@ -13,13 +13,45 @@ from batchren import helper, StringSeq
 issues = {
     # issuecodes for rentable
     0: 'no filters applied',
-    1: 'new name cannot be empty',
-    2: 'new name cannot start with .',
-    3: 'new name cannot contain /',
-    4: 'new name cannot exceed 255 characters',
+    1: 'name cannot be empty',
+    2: 'name cannot start with .',
+    3: 'name cannot contain /',
+    4: 'name cannot exceed 255 characters',
     5: 'shared name conflict',
     6: 'unresolvable conflict'
 }
+
+
+def start_rename(args, files):
+    '''
+    Initialize filters and run filters on files
+    Print rentable and give a prompt to start renaming
+    '''
+    fileset = set(files)
+    rentable = {
+        'renames': {},
+        'conflicts': {},
+        'unresolvable': set()
+    }
+
+    filters = initfilters(args)
+    for src in files:
+        # split path into directory, basename and extension
+        dirpath, bname, ext = partfile(src, args.raw)
+        bname = runfilters(filters, src, dirpath, bname)
+
+        # change extension, allow '' as an extension
+        if args.extension is not None:
+            ext = args.extension
+
+        # recombine as basename+ext, path+basename+ext
+        basename, dest = joinparts(dirpath, bname, ext, args.raw)
+        assign_rentable(rentable, fileset, src, dest, basename)
+
+    # print contents of rentable and return a sorted queue of files to rename
+    q = print_rentable(rentable, quiet=False, verbose=False)
+    if q and helper.askQuery():
+        rename_queue(q, args)
 
 
 def partfile(path, mode=False):
@@ -35,7 +67,7 @@ def partfile(path, mode=False):
     return (dirpath, basename, ext)
 
 
-def joinpart(dirpath, basename, ext, mode=False):
+def joinparts(dirpath, basename, ext, mode=False):
     '''
     Combine directory path, basename and extension.
     Strip spaces in basename
@@ -64,70 +96,12 @@ def joinpart(dirpath, basename, ext, mode=False):
     return (filename, path)
 
 
-def runfilters(filters, path, dirpath, basename):
-    '''
-    Function to run filters.
-    path is used for getting modification time in sequences.
-    dirpath is used for resetting sequences on different directories.
-    '''
-    newname = basename
-    for runf in filters:
-        try:
-            if isinstance(runf, StringSeq.StringSequence):
-                newname = runf(path, dirpath, newname)
-            else:
-                newname = runf(newname)
-        except re.error as re_err:
-            sys.exit('A regex error occurred: ' + str(re_err))
-        except OSError as os_err:
-            # except oserror from sequences
-            sys.exit('A filesystem error occurred: ' + str(os_err))
-        except Exception as exc:
-            sys.exit('An unforeseen error occurred: ' + str(exc))
-
-    return newname
-
-
-def repl_decorator(pattern, repl='', repl_count=0):
-    '''
-    Return one of two functions:
-    1. Normal re.sub
-    2. re.sub with counter that removes nth instance.
-       Use function attribute as a counter.
-    '''
-    def repl_all(x):
-        return re.sub(pattern, repl, x)
-
-    def replacer(matchobj):
-        '''
-        Function to be used with re.sub.
-        Replace string match with repl if count = count.
-        Otherwise return the string match
-        '''
-        if matchobj.group() and replacer._count == repl_count:
-            res = repl
-        else:
-            res = matchobj.group()
-        replacer._count += 1
-        return res
-
-    # initialise all replacer functions to one
-    replacer._count = 1
-
-    def repl_nth(x):
-        val = re.sub(pattern, replacer, x, repl_count)
-        replacer._count = 1
-        return val
-
-    return repl_all if not repl_count else repl_nth
-
-
 def initfilters(args):
     # create filters in a list
     filters = []
     if args.regex:
         try:
-            regex_repl = repl_decorator(*args.regex)
+            regex_repl = _repl_decorator(*args.regex)
         except re.error as re_err:
             sys.exit('A regex compilation error occurred: ' + str(re_err))
         except sre_constants.error as sre_err:
@@ -142,7 +116,7 @@ def initfilters(args):
         elif args.bracket_remove[0] == 'square':
             reg_exp = re.compile(r'\[.*?\]')
 
-        bracr = repl_decorator(reg_exp, '', args.bracket_remove[1])
+        bracr = _repl_decorator(reg_exp, '', args.bracket_remove[1])
         filters.append(bracr)
 
     if args.slice:
@@ -187,36 +161,62 @@ def initfilters(args):
     return filters
 
 
-def renfilter(args, files):
+def _repl_decorator(pattern, repl='', repl_count=0):
     '''
-    Initialise filters and run them on filenames.
-    Assign the new filename to a table of renames/conflicts.
+    Return one of two functions:
+    1. Normal re.sub
+    2. re.sub with counter that removes nth instance.
+       Use function attribute as a counter.
     '''
-    rentable = {
-        'renames': {},
-        'conflicts': {},
-        'unresolvable': set()
-    }
+    def repl_all(x):
+        return re.sub(pattern, repl, x)
 
-    # use for constant lookup time
-    fileset = set(files)
+    def repl_nth(x):
+        f = re.sub(pattern, replacer, x, repl_count)
+        replacer._count = 1
+        return f
 
-    filters = initfilters(args)
-    for src in files:
-        # split path into directory, basename and extension
-        dirpath, bname, ext = partfile(src, args.raw)
+    def replacer(matchobj):
+        '''
+        Function to be used with re.sub.
+        Replace string match with repl if count = count.
+        Otherwise return the string match
+        '''
+        if matchobj.group() and replacer._count == repl_count:
+            res = repl
+        else:
+            res = matchobj.group()
+        replacer._count += 1
+        return res
 
-        bname = runfilters(filters, src, dirpath, bname)
+    # initialise all replacer functions to one
+    replacer._count = 1
 
-        # change extension, allow '' as an extension
-        if args.extension is not None:
-            ext = args.extension
+    return repl_all if not repl_count else repl_nth
 
-        # recombine as basename+ext, path+basename+ext
-        basename, dest = joinpart(dirpath, bname, ext, args.raw)
-        assign_rentable(rentable, fileset, src, dest, basename)
 
-    return rentable
+def runfilters(filters, path, dirpath, basename):
+    '''
+    Function to run filters.
+    path is used for getting modification time in sequences.
+    dirpath is used for resetting sequences on different directories.
+    '''
+    newname = basename
+    for runf in filters:
+        try:
+            if isinstance(runf, StringSeq.StringSequence):
+                newname = runf(path, dirpath, newname)
+            else:
+                newname = runf(newname)
+        except re.error as re_err:
+            sys.exit('A regex error occurred: ' + str(re_err))
+        except OSError as os_err:
+            # except oserror from sequences
+            sys.exit('A filesystem error occurred: ' + str(os_err))
+        except Exception as exc:
+            sys.exit('An unforeseen error occurred: ' + str(exc))
+
+    return newname
 
 
 def assign_rentable(rentable, fileset, src, dest, bname):
@@ -289,7 +289,7 @@ def cascade(rentable, target):
         if ndest in rentable['renames']:
             temp = rentable['renames'][ndest]
             del rentable['renames'][ndest]
-            rentable['conflicts'][ndest] = {'srcs': [temp], 'err': {5}}
+            rentable['conflicts'][ndest] = {'srcs': [temp], 'err': {6}}
             ndest = temp
             continue
         return
@@ -357,16 +357,38 @@ def print_rentable(rentable, quiet=False, verbose=False):
 
 
 def getFreeName(dest):
+    dirpath, basename, ext = partfile(dest)
     count = 1
     while(True):
-        temp = dest + '_' + str(count)
-        if os.path.exists(temp):
+        tmpname = '{}_{}'.format(basename, count)
+        ndest = joinparts(dirpath, tmpname, ext)
+        if not os.path.exists(ndest):
+            return ndest
+        count += 1
+
+
+def name_gen():
+    count = 0
+    dirpath = ''
+    while True:
+        ret = os.path.join(dirpath, 'tmp{}'.format(count))
+        if os.path.exists(ret):
             count += 1
             continue
-        return temp
+        val = yield ret
+        if not val:
+            dirpath = ''
+        else:
+            dirpath = val
+        count += 1
 
 
-def run_rename(queue, args):
+def rename_queue(queue, args):
+    '''
+    Rename src to dest from a list of tuples [(dest, src), ...]
+    '''
+    n = name_gen()
+    next(n)
     q = deque(queue)
     msg = 'Conflict detected, temporarily renaming'
     if args.dryrun:
@@ -374,12 +396,14 @@ def run_rename(queue, args):
     while q:
         dest, src = q.popleft()
         if os.path.exists(dest):
-            temp = getFreeName(dest)
+            # temp = getFreeName(dest)
+            dirpath, _ = os.path.split(dest)
+            tmp = n.send(dirpath)
             if args.verbose or args.dryrun:
-                print(msg, "'{}' to '{}'".format(src, temp))
+                print(msg, "'{}' to '{}'".format(src, tmp))
             if not args.dryrun:
-                rename_file(src, temp)
-            q.append((dest, temp))
+                rename_file(src, tmp)
+            q.append((dest, tmp))
         else:
             # no conflict, just rename
             if args.verbose or args.dryrun:
@@ -394,14 +418,6 @@ def rename_file(src, dest):
     try:
         os.rename(src, dest)
     except OSError as err:
-        sys.exit('A filesystem error occurred while renaming: ' + str(err))
+        sys.exit('An error occurred while renaming: ' + str(err))
     except Exception as exc:
         sys.exit('An unforeseen error occurred while renaming: ' + str(exc))
-
-
-def start_rename(args, fileset):
-    rentable = renfilter(args, fileset)
-    q = print_rentable(rentable, args.quiet, args.verbose)
-
-    if q and helper.askQuery():
-        run_rename(q, args)

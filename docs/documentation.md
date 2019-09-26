@@ -1,18 +1,17 @@
 # Documentation - v0.6.1
-batchren - a batch renamer  
-batchren is a python script for batch renaming files. batchren 
-uses unix style pattern matching to look for files and uses optional 
+Batchren is a python script for batch renaming files.  
+Batchren uses unix style pattern matching to look for files and uses optional 
 arguments to rename the set of files found.  
 
 # 1. Usage
-## 1.1 Positional arguments:
+## 1.1 Positional arguments
 path: specifies the file pattern to search for.  
 
 Paths that are directories are automatically expanded.  
 If there are special characters in your file, surround the path in quotes.  
 See examples for more information.
 
-## 1.2 Optional arguments:  
+## 1.2 Optional arguments  
 ```
 -h:             show help text
 -pre            add text before file
@@ -20,30 +19,33 @@ See examples for more information.
 -sp             replace whitespace with specified char. default: '_'
 -tr             translate characters of first argument to second argument. argument lengths must be equal
 -c              change case of file to upper/lower/swap/capitalise word
--sl             slice a portion of the file to keep. must follow 'start:end:step' format (can have missing values)
--sh             shave text from top and/or the bottom of file. must follow 'head:tail' format, must not be negative
--bracr          remove curly/round/square bracket groups from filename. add optional argument to remove the nth bracket group
+-sl             rename files to character slice of file. follows 'start:end:step' format (can have missing values)
+-sh             remove characters from head and/or tail of file. follows 'head:tail' format, must not be negative
+-bracr          remove curly/round/square brackets and its contents. add optional argument to remove the nth bracket group
 -re             remove/replace with regex. remove with one argument, replace with two. use three to replace nth pattern instance
 -seq            apply a sequence to the file
 -ext            change extension of file ('' removes the extension)
 
 --esc           escape pattern matching characters
---sel           after finding files with a file pattern, manually select which files to rename
+--raw           treat extension as part of filename
+
 --sort          after finding files, sort by ascending, descending or manual. useful for sequences
+--sel           after finding files with a file pattern, manually select which files to rename
+
 --dryrun        run without renaming any files
 -q/--quiet      skip output, but show confirmations (see **section 3**)  
 -v/--verbose    show detailed output (see **section 3**)  
 --version:      show version  
 ```
 
-## 1.3 Usage
+## 1.3 Examples
 ### Positional Arguments
 By default batchren searches for all files in the current working directory.
 If the file pattern is a directory batchren will expand into the directory.
 
 batchren also supports wild characters **(`[], *, ?`)**. Surround file patterns in quotes when using pattern matching characters.
 
-To escape pattern characters use `[]` or use the `--esc` option.
+To escape pattern characters use `[]` or the `--esc` option.
 
 Because some arguments take at *least n* arguments, place the `path` argument before optional arguments.  
 
@@ -86,6 +88,15 @@ Sort order of files found through file matching and the select option. Useful fo
 `batchren --sort man`: sort files manually. Opens interactive text-user interface.  
 
 
+#### Raw
+`batchren --raw`  
+Treat extension as part of filename. Use if you want to ignore extensions.
+
+##### Examples
+`batchren file.mp4 -post bla`: renames file to `filebla.mp4`  
+`batchren file.mp4 -post bla --raw`: renames file to `file.mp4bla`
+
+
 ### File Renaming Arguments
 Arguments have an order that they are applied. The general idea is that 
 characters are removed/replaced before adding characters.
@@ -101,8 +112,8 @@ Renaming arguments are run in the following order:
 8. sequence
 9. prepend
 10. postpend
-11. strip (remove '._ ' chars from end of file)
-12. extension
+11. strip (remove whitespace from ends of file)
+12. extension (remove whitespace and collapse dots)
 
 The absence of file renaming arguments terminates the program.
 
@@ -316,13 +327,15 @@ e.g. %md/./%mt/_/%f
 
 
 # 2. Displaying information
-Different console output will be produced depending on the quiet, verbose or dryrun
-arguments. Quiet and verbose options cannot be run at the same time.
+Different console output is produced depending on the quiet, verbose or dryrun arguments.
 
-## 2.1 Parser level
-The parser level is where arguments are read in.  
+Quiet and verbose options cannot be run at the same time.
+
+## 2.1 Parser output
+Parser output is produced before processing files.
+
 The following applies:
-* If error with arguments, show error, quit
+* If error with arguments, show error and quit
 * If verbose, show arguments used
 * If no optional arguments set, quit
 * If no files found, quit
@@ -336,21 +349,33 @@ if verbose:
 if no optional arguments set
     show 'no optional arguments set for renaming'
     quit
-else
-    if no files found
-        show 'no files found'
+
+if no files found
+    show 'no files found'
+
+if args.sel
+    if abort
+        print 'operation aborted'
+    if no files selected
+        print 'no files selected'
         quit
-    if verbose
-        show files found
+
+if args.sort
+    if abort
+        print 'operation aborted'
+
+if verbose
+    show files found
 ```
 
-## 2.2 Renamer level
-The renamer level shows filenames that can be renamed or have errors.
-For conflicts:
-* If quiet, show no conflict information
-* If verbose, show detailed errors
-* If not quiet, not verbose, no errors, show nothing
-* If not quiet, not verbose, errors exist, show files that won't be renamed
+## 2.2 Renamer output
+Renamer output is produced before and during renaming (when verbose).
+
+The following applies:
+* Always show output for files that will be renamed
+* If conflicts, show files that won't be renamed
+* If verbose, show reasons that files won't be renamed
+* If quiet, don't show files that won't be renamed
 * If dryrun or verbose, show files as they are renamed
 ```
 if quiet
@@ -387,7 +412,7 @@ Unix style pattern matching is implmented using the python glob module.
 glob.iglob()
 * simplest with the most support
 * doesn't include hidden files
-* supports recursion (not that it should be used)
+* supports recursion
 
 ## 3.3 File renaming arguments
 Filenames are passed in from file pattern matching and split into directory, 
@@ -417,14 +442,13 @@ We can easily create a queue of (src, dest) for renaming.
 ### Conflicts
 Filenames need to be checked for renaming conflicts since renaming can
 potentially overwrite a file.  
-The conflicts field contains detailed information about files that have
-issues or cannot be renamed.
+The conflicts field contains reasons for why a file cannot be renamed.
 * dest: file name that caused an error
 * srcs: list of file names attempting to rename to dest
 * err: set of error codes explaining why the dest is erroneous
 
 ### Unresolvable
-Unresolvable conflicts are files that will not be renamed.  
+Unresolvable conflicts are files that won't be renamed.  
 Unresolvable conflicts are srcs from conflicts. Anything that attempts
 to rename to a file in this field is a conflict.
 
@@ -432,12 +456,13 @@ to rename to a file in this field is a conflict.
 ## 3.4.2 Conflict resolution
 There are different renaming conflicts that can occur:
 1. a file name has not changed
-2. the base name is empty (e.g. parent/file -> parent/)
-3. the base name begins with a dot (e.g. file -> .file)
-4. the base name contains a slash (e.g. file -> fi/le)
-5. file tries to rename to a file or directory that won't be renamed
-6. two or more files are being renamed to the same name
-7. file name is already in conflicts
+2. basename is empty (e.g. parent/file -> parent/)
+3. basename begins with a dot (e.g. file -> .file)
+4. basename contains a slash (e.g. file -> fi/le)
+5. length of basename is longer than 255 characters
+6. file tries to rename to a file or directory that won't be renamed
+7. two or more files are being renamed to the same name
+8. file name is already in conflicts
 
 To build the rename table, the following applies:
 ```
@@ -477,7 +502,7 @@ cascade(target)
 '''
 we need to mark srcs as unusable and invalidate entries in 'renames'  
 that want to rename to our target.  
-See 1.4.3 Cycle Resolution
+See 3.4.3 Cycle Resolution
 '''
 dest = target
 while true
@@ -655,8 +680,3 @@ dir
 * new: interactive option to select/unselect all files
 * new: literal argument to interpret filenames literally
 * bug fixes
-
-
-# Planned updates
-## v0.6.2
-* ???

@@ -1,4 +1,4 @@
-.PHONY: build setup
+.PHONY: setup install remove build clean
 
 setup:
 	pip install -r requirements.txt
