@@ -5,21 +5,21 @@ import urwid
 
 from batchren._version import __version__
 
-version = 'batchren ' + __version__
+version = "batchren " + __version__
 
 
 def create_selectable(text, padding=0):
     if not text:
-        text = 'current working directory'
+        text = "current working directory"
     sel = VariableSelectable(text)
-    item = urwid.AttrMap(urwid.Padding(sel, left=padding), None, focus_map='reversed')
+    item = urwid.AttrMap(urwid.Padding(sel, left=padding), None, focus_map="reversed")
     return item
 
 
 class VariableSelectable(urwid.SelectableIcon):
-    '''
+    """
     SelectableIcon that toggles focus
-    '''
+    """
     def __init__(self, text):
         self.enable_focus = True
         curs_pos = len(text) + 1
@@ -47,7 +47,7 @@ class FileListBox(urwid.ListBox):
 
     def keypress(self, size, key):
         key = super().keypress(size, key)
-        if key != 'enter':
+        if key != "enter":
             return key
 
         if self.toggle:
@@ -80,10 +80,10 @@ class FileListBox(urwid.ListBox):
 
 
 class DirectoryListBox(urwid.ListBox):
-    '''
+    """
     DirectoryListBox that enables/disables focus
     for contained listboxes
-    '''
+    """
     def __init__(self, files):
         self.toggle = False
         d = {}
@@ -105,7 +105,7 @@ class DirectoryListBox(urwid.ListBox):
 
     def keypress(self, size, key):
         key = super().keypress(size, key)
-        if key == 'esc':
+        if key == "esc":
             if not self.toggle:
                 return key
             pos = self.focus_position
@@ -113,7 +113,7 @@ class DirectoryListBox(urwid.ListBox):
             self.toggle_icons()
             self.focus_position -= 1
 
-        if key == 'enter':
+        if key == "enter":
             pos = self.focus_position
             self.body[pos + 1].toggle_focus()
             self.toggle_icons()
@@ -146,28 +146,28 @@ class FileArranger:
         self.status = True
         self.original = files
         self.palette = [
-            ('titlebar', 'black', 'light gray'),
-            ('titlebar-divide', 'black', 'black'),
-            ('green button', 'dark green, bold', 'black'),
-            ('red button', 'dark red, bold', 'black'),
-            ('reversed', 'standout', ''),
+            ("titlebar", "black", "light gray"),
+            ("titlebar-divide", "black", "black"),
+            ("green button", "dark green, bold", "black"),
+            ("red button", "dark red, bold", "black"),
+            ("reversed", "standout", ""),
         ]
         header_cols = urwid.Columns([
-            ('weight', 5, urwid.Text(version)),
-            ('weight', 7, urwid.Text(u'manual file reorder'))
+            ("weight", 5, urwid.Text(version)),
+            ("weight", 7, urwid.Text(u"manual file reorder"))
         ])
 
         self.body = DirectoryListBox(files)
         self.header = urwid.Pile([
-            urwid.AttrMap(urwid.Padding(header_cols, left=2), 'titlebar'),
-            urwid.AttrMap(urwid.Divider(), 'titlebar-divide')
+            urwid.AttrMap(urwid.Padding(header_cols, left=2), "titlebar"),
+            urwid.AttrMap(urwid.Divider(), "titlebar-divide")
         ])
         self.footer = urwid.Text([
-            ('green button', u'ENTER'), u':edit/reorder files  ',
-            ('red button', u'ESC'), u':stop editing current directory  ',
-            ('green button', u'(r)'), u':reset  ',
-            ('red button', u'(q)'), u':save and quit  ',
-            ('red button', u'(c)'), u':abort batchren  ',
+            ("green button", u"ENTER"), u":edit/reorder files  ",
+            ("red button", u"ESC"), u":stop editing current directory  ",
+            ("green button", u"(r)"), u":reset  ",
+            ("red button", u"(q)"), u":save and quit  ",
+            ("red button", u"(c)"), u":abort batchren  ",
         ])
 
         self.view = urwid.Frame(header=self.header,
@@ -175,22 +175,22 @@ class FileArranger:
             footer=self.footer)
 
     def unhandled_input(self, key):
-        if key in ('r', 'R'):
+        if key in ("r", "R"):
             # send a signal to reset file order
             pass
-        elif key in ('c', 'C'):
+        elif key in ("c", "C"):
             # send a signal to abort batchren
             self.status = False
             raise urwid.ExitMainLoop()
-        elif key in ('q', 'Q'):
+        elif key in ("q", "Q"):
             # send a signal to return contents of body
             self.status = True
             raise urwid.ExitMainLoop()
 
     def main(self):
-        '''
+        """
         Run the program
-        '''
+        """
         self.loop = urwid.MainLoop(self.view, self.palette,
             unhandled_input=self.unhandled_input)
         self.loop.run()
@@ -200,7 +200,7 @@ class FileArranger:
             return self.body.get_output()
         else:
             # operation aborted, return None
-            print('Batch rename was aborted')
+            print("Batch rename was aborted")
             return None
 
 
