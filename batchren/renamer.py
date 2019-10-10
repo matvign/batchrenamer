@@ -195,7 +195,7 @@ def _repl_decorator(pattern, repl='', repl_count=0):
     return repl_all if not repl_count else repl_nth
 
 
-def runfilters(filters, path, dirpath, basename):
+def runfilters(filters, filepath, dirpath, basename):
     '''
     Function to run filters.
     path is used for getting modification time in sequences.
@@ -205,7 +205,7 @@ def runfilters(filters, path, dirpath, basename):
     for runf in filters:
         try:
             if isinstance(runf, StringSeq.StringSequence):
-                newname = runf(path, dirpath, newname)
+                newname = runf(filepath, dirpath, newname)
             else:
                 newname = runf(newname)
         except re.error as re_err:

@@ -13,6 +13,18 @@ from batchren import helper, renamer, StringSeq
 from batchren.tui import arrange_tui, selection_tui
 
 
+def check_optional(args):
+    notfilter = {'dryrun', 'quiet', 'verbose', 'path', 'sort', 'sel', 'esc', 'raw'}
+    argdict = vars(args)
+
+    for argname, argval in argdict.items():
+        if argname in notfilter or argval is False:
+            continue
+        if argval is not None:
+            return True
+    return False
+
+
 def expand_dir(path):
     '''
     Custom type for directories.
@@ -278,9 +290,13 @@ class CustomFormatter(argparse.RawTextHelpFormatter):
                 parts.extend(action.option_strings)
 
             else:
-                # default for optional with parameters:
+                # default for optionals with short and long options w/parameters
                 #    -s ARGS, --long ARGS
-                # change to:
+                #
+                # Change behaviour to:
+                # if the optional only has a long option
+                #    --long ARGS
+                # elif the optional has short and long options w/parameters
                 #    -s, ARGS
                 #
                 # default = name of argument in upper case
@@ -291,10 +307,10 @@ class CustomFormatter(argparse.RawTextHelpFormatter):
 
                 for option_string in action.option_strings:
                     if option_string in long_options:
-                        # allow long options that don't have short options
+                        # include long options that don't have short options
                         pass
                     elif option_string[:2] == '--':
-                        # skip long optionals with parameters
+                        # show only short optional
                         continue
                     parts.append('%s' % option_string)
                 args_string = self._hack_metavar(option_string, args_string)
@@ -369,7 +385,7 @@ def main():
     if args.verbose:
         helper.print_args(args)
 
-    if not helper.check_optional(args):
+    if not check_optional(args):
         parser.print_usage()
         print("\nNo optional arguments set for renaming")
         return

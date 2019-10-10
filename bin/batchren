@@ -3,5 +3,4 @@ from batchren import bren
 
 if __name__ == '__main__':
     bren.main()
-    # main.main(args)
     print('Exiting...')

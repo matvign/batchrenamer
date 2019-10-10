@@ -21,8 +21,8 @@ class StringSequence:
         self.args = args
         self._parse_args(args)
 
-    def __call__(self, path, dirpath, filename):
-        if not self.curdir:
+    def __call__(self, filepath, dirpath, filename):
+        if self.curdir is None:
             self.curdir = dirpath
         st = ''
         for t, r in self.rules:
@@ -35,9 +35,9 @@ class StringSequence:
             elif t == SequenceType.FILE:
                 st += filename
             elif t == SequenceType.MDATE:
-                st += r(path)
+                st += r(filepath)
             elif t == SequenceType.MTIME:
-                st += r(path)
+                st += r(filepath)
             elif t == SequenceType.RAW:
                 st += r
         return st

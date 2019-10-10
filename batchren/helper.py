@@ -43,18 +43,6 @@ def print_args(args):
     # print(args, '\n')
 
 
-def check_optional(args):
-    notfilter = {'dryrun', 'quiet', 'verbose', 'path', 'sort', 'sel', 'esc', 'raw'}
-    argdict = vars(args)
-
-    for argname, argval in argdict.items():
-        if argname in notfilter or argval is False:
-            continue
-        if argval is not None:
-            return True
-    return False
-
-
 def escape_path(path, args):
     magic_check = re.compile('([%s])' % args)
     magic_check_bytes = re.compile(b'([%a])' % args)
