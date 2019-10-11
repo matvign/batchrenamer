@@ -12,50 +12,18 @@ from batchren import helper, StringSeq
 
 issues = {
     # issuecodes for rentable
-    0: "no filters applied",
+    0: "name is unchanged",
     1: "name cannot be empty",
-    2: "name cannot start with .",
-    3: "name cannot contain /",
+    2: "name cannot start with '.'",
+    3: "name cannot contain '/'",
     4: "name cannot exceed 255 characters",
     5: "shared name conflict",
     6: "unresolvable conflict"
 }
 
 
-def start_rename(args, files):
-    """
-    Initialize filters and run filters on files
-    Print rentable and give a prompt to start renaming
-    """
-    fileset = set(files)
-    rentable = {
-        "renames": {},
-        "conflicts": {},
-        "unresolvable": set()
-    }
-
-    filters = initfilters(args)
-    for src in files:
-        # split path into directory, basename and extension
-        dirpath, bname, ext = partfile(src, args.raw)
-        bname = runfilters(filters, src, dirpath, bname)
-
-        # change extension, allow '' as an extension
-        if args.extension is not None:
-            ext = args.extension
-
-        # recombine as basename+ext, path+basename+ext
-        basename, dest = joinparts(dirpath, bname, ext, args.raw)
-        assign_rentable(rentable, fileset, src, dest, basename)
-
-    # print contents of rentable and return a sorted queue of files to rename
-    q = print_rentable(rentable, quiet=False, verbose=False)
-    if q and helper.askQuery():
-        rename_queue(q, args)
-
-
 def partfile(path, mode=False):
-    """ Split directory into directory, basename and/or extension """
+    """Split directory into directory, basename and/or extension """
     dirpath, filename = os.path.split(path)
     if not mode:
         # default, extract extensions
@@ -193,6 +161,38 @@ def _repl_decorator(pattern, repl="", repl_count=0):
     replacer._count = 1
 
     return repl_all if not repl_count else repl_nth
+
+
+def start_rename(args, files):
+    """
+    Initialize filters and run filters on files
+    Print rentable and give a prompt to start renaming
+    """
+    fileset = set(files)
+    rentable = {
+        "renames": {},
+        "conflicts": {},
+        "unresolvable": set()
+    }
+
+    filters = initfilters(args)
+    for src in files:
+        # split path into directory, basename and extension
+        dirpath, bname, ext = partfile(src, args.raw)
+        bname = runfilters(filters, src, dirpath, bname)
+
+        # change extension, allow '' as an extension
+        if args.extension is not None:
+            ext = args.extension
+
+        # recombine as basename+ext, path+basename+ext
+        basename, dest = joinparts(dirpath, bname, ext, args.raw)
+        assign_rentable(rentable, fileset, src, dest, basename)
+
+    # print contents of rentable and return a sorted queue of files to rename
+    q = print_rentable(rentable, quiet=args.quiet, verbose=args.verbose)
+    if q and helper.askQuery():
+        rename_queue(q, args)
 
 
 def runfilters(filters, filepath, dirpath, basename):
@@ -335,13 +335,12 @@ def print_rentable(rentable, quiet=False, verbose=False):
             print("no conflicts found", "\n")
 
     elif unres:
-        # don't show anything if there weren't conflicts
-        # otherwise show files that can't be renamed
+        # show files that can't be renamed if not verbose or quiet
         print("{:-^30}".format(helper.BOLD + "issues/conflicts" + helper.END))
         print("the following files will NOT be renamed")
         print(*["'{}'".format(s) for s in natsorted(unres, alg=ns.PATH)], "", sep="\n")
 
-    # always show this output
+    # always show files that will be renamed
     # return list of tuples (dest, src) sorted by src
     print("{:-^30}".format(helper.BOLD + "rename" + helper.END))
     renames = natsorted(ren.items(), key=lambda x: x[1], alg=ns.PATH)
@@ -384,9 +383,7 @@ def name_gen():
 
 
 def rename_queue(queue, args):
-    """
-    Rename src to dest from a list of tuples [(dest, src), ...]
-    """
+    """Rename src to dest from a list of tuples [(dest, src), ...] """
     n = name_gen()
     next(n)
     q = deque(queue)
