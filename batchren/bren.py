@@ -26,10 +26,8 @@ def check_optional(args):
 
 
 def expand_dir(path):
-    """
-    Custom type for directories.
-    Add '*' if path is a directory
-    Otherwise return the path unaltered
+    """Function to process directory option\n
+    Add '*' if path is a directory, otherwise return path unaltered.
     """
     path = os.path.normpath(path)
     if os.path.isdir(path):
@@ -38,8 +36,7 @@ def expand_dir(path):
 
 
 def validate_ext(ext):
-    """
-    Extension validation
+    """Validate extension option\n
     Give an error if argument contains '/' or '\'
     """
     err1 = "illegal character in extension"
@@ -49,6 +46,9 @@ def validate_ext(ext):
 
 
 def validate_esc(arg):
+    """Validate esc options\n
+    Give an error if the characters aren't '*?[]'
+    """
     arg = arg.replace("]", "[")
     argset = set(arg)
     charset = {"*", "?", "["}
@@ -64,13 +64,12 @@ def trim(arg):
 
 
 class TranslateAction(argparse.Action):
-    """
-    batchren -tr CHARS CHARS
-    Custom action for translate. Accept two arguments.
-    Store argument as a tuple
-    Give an error if
-        both values are empty
-        there aren't two arguments (achieved through nargs=2)
+    """batchren -tr CHARS CHARS\n
+    Custom action for translate. Accept two arguments.\n
+    Return argument as a tuple\n
+    Give an error if\n
+        both values are empty\n
+        there aren't two arguments (achieved through nargs=2)\n
         argument lengths aren't equal
     """
     def __call__(self, parser, namespace, values, option_string=None):
@@ -86,12 +85,11 @@ class TranslateAction(argparse.Action):
 
 
 class SliceAction(argparse.Action):
-    """
-    batchren -sl start:end:step
-    Custom action for slices. Accept argument separated by semicolons.
-    Give an error if
-        argument value is empty ('')
-        cannot convert to slice object (too many arguments)
+    """batchren -sl start:end:step\n
+    Custom action for slices. Accept argument separated by semicolons.\n
+    Give an error if\n
+        argument value is empty ('')\n
+        cannot convert to slice object (too many arguments)\n
         value is not integer
     """
     def __call__(self, parser, namespace, values, option_string=None):
@@ -111,15 +109,14 @@ class SliceAction(argparse.Action):
 
 
 class ShaveAction(argparse.Action):
-    """
-    batchren -sh head:tail
-    Custom action for shave. Accept one argument separated by semicolon.
-    Slice values must be positive integers. Create two slice objects from args.
-    Give an error if
-        argument value is empty ('')
-        more than two values
-        any non-numeric character
-        both values are None
+    """batchren -sh head:tail\n
+    Custom action for shave. Accept one argument separated by semicolon.\n
+    Slice values must be positive integers. Create two slice objects from args.\n
+    Give an error if\n
+        argument value is empty ('')\n
+        more than two values\n
+        any non-numeric character\n
+        both values are None\n
         any values are negative
     """
     def __call__(self, parser, namespace, values, option_string=None):
@@ -154,17 +151,16 @@ class ShaveAction(argparse.Action):
 
 
 class RegexAction(argparse.Action):
-    """
-    batchren -re PATTERN REPL COUNT
-    Custom action for regex. Accept up to three arguments.
-    If one argument, remove instances of PATTERN.
-    If two arguments, replace all instances PATTERN by REPL.
-    If three arguments, replace COUNT'th instance of PATTERN BY REPL.
-    Second argument default is '', third argument default is 0.
-    Give an error if
-        pattern argument is empty ('')
-        no arguments/too many arguments (>3)
-        regex/sre compile error
+    """batchren -re PATTERN REPL COUNT\n
+    Custom action for regex. Accept up to three arguments.\n
+    If one argument, remove instances of PATTERN.\n
+    If two arguments, replace all instances PATTERN by REPL.\n
+    If three arguments, replace COUNT'th instance of PATTERN BY REPL.\n
+    Second argument default is '', third argument default is 0.\n
+    Give an error if\n
+        pattern argument is empty ('')\n
+        no arguments/too many arguments (>3)\n
+        regex/sre compile error\n
         if value is not an integer >= 0
     """
     def __call__(self, parser, namespace, values, option_string=None):
@@ -198,16 +194,15 @@ class RegexAction(argparse.Action):
 
 
 class BracketAction(argparse.Action):
-    """
-    batchren -bracr {curly, round, square} COUNT
-    Custom action for a bracket remover.
-    Accept at least one argument and at most two arguments.
-    Create different patterns with regex depending on bracket type.
-    If one argument, remove instances of bracket type.
-    If two arguments, remove COUNT'th instance of bracket type.
-    Give an error if
-        no arguments/too many arguments (>2)
-        invalid bracket type ('', other...)
+    """batchren -bracr {curly, round, square} COUNT\n
+    Custom action for a bracket remover.\n
+    Accept at least one argument and at most two arguments.\n
+    Create different patterns with regex depending on bracket type.\n
+    If one argument, remove instances of bracket type.\n
+    If two arguments, remove COUNT'th instance of bracket type.\n
+    Give an error if\n
+        no arguments/too many arguments (>2)\n
+        invalid bracket type ('', other...)\n
         bracket target is not an integer >= 0
     """
     def __call__(self, parser, namespace, values, option_string=None):
@@ -239,10 +234,9 @@ class BracketAction(argparse.Action):
 
 
 class SequenceAction(argparse.Action):
-    """
-    batchren -seq SEQUENCE
-    Custom action for sequence. Accept one argument.
-    Attempt to parse SEQUENCE into a seqObj.
+    """batchren -seq SEQUENCE\n
+    Custom action for sequence. Accept one argument.\n
+    Attempt to parse SEQUENCE into a seqObj.\n
     Raise errors on exceptions.
     """
     def __call__(self, parser, namespace, values, option_string=None):
@@ -258,10 +252,9 @@ class SequenceAction(argparse.Action):
 
 
 class CustomFormatter(argparse.RawTextHelpFormatter):
-    """
-    Custom formatter for argparse.
-    Skip long optionals that have parameters.
-    Replace metavars for specific arguments.
+    """Custom formatter for argparse.\n
+    Skip long optionals that have parameters.\n
+    Replace metavars for specific arguments.\n
     Use argparse.RawTextHelpFormatter to use textwrap
     """
     def _hack_metavar(self, option_string, args_string):
@@ -397,7 +390,6 @@ def main():
         # only include files
         files = [f for f in glob.iglob(args.path, recursive=True) if os.path.isfile(f)]
         files = natsorted(files, reverse=False, alg=ns.PATH)
-
     except OSError as err:
         raise argparse.ArgumentParser.error("An error occurred while searching for files: " + str(err))
 
@@ -423,4 +415,7 @@ def main():
     if args.verbose:
         helper.print_found(files)
 
-    renamer.start_rename(args, files)
+    try:
+        renamer.start_rename(files, args)
+    except Exception as err:
+        print(err)

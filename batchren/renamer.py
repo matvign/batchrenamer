@@ -22,10 +22,10 @@ issues = {
 }
 
 
-def partfile(path, mode=False):
+def partfile(path, raw=False):
     """Split directory into directory, basename and/or extension """
     dirpath, filename = os.path.split(path)
-    if not mode:
+    if not raw:
         # default, extract extensions
         basename, ext = os.path.splitext(filename)
     else:
@@ -35,37 +35,29 @@ def partfile(path, mode=False):
     return (dirpath, basename, ext)
 
 
-def joinparts(dirpath, basename, ext, mode=False):
-    """
-    Combine directory path, basename and extension.
-    Strip spaces in basename
-    Remove spaces and strip+collapse dots in extension
-    Return the new filename and the full path
-    """
-    filename = basename
-    if not mode:
+def joinparts(dirpath, basename, ext, raw=False):
+    """Combine directory path, basename and extension """
+    path = basename
+    if not raw:
         # default, process filename before applying extension
-        filename = filename.strip()
+        path = path.strip()
 
     if ext:
         # remove spaces, strip and collapse dots from extension
-        # remove trailing dots from filename and add extension
+        # remove trailing dots from filename before adding extension
         ext = re.sub(r"\.+", ".", ext.replace(" ", "").strip("."))
-        filename = filename.strip(".") + "." + ext
+        path = path.strip(".") + "." + ext
 
-    if mode:
-        # raw, process filename after applying extension
-        filename = filename.strip()
-
-    path = filename
+    # raw, process filename after applying extension
+    path = path.strip()
     if dirpath:
-        path = os.path.join(dirpath, filename)
+        path = os.path.join(dirpath, path)
 
-    return (filename, path)
+    return path
 
 
 def initfilters(args):
-    # create filters in a list
+    """Create functions in a list """
     filters = []
     if args.regex:
         try:
@@ -101,7 +93,7 @@ def initfilters(args):
         filters.append(translate)
 
     if args.spaces is not None:
-        space = lambda x: x.replace(" ", args.spaces)
+        space = lambda x: re.sub(r"\s+", args.spaces, x)
         filters.append(space)
 
     if args.case:
@@ -130,11 +122,11 @@ def initfilters(args):
 
 
 def _repl_decorator(pattern, repl="", repl_count=0):
-    """
-    Return one of two functions:
-    1. Normal re.sub
-    2. re.sub with counter that removes nth instance.
-       Use function attribute as a counter.
+    """Decorator function for regex replacement\n
+    Return one of two functions:\n
+        1. Normal re.sub\n
+        2. re.sub with counter to remove nth instance.\n
+           Uses a function attribute as counter.\n
     """
     def repl_all(x):
         return re.sub(pattern, repl, x)
@@ -145,10 +137,9 @@ def _repl_decorator(pattern, repl="", repl_count=0):
         return f
 
     def replacer(matchobj):
-        """
-        Function to be used with re.sub.
-        Replace string match with repl if count = count.
-        Otherwise return the string match
+        """Function to be used with re.sub\n
+        Replace string match with repl if count = count\n
+        Otherwise return the string match\n
         """
         if matchobj.group() and replacer._count == repl_count:
             res = repl
@@ -157,57 +148,43 @@ def _repl_decorator(pattern, repl="", repl_count=0):
         replacer._count += 1
         return res
 
-    # initialise all replacer functions to one
+    # initialise count of replacer functions to one
     replacer._count = 1
 
     return repl_all if not repl_count else repl_nth
 
 
-def start_rename(args, files):
-    """
-    Initialize filters and run filters on files
-    Print rentable and give a prompt to start renaming
-    """
-    fileset = set(files)
-    rentable = {
-        "renames": {},
-        "conflicts": {},
-        "unresolvable": set()
-    }
+def start_rename(files, args):
+    src_files = files
+    dest_files = files
 
     filters = initfilters(args)
-    for src in files:
-        # split path into directory, basename and extension
-        dirpath, bname, ext = partfile(src, args.raw)
-        bname = runfilters(filters, src, dirpath, bname)
-
-        # change extension, allow '' as an extension
-        if args.extension is not None:
-            ext = args.extension
-
-        # recombine as basename+ext, path+basename+ext
-        basename, dest = joinparts(dirpath, bname, ext, args.raw)
-        assign_rentable(rentable, fileset, src, dest, basename)
-
-    # print contents of rentable and return a sorted queue of files to rename
-    q = print_rentable(rentable, quiet=args.quiet, verbose=args.verbose)
+    dest_files = get_renames(dest_files, filters, args.extension, args.raw)
+    rentable = generate_rentable(src_files, dest_files)
+    q = print_rentable(rentable, args.quiet, args.verbose)
     if q and helper.askQuery():
         rename_queue(q, args)
 
 
-def runfilters(filters, filepath, dirpath, basename):
-    """
-    Function to run filters.
-    path is used for getting modification time in sequences.
-    dirpath is used for resetting sequences on different directories.
-    """
-    newname = basename
+def get_renames(src_files, filters, ext, raw):
+    """Rename list of files with a list of functions """
+    dest_files = []
+    for src in src_files:
+        dest = runfilters(src, filters, ext, raw)
+        dest_files.append(dest)
+
+    return dest_files
+
+
+def runfilters(path, filters, extension=None, raw=False):
+    """Rename file with a list of functions """
+    dirpath, bname, ext = partfile(path, raw)
     for runf in filters:
         try:
             if isinstance(runf, StringSeq.StringSequence):
-                newname = runf(filepath, dirpath, newname)
+                bname = runf(path, dirpath, bname)
             else:
-                newname = runf(newname)
+                bname = runf(bname)
         except re.error as re_err:
             sys.exit("A regex error occurred: " + str(re_err))
         except OSError as os_err:
@@ -216,65 +193,87 @@ def runfilters(filters, filepath, dirpath, basename):
         except Exception as exc:
             sys.exit("An unforeseen error occurred: " + str(exc))
 
-    return newname
+    # change extension, allow '' as an extension
+    if extension is not None:
+        ext = extension
+
+    # recombine as basename+ext, path+basename+ext
+    res = joinparts(dirpath, bname, ext, raw)
+    return res
 
 
-def assign_rentable(rentable, fileset, src, dest, bname):
-    errset = set()
-    if dest in rentable["conflicts"]:
-        # this name is already in conflict, add src to conflicts
-        rentable["conflicts"][dest]["srcs"].append(src)
-        rentable["conflicts"][dest]["err"].add(5)
-        errset = rentable["conflicts"][dest]["err"]
-        cascade(rentable, src)
+def generate_rentable(src_files, dest_files):
+    """Generate a table of files that can and cannot be renamed """
+    if len(src_files) != len(dest_files):
+        raise ValueError("src list and dest list must have the same length")
 
-    elif dest in rentable["renames"]:
-        # this name is taken, invalidate both names
-        if dest == src:
-            errset.add(0)
-        errset.add(5)
+    fileset = set(src_files)
+    rentable = {
+        "renames": {},
+        "conflicts": {},
+        "unresolvable": set()
+    }
 
-        temp = rentable["renames"][dest]
-        del rentable["renames"][dest]
-        rentable["conflicts"][dest] = {"srcs": [temp, src], "err": errset}
-        for n in rentable["conflicts"][dest]["srcs"]:
-            cascade(rentable, n)
+    for src, dest in zip(src_files, dest_files):
+        errset = set()
+        _, bname = os.path.split(dest)
 
-    elif dest in rentable["unresolvable"]:
-        # file won't be renamed, assign to unresolvable
-        errset.add(6)
-        rentable["conflicts"][dest] = {"srcs": [src], "err": errset}
-        cascade(rentable, src)
+        if dest in rentable["conflicts"]:
+            # this name is already in conflict, add src to conflicts
+            rentable["conflicts"][dest]["srcs"].append(src)
+            rentable["conflicts"][dest]["err"].add(5)
+            errset = rentable["conflicts"][dest]["err"]
+            cascade(rentable, src)
 
-    else:
-        if dest not in fileset and os.path.exists(dest):
-            # file exists but not in fileset, assign to unresolvable
+        elif dest in rentable["renames"]:
+            # this name is taken, invalidate both names
+            if dest == src:
+                errset.add(0)
+            errset.add(5)
+
+            temp = rentable["renames"][dest]
+            del rentable["renames"][dest]
+            rentable["conflicts"][dest] = {"srcs": [temp, src], "err": errset}
+            for n in rentable["conflicts"][dest]["srcs"]:
+                cascade(rentable, n)
+
+        elif dest in rentable["unresolvable"]:
+            # file won't be renamed, assign to unresolvable
             errset.add(6)
-
-        if dest == src:
-            # name hasn't changed, don't rename this
-            errset.add(0)
-
-        if bname == "":
-            # name is empty, don't rename this
-            errset.add(1)
-        elif bname[0] == ".":
-            # . is reserved in unix
-            errset.add(2)
-
-        if "/" in bname:
-            # / usually indicates some kind of directory
-            errset.add(3)
-
-        if len(bname) > 255:
-            errset.add(4)
-
-        if errset:
             rentable["conflicts"][dest] = {"srcs": [src], "err": errset}
             cascade(rentable, src)
 
-    if not errset:
-        rentable["renames"][dest] = src
+        else:
+            if dest not in fileset and os.path.exists(dest):
+                # file exists but not in fileset, assign to unresolvable
+                errset.add(6)
+
+            if dest == src:
+                # name hasn't changed, don't rename this
+                errset.add(0)
+
+            if bname == "":
+                # name is empty, don't rename this
+                errset.add(1)
+            elif bname[0] == ".":
+                # . is reserved in unix
+                errset.add(2)
+
+            if "/" in bname:
+                # / usually indicates some kind of directory
+                errset.add(3)
+
+            if len(bname) > 255:
+                errset.add(4)
+
+            if errset:
+                rentable["conflicts"][dest] = {"srcs": [src], "err": errset}
+                cascade(rentable, src)
+
+        if not errset:
+            rentable["renames"][dest] = src
+
+    return rentable
 
 
 def cascade(rentable, target):
@@ -296,14 +295,12 @@ def cascade(rentable, target):
 
 
 def print_rentable(rentable, quiet=False, verbose=False):
-    """
-    Print contents of rentable.
-    For conflicts:
-        if quiet: don't show error output
-        if verbose: show detailed errors
-        if verbose and no errors: show message
-        if not verbose, no errors, show nothing
-        if not verbose, errors, show unrenamable files
+    """Print contents of table.\n
+    if quiet: don't show errors\n
+    if verbose: show detailed errors\n
+    if verbose and no errors: show message\n
+    if not verbose, no errors: show nothing\n
+    if not verbose, errors: show unrenamable files\n
     Always show output for renames
     """
     ren = rentable["renames"]
@@ -393,7 +390,6 @@ def rename_queue(queue, args):
     while q:
         dest, src = q.popleft()
         if os.path.exists(dest):
-            # temp = getFreeName(dest)
             dirpath, _ = os.path.split(dest)
             tmp = n.send(dirpath)
             if args.verbose or args.dryrun:
