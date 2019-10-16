@@ -46,7 +46,7 @@ def joinparts(dirpath, basename, ext, raw=False):
         # remove spaces, strip and collapse dots from extension
         # remove trailing dots from filename before adding extension
         ext = re.sub(r"\.+", ".", ext.replace(" ", "").strip("."))
-        path = path.strip(".") + "." + ext
+        path = path.rstrip(".") + "." + ext
 
     # raw, process filename after applying extension
     path = path.strip()

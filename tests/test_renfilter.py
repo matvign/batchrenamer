@@ -1,26 +1,106 @@
 #!/usr/bin/env python3
 import pytest
 
-from batchren import main, bren, renamer
+from batchren import bren, renamer
+parser = bren.parser
 
-'''
-tests for filters of names
-Run 'pytest' in the top level directory
+"""
+Tests for batchren.renamer written with pytest.
 
-origpath and dirpath is only used in sequences.
-
-argparse will only raise a systemexit when nargs = n and len(args) < n
-it does not handle len(args) > n.
-
-argparse does not handle anything for nargs = *, which means
-we can test for both len(args) < n, len(args) > n
+Performs tests for the following:
+- partfile
+- joinparts
+- optional arguments
+- conflict resolution
+- renaming with temporary files
 
 tmpdir is a py.path.local object, more details here:
 https://py.readthedocs.io/en/latest/path.html
-'''
-parser = bren.parser
+"""
 
 
+@pytest.mark.parametrize("path_arg, path_res", [
+    (["file", False], ("", "file", "")),
+    (["file.txt", False], ("", "file", ".txt")),
+    (["archive.tar.gz", False], ("", "archive.tar", ".gz")),
+    (["dir/file", False], ("dir", "file", "")),
+    (["dir/file.txt", False], ("dir", "file", ".txt")),
+    (["dir/subdir/file", False], ("dir/subdir", "file", "")),
+    (["dir/subdir/file.txt", False], ("dir/subdir", "file", ".txt")),
+    (["file", True], ("", "file", "")),
+    (["file.txt", True], ("", "file.txt", "")),
+    (["archive.tar.gz", True], ("", "archive.tar.gz", "")),
+    (["dir/file", True], ("dir", "file", "")),
+    (["dir/file.txt", True], ("dir", "file.txt", "")),
+    (["dir/subdir/file", True], ("dir/subdir", "file", "")),
+    (["dir/subdir/file.txt", True], ("dir/subdir", "file.txt", ""))
+])
+def test_misc_partfile(path_arg, path_res):
+    res = renamer.partfile(*path_arg)
+    assert res == path_res
+
+
+@pytest.mark.parametrize("join_arg, join_res", [
+    (["", "file", "", False], ("file")),
+    (["", " file", "", False], ("file")),
+    (["", "  file  ", "", False], ("file")),
+    (["", ".file", "", False], (".file")),
+    (["", " .file", "", False], (".file")),
+    (["", ". file", "", False], (". file")),
+
+    (["dir", "file", "", False], ("dir/file")),
+    (["dir", " file", "", False], ("dir/file")),
+    (["dir", "  file  ", "", False], ("dir/file")),
+    (["dir", ".file", "", False], ("dir/.file")),
+    (["dir", " .file", "", False], ("dir/.file")),
+    (["dir", ". file", "", False], ("dir/. file")),
+
+    (["", "file", ".txt", False], ("file.txt")),
+    (["", " file", ".txt", False], ("file.txt")),
+    (["", "  file  ", ".txt", False], ("file.txt")),
+    (["", ".file", ".txt", False], (".file.txt")),
+    (["", " .file", ".txt", False], (".file.txt")),
+    (["", ". file", ".txt", False], (". file.txt")),
+
+    (["dir", "file", ".txt.sav", False], ("dir/file.txt.sav")),
+    (["dir", "file", "...  e  xt?. ext. .."], ("dir/file.ext?.ext")),
+
+    (["dir", "file  ", ".txt", True], ("dir/file  .txt")),
+    (["dir", "  file", ".txt", True], ("dir/file.txt"))
+])
+def test_misc_joinparts(join_arg, join_res):
+    res = renamer.joinparts(*join_arg)
+    assert res == join_res
+
+
+@pytest.mark.parametrize("pre_arg, pre_src, pre_dest", [
+    (["lecture"], ["01", "02"], ["lecture01", "lecture02"]),
+    (["lecture"], ["dir/01", "dir/02"], ["dir/lecture01", "dir/lecture02"])
+])
+def test_filter_prepend(pre_arg, pre_src, pre_dest):
+    args = parser.parse_args(["-pre", *pre_arg])
+    filters = renamer.initfilters(args)
+    dest = renamer.get_renames(pre_src, filters, args.extension, args.raw)
+    print(dest)
+    print(pre_dest)
+    assert dest == pre_dest
+
+
+@pytest.mark.parametrize("post_arg, post_src, post_dest", [
+    (["pend"], ["ap", "pre"], ["append", "prepend"]),
+    (["_unsw"], ["dir/lec01", "dir/lec02"], ["dir/lec01_unsw", "dir/lec02_unsw"])
+    (["_usyd"], ["dir/lec01.pdf", "dir/lec02.pdf"], ["dir/lec01_usyd.pdf", "dir/lec02_usyd.pdf"])
+])
+def test_filter_postpend(post_arg, post_src, post_dest):
+    args = parser.parse_args(["-post", *post_arg])
+    filters = renamer.initfilters(args)
+    dest = renamer.get_renames(post_src, filters, args.extension, args.raw)
+    print(dest)
+    print(post_dest)
+    assert dest == post_dest
+
+
+"""
 def pairwise(lst1, lst2, tmpdir=None):
     if len(lst1) != len(lst2):
         raise Exception('list lengths must be equal!')
@@ -33,23 +113,6 @@ def pairwise(lst1, lst2, tmpdir=None):
                 yield tmpdir.join(next(it1)), tmpdir.join(next(it2))
     except StopIteration:
         return
-
-
-@pytest.mark.parametrize("pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res", [
-    # tests for prepend
-    # arg, origpath, dirpath, filename, expected result
-    ('PRE_', '', '', 'FILE', 'PRE_FILE'),
-    ('PRE_', '', '', 'file', 'PRE_file'),
-    ('PRE_', '', 'parent', 'file', 'PRE_file'),
-    ('PRE_', '', '', 'file.mp4', 'PRE_file.mp4')
-])
-def test_filter_prepend(pre_arg, pre_origpath, pre_dirpath, pre_fname, pre_res):
-    args = parser.parse_args(['-pre', pre_arg])
-    filters = renamer.initfilters(args)
-    newname = renamer.runfilters(filters, pre_origpath, pre_dirpath, pre_fname)
-    print('oldname: {} --> newname: {}'.format(pre_fname, newname))
-    assert newname == pre_res
-
 
 @pytest.mark.parametrize("pre_args, pre_before, pre_after", [
     (['-pre', 'pre_', '-v'], ['file1', 'file2'], ['pre_file1', 'pre_file2']),
@@ -73,20 +136,6 @@ def test_rename_prepend(pre_args, pre_before, pre_after, tmpdir, monkeypatch):
         assert before.check(file=0)
         assert after.check(file=1)
         assert after.read() == before
-
-
-@pytest.mark.parametrize("post_arg, post_origpath, post_dirpath, post_fname, post_res", [
-    # tests for postpend
-    # arg, origpath, dirpath, filename, expected result
-    ('_POST', '', '', 'file', 'file_POST'),
-    ('_POST', '', 'parent', 'file', 'file_POST'),
-])
-def test_filter_postpend(post_arg, post_origpath, post_dirpath, post_fname, post_res):
-    args = parser.parse_args(['-post', post_arg])
-    filters = renamer.initfilters(args)
-    newname = renamer.runfilters(filters, post_dirpath, post_dirpath, post_fname)
-    print('oldname: {} --> newname: {}'.format(post_fname, newname))
-    assert newname == post_res
 
 
 @pytest.mark.parametrize("sp_arg, sp_origpath, sp_dirpath, sp_fname, sp_res", [
@@ -386,3 +435,4 @@ def test_filter_re_err(re_errargs):
         args = parser.parse_args(['-re', *re_errargs])
         print(re_errargs, "is erroneous")
         assert err.type == SystemExit
+"""

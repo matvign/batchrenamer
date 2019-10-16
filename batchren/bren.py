@@ -45,12 +45,12 @@ def validate_ext(ext):
     return ext
 
 
-def validate_esc(arg):
+def validate_esc(esc):
     """Validate esc options\n
     Give an error if the characters aren't '*?[]'
     """
-    arg = arg.replace("]", "[")
-    argset = set(arg)
+    esc = esc.replace("]", "[")
+    argset = set(esc)
     charset = {"*", "?", "["}
     if argset.difference(charset):
         err = "input character is not '*?[]'"
@@ -184,7 +184,7 @@ class RegexAction(argparse.Action):
         except re.error as err:
             # error from compiling regex
             parser.error(argtype + err4 + str(err))
-        except sre_constants.err as sre_err:
+        except sre_constants.error as sre_err:
             # extra compilation error for regex
             parser.error(argtype + err4 + str(sre_err))
         except ValueError:

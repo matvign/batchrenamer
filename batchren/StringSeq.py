@@ -52,8 +52,7 @@ class StringSequence:
         return self.rules
 
     def _num_generator(self, depth=2, start=1, end=None, step=1):
-        """
-        Generator function for numbers given a depth, start, end, step
+        """Generator function for numbers given a depth, start, end, step
         Resets are supported. If reset, go back to start.
         If end > start, or step = 0 values will always be start. NOT a bug!
         """
@@ -71,8 +70,7 @@ class StringSequence:
                     i = start
 
     def _alpha_generator(self, depth=1, start="a", end="z"):
-        """
-        Generator function for letters given a depth, start, end.
+        """Generator function for letters given a depth, start, end.
         Start is where sequencing begins. Consists only of letters.
         End is where sequencing ends. Consists only of letters.
         Depth determines how much end should repeat.
@@ -126,19 +124,18 @@ class StringSequence:
                                 break
 
     def _md_generator(self, arg):
-        # Return modification date of file
+        """Return modification date of file """
         tstamp = getmtime(arg)
         return datetime.fromtimestamp(tstamp).strftime("%Y-%m-%d")
 
     def _mt_generator(self, arg):
-        # Return modification time of file
+        """Return modification time of file """
         tstamp = getmtime(arg)
         return datetime.fromtimestamp(tstamp).strftime("%H.%M.%S")
 
     def _parse_num(self, args):
-        """
-        Parse the arguments as a number sequence
-        %n[depth]:start:end
+        """Parse the arguments as a number sequence
+        %n[depth]:start:end:step
         Raise error if:
             depth value is not a number
             too many arguments (>4)
@@ -165,8 +162,7 @@ class StringSequence:
         self.rules.append((SequenceType.SEQ, gen))
 
     def _parse_alpha(self, args):
-        """
-        Parse the arguments as an alphabetical sequence
+        """Parse the arguments as an alphabetical sequence
         %a[depth]:start:end
         Raise error if:
             depth value is not a number
@@ -180,11 +176,11 @@ class StringSequence:
         matchobj = re.match(r"^(a)(\d*)$", seq_args[0])
         if not matchobj:
             raise ValueError(msg1)
-        elif len(args) > 3:
+        elif len(seq_args) > 3:
             raise TypeError(msg2)
         depth = int(matchobj.group(2)) if matchobj.group(2) else 1
         sl = []
-        for x in args[1:]:
+        for x in seq_args[1:]:
             if x == "":
                 sl.append(None)
             else:
@@ -211,9 +207,7 @@ class StringSequence:
             raise ValueError(msg + arg)
 
     def _parse_args(self, args):
-        """
-        process each part of the sequence
-        and convert it into a rule
+        """Process each part of the sequence and it into a rule
         txt//%f/%n2/ -> [txt, '', %f, %n2, '']
         """
         for n in args.split("/"):
