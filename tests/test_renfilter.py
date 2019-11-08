@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
+import os
+
 import pytest
 
 from batchren import bren, renamer
 parser = bren.parser
 
-"""
-Tests for batchren.renamer written with pytest.
+"""Tests for batchren.renamer written with pytest.
 
 Performs tests for the following:
 - partfile
@@ -14,8 +15,8 @@ Performs tests for the following:
 - conflict resolution
 - renaming with temporary files
 
-tmpdir is a py.path.local object, more details here:
-https://py.readthedocs.io/en/latest/path.html
+Some tests utilize the tmp_path_factory fixture, which is a pathlib object.
+Details here: https://docs.python.org/3/library/pathlib.html
 """
 
 
@@ -88,7 +89,7 @@ def test_filter_prepend(pre_arg, pre_src, pre_dest):
 
 @pytest.mark.parametrize("post_arg, post_src, post_dest", [
     (["pend"], ["ap", "pre"], ["append", "prepend"]),
-    (["_unsw"], ["dir/lec01", "dir/lec02"], ["dir/lec01_unsw", "dir/lec02_unsw"])
+    (["_unsw"], ["dir/lec01", "dir/lec02"], ["dir/lec01_unsw", "dir/lec02_unsw"]),
     (["_usyd"], ["dir/lec01.pdf", "dir/lec02.pdf"], ["dir/lec01_usyd.pdf", "dir/lec02_usyd.pdf"])
 ])
 def test_filter_postpend(post_arg, post_src, post_dest):

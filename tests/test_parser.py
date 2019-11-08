@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import argparse
+import os
 
 import pytest
 
-from batchren import bren
+from batchren import bren, helper
 parser = bren.parser
 
-"""
-Tests for batchren.bren written with pytest.
+"""Tests for batchren.bren written with pytest.
 
 Performs tests for the following:
 - check_optional
@@ -19,19 +19,17 @@ Performs tests for the following:
 
 pytest: http://doc.pytest.org/en/latest/contents.html
 
-Some tests utilize the tmpdir fixture, which is a py.path.local object.
-Details here: https://py.readthedocs.io/en/latest/path.html
+Some tests utilize the tmp_path_factory fixture, which is a pathlib object.
+Details here: https://docs.python.org/3/library/pathlib.html
 """
 
 
-fs = {
-    "dir": ["a", "b", "c"],
-    "dir/subdir": ["suba", "subb", "subc"]
-}
-
-
 @pytest.fixture(scope="session")
-def dir_fact(tmp_path_factory):
+def directory(tmp_path_factory):
+    fs = {
+        "dir": ["filea", "fileb", "filec", "file01"],
+        "dir/subdir": ["filea", "fileb", "filec"]
+    }
     dir_ = tmp_path_factory.mktemp("")
     for key, val in fs.items():
         d_ = dir_ / key
@@ -43,58 +41,18 @@ def dir_fact(tmp_path_factory):
     return dir_
 
 
-def test_dirs(dir_fact):
-    for key, val in fs.items():
-        for v in val:
-            f = dir_fact / key / v
-            print(f)
-            assert f.read_text() == v
-
-
-def test_parser_defaults():
-    args = parser.parse_args([])
-    print(args)
-    assert args.path == "*"
-    assert args.sort == "asc"
-    assert args.verbose is False
-    assert args.quiet is False
-
-
-@pytest.mark.parametrize("path_arg, path_res", [
-    # tests for expanding directories
-    ("dir/", "dir/*"),
-    ("dir", "dir/*"),
-    ("dir/subdir", "dir/subdir/*"),
-    # not directories, don't change anything
-    ("file.txt", "file.txt"),
-    ("dir/subdir/hello.txt", "dir/subdir/hello.txt")
+@pytest.mark.parametrize("esc_path, esc_arg, esc_res", [
+    ("file*", "*", "file[*]"),
+    ("file?", "?", "file[?]"),
+    ("file[720]", "[]", "file[[]720]"),
+    ("file[720]", "[", "file[[]720]"),
+    ("file[720]", "]", "file[[]720]")
 ])
-def test_expanddir(path_arg, path_res, tmpdir):
-    # create directory structure
-    tmpdir.mkdir("dir").mkdir("subdir")
-    tmpdir.chdir()
-    p = tmpdir.join("hello.txt")
-
-    res = bren.expand_dir(path_arg)
-    print(res)
-    assert res == path_res
-
-
-@pytest.mark.parametrize("ext_errarg", [
-    "/ext",
-    "e/xt",
-    "ex/t",
-    "/ex/t",
-    r"\ext",
-    r"e\xt",
-    r"ex\t",
-    r"\ex\t"
-])
-def test_validate_ext(ext_errarg):
-    with pytest.raises(argparse.ArgumentTypeError) as err:
-        ext = bren.validate_ext(ext_errarg)
-        print(ext_errarg, "is erroneous")
-        print(err)
+def test_escape_path(esc_path, esc_arg, esc_res):
+    """Test escaping of special characters in path argument """
+    esc_arg = bren.validate_esc(esc_arg)
+    esc = helper.escape_path(esc_path, esc_arg)
+    assert esc == esc_res
 
 
 @pytest.mark.parametrize("esc_errarg", [
@@ -104,11 +62,58 @@ def test_validate_ext(ext_errarg):
     ".()"
     ".{}"
 ])
-def test_validate_esc(esc_errarg):
+def test_validate_esc_err(esc_errarg):
+    """Validate escape argument only contains '*?[]' """
     with pytest.raises(argparse.ArgumentTypeError) as err:
         esc = bren.validate_esc(esc_errarg)
         print(esc_errarg, "is erroneous")
         print(err)
+
+
+@pytest.mark.parametrize("glob_pattern, glob_files", [
+    ("dir/*", ["dir/file01", "dir/filea", "dir/fileb", "dir/filec"]),
+    ("dir/file[ab]", ["dir/filea", "dir/fileb"]),
+    ("dir/file[abc]", ["dir/filea", "dir/fileb", "dir/filec"]),
+    ("dir/file01", ["dir/file01"]),
+    ("dir/filea", ["dir/filea"]),
+    ("dir/subdir/*", ["dir/subdir/filea", "dir/subdir/fileb", "dir/subdir/filec"]),
+    ("dir/subdir/file[a]", ["dir/subdir/filea"]),
+    ("**/*",
+        ["dir/file01", "dir/filea", "dir/fileb", "dir/filec",
+        "dir/subdir/filea", "dir/subdir/fileb", "dir/subdir/filec"]),
+    ("**/file[a]", ["dir/filea", "dir/subdir/filea"])
+])
+def test_parser_glob(directory, glob_pattern, glob_files):
+    """Tests for globbing filesnames """
+    os.chdir(directory)
+    files = bren.glob_files(glob_pattern)
+    print(files)
+    assert files == glob_files
+
+
+def test_parser_defaults():
+    """Test the defaults of each option without arguments """
+    args = parser.parse_args([])
+    print(args)
+    assert args.path == "*"
+    assert args.esc is None
+    assert args.quiet is False
+    assert args.verbose is False
+    assert args.dryrun is False
+    assert args.extension is None
+    assert args.raw is False
+    assert args.sel is False
+    assert args.sort == "asc"
+    assert args.prepend is None
+    assert args.postpend is None
+    assert args.bracket_remove is None
+    assert args.case is None
+    assert args.shave is None
+    assert args.slice is None
+    assert args.spaces is None
+    assert args.translate is None
+    assert args.regex is None
+    assert args.sequence is None
 
 
 @pytest.mark.parametrize("opt_arg, opt_res", [
@@ -140,9 +145,48 @@ def test_validate_esc(esc_errarg):
     (["dir", "--sel"], False),
 ])
 def test_check_optional(opt_arg, opt_res):
+    """Test which arguments have renaming effects on files """
     args = parser.parse_args(opt_arg)
     chk = bren.check_optional(args)
     assert chk == opt_res
+
+
+@pytest.mark.parametrize("path_arg, path_res", [
+    # tests for expanding directories
+    ("dir/", "dir/*"),
+    ("dir", "dir/*"),
+    ("dir/subdir", "dir/subdir/*"),
+    # not directories, don't change anything
+    ("file.txt", "file.txt"),
+    ("dir/subdir/hello.txt", "dir/subdir/hello.txt")
+])
+def test_expand_dir(tmpdir, path_arg, path_res):
+    """Test directory expansion with directories and files """
+    tmpdir.mkdir("dir").mkdir("subdir")
+    tmpdir.chdir()
+    p = tmpdir.join("hello.txt")
+
+    res = bren.expand_dir(path_arg)
+    print(res)
+    assert res == path_res
+
+
+@pytest.mark.parametrize("ext_errarg", [
+    "/ext",
+    "e/xt",
+    "ex/t",
+    "/ex/t",
+    r"\ext",
+    r"e\xt",
+    r"ex\t",
+    r"\ex\t"
+])
+def test_validate_ext(ext_errarg):
+    """Validate extension argument does not contain '/' characters """
+    with pytest.raises(argparse.ArgumentTypeError) as err:
+        ext = bren.validate_ext(ext_errarg)
+        print(ext_errarg, "is erroneous")
+        print(err)
 
 
 @pytest.mark.parametrize("tr_arg", [
@@ -150,6 +194,7 @@ def test_check_optional(opt_arg, opt_res):
     (["cd", "cd"])
 ])
 def test_parser_translate(tr_arg):
+    """Test translate argument returns a tuple of values """
     args = parser.parse_args(["-tr", *tr_arg])
     print(args.translate)
     assert args.translate == tuple(tr_arg)
@@ -162,6 +207,7 @@ def test_parser_translate(tr_arg):
     (["abc", "de"])
 ])
 def test_parser_translate_err(tr_errarg):
+    """Test translate argument errors """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-tr", *tr_errarg])
         print(tr_errarg, "is erroneous")
@@ -187,6 +233,7 @@ def test_parser_translate_err(tr_errarg):
     (["::2"], [None, None, 2])
 ])
 def test_parser_slice(sl_arg, sl_res):
+    """Test slice argument returns correct slice object """
     args = parser.parse_args(["-sl", *sl_arg])
     sl = slice(*sl_res)
     assert args.slice == sl
@@ -202,6 +249,7 @@ def test_parser_slice(sl_arg, sl_res):
     (["1:1:a"])
 ])
 def test_parser_slice_err(sl_errarg):
+    """Test slice argument errors """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-sl", *sl_errarg])
         print(sl_errarg, "is erroneous")
@@ -216,6 +264,7 @@ def test_parser_slice_err(sl_errarg):
     ("2:2", (slice(2, None, None), slice(None, -2, None)))
 ])
 def test_parser_shave(sh_arg, sh_res):
+    """Test shave argument returns correct shave object """
     args = parser.parse_args(["-sh", sh_arg])
     head, tail = sh_res
     assert args.shave == (head, tail)
@@ -226,6 +275,7 @@ def test_parser_shave(sh_arg, sh_res):
     (["1:2:"])
 ])
 def test_parser_shave_err(sh_errarg):
+    """Test shave argument errors """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-sh", *sh_errarg])
         print(sh_errarg, "is erroneous")
@@ -243,6 +293,7 @@ def test_parser_shave_err(sh_errarg):
     # add more regex tests...
 ])
 def test_parser_regex_err(reg_errarg):
+    """Test regular expression argument errors """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-re", *reg_errarg])
         print(reg_errarg, "is erroneous")
@@ -256,6 +307,7 @@ def test_parser_regex_err(reg_errarg):
     (["curly", "2"], ("curly", 2))
 ])
 def test_parser_bracket(bracr_arg, bracr_res):
+    """Test bracket remove argument returns appropriate tuple """
     args = parser.parse_args(["-bracr", *bracr_arg])
     val1, val2 = bracr_res
     assert args.bracket_remove == (val1, val2)
@@ -269,6 +321,7 @@ def test_parser_bracket(bracr_arg, bracr_res):
     (["curly", "round", "square"])
 ])
 def test_parser_bracket_err(bracr_errarg):
+    """Test bracket remove argument error """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-bracr", *bracr_errarg])
         print(bracr_errarg, "is erroneous")
@@ -288,6 +341,7 @@ def test_parser_bracket_err(bracr_errarg):
     (["%a:%b:1"])
 ])
 def test_parser_sequence_err(seq_errarg):
+    """Test sequence argument errors """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-seq", *seq_errarg])
         print(seq_errarg, "is errorneous")

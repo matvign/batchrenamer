@@ -13,6 +13,11 @@ from batchren import helper, renamer, StringSeq
 from batchren.tui import arrange_tui, selection_tui
 
 
+def glob_files(pattern):
+    files = [f for f in glob.iglob(pattern, recursive=True) if os.path.isfile(f)]
+    return natsorted(files, reverse=False, alg=ns.PATH)
+
+
 def check_optional(args):
     notfilter = {"dryrun", "quiet", "verbose", "path", "sort", "sel", "esc", "raw"}
     argdict = vars(args)
@@ -387,9 +392,7 @@ def main():
         args.path = helper.escape_path(args.path, args.esc)
 
     try:
-        # only include files
-        files = [f for f in glob.iglob(args.path, recursive=True) if os.path.isfile(f)]
-        files = natsorted(files, reverse=False, alg=ns.PATH)
+        files = glob_files(args.path)
     except OSError as err:
         raise argparse.ArgumentParser.error("An error occurred while searching for files: " + str(err))
 
