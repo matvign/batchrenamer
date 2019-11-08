@@ -13,9 +13,9 @@ Performs tests for the following:
 - joinparts
 - optional arguments
 - conflict resolution
-- renaming with temporary files
+- cycle renaming
 
-Some tests utilize the tmp_path_factory fixture, which is a pathlib object.
+Some tests utilize the tmp_path_factory fixture, which is a pathlib2 object.
 Details here: https://docs.python.org/3/library/pathlib.html
 """
 
@@ -79,6 +79,7 @@ def test_misc_joinparts(join_arg, join_res):
     (["lecture"], ["dir/01", "dir/02"], ["dir/lecture01", "dir/lecture02"])
 ])
 def test_filter_prepend(pre_arg, pre_src, pre_dest):
+    """Tests for pre argument. Add text before filename """
     args = parser.parse_args(["-pre", *pre_arg])
     filters = renamer.initfilters(args)
     dest = renamer.get_renames(pre_src, filters, args.extension, args.raw)
@@ -93,6 +94,7 @@ def test_filter_prepend(pre_arg, pre_src, pre_dest):
     (["_usyd"], ["dir/lec01.pdf", "dir/lec02.pdf"], ["dir/lec01_usyd.pdf", "dir/lec02_usyd.pdf"])
 ])
 def test_filter_postpend(post_arg, post_src, post_dest):
+    """Tests for post argument. Add text after filename """
     args = parser.parse_args(["-post", *post_arg])
     filters = renamer.initfilters(args)
     dest = renamer.get_renames(post_src, filters, args.extension, args.raw)
@@ -202,14 +204,14 @@ def test_filter_bracr(bracr_arg, bracr_src, bracr_dest):
     assert dest == bracr_dest
 
 
-@pytest.mark.parametrize("bracr_type, bracr_src", [
+@pytest.mark.parametrize("bracr_arg, bracr_src", [
     ("round", ["((file))file"]),
     ("square", ["[[file]]file"]),
     ("curly", ["{{file}}file"])
 ])
-def test_filter_bracr_extra(bracr_src, bracr_type):
-    """Extra test for bracket remove. Bracket remove can't handle nested brackets """
-    args = parser.parse_args(['-bracr', bracr_type])
+def test_filter_bracr_extra(bracr_arg, bracr_src):
+    """Extra test for bracket remove. Bracket remove can't handle nested brackets (yet!) """
+    args = parser.parse_args(['-bracr', bracr_arg])
     filters = renamer.initfilters(args)
     dest = renamer.get_renames(bracr_src, filters, args.extension, args.raw)
     for f in dest:
@@ -228,7 +230,72 @@ def test_filter_bracr_extra(bracr_src, bracr_type):
     (["\\d+", "no.2"], ["02bla"], ["no.2bla"])
 ])
 def test_filter_regex(re_arg, re_src, re_dest):
+    """Tests for regex argument. Replace text using regular expressions """
     args = parser.parse_args(['-re', *re_arg])
     filters = renamer.initfilters(args)
     dest = renamer.get_renames(re_src, filters, args.extension, args.raw)
     assert dest == re_dest
+
+
+@pytest.mark.parametrize("seq_arg, seq_src, seq_dest", [
+    (["%f"], ["f1", "f2", "f3", "f4"], ["f1", "f2", "f3", "f4"]),
+    (["%n"], ["f1", "f2", "f3", "f4"], ["01", "02", "03", "04"]),
+    (["%n1"], ["f1", "f2", "f3", "f4"], ["1", "2", "3", "4"]),
+    (["%n2"], ["f1", "f2", "f3", "f4"], ["01", "02", "03", "04"]),
+    (["%n3"], ["f1", "f2", "f3", "f4"], ["001", "002", "003", "004"]),
+    (["%n:2:4"], ["f1", "f2", "f3", "f4"], ["02", "03", "04", "02"]),
+
+    (["%n:::"], ["f1", "f2", "f3", "f4"], ["01", "02", "03", "04"]),
+    (["%n:1::"], ["f1", "f2", "f3", "f4"], ["01", "02", "03", "04"]),
+    (["%n:1"], ["f1", "f2", "f3", "f4"], ["01", "02", "03", "04"]),
+    (["%n:1:2"], ["f1", "f2", "f3", "f4"], ["01", "02", "01", "02"]),
+    (["%n:2::"], ["f1", "f2", "f3", "f4"], ["02", "03", "04", "05"]),
+    (["%n:2"], ["f1", "f2", "f3", "f4"], ["02", "03", "04", "05"]),
+    (["%n::2:"], ["f1", "f2", "f3", "f4"], ["01", "02", "01", "02"]),
+    (["%n::2"], ["f1", "f2", "f3", "f4"], ["01", "02", "01", "02"]),
+    (["%n::6:2"], ["f1", "f2", "f3", "f4"], ["01", "03", "05", "01"]),
+    (["%n:1:6:2"], ["f1", "f2", "f3", "f4"], ["01", "03", "05", "01"]),
+
+    (["%f/_/%n"], ["f1", "f2", "f3", "f4"], ["f1_01", "f2_02", "f3_03", "f4_04"]),
+    (["%f/_/%n::2:"], ["f1", "f2", "f3", "f4"], ["f1_01", "f2_02", "f3_01", "f4_02"]),
+    (["%f/_/%n:::2"], ["f1", "f2", "f3", "f4"], ["f1_01", "f2_03", "f3_05", "f4_07"]),
+
+    (["%a"], ["f1", "f2", "f3", "f4"], ["a", "b", "c", "d"]),
+    (["%a:b"], ["f1", "f2", "f3", "f4"], ["b", "c", "d", "e"]),
+    (["%a:b:c"], ["f1", "f2", "f3", "f4"], ["b", "c", "b", "c"]),
+    (["%a::b"], ["f1", "f2", "f3", "f4"], ["a", "b", "a", "b"]),
+    (["%a2"], ["f1", "f2", "f3", "f4"], ["aa", "ab", "ac", "ad"]),
+    (["%a2:a:b"], ["f1", "f2", "f3", "f4"], ["aa", "ab", "ba", "bb"])
+])
+def test_filter_sequence(seq_arg, seq_src, seq_dest):
+    """Tests for sequence argument. Create a sequence of text for a file """
+    args = parser.parse_args(['-seq', *seq_arg])
+    filters = renamer.initfilters(args)
+    dest = renamer.get_renames(seq_src, filters, args.extension, args.raw)
+    assert dest == seq_dest
+
+
+@pytest.mark.parametrize("ext_arg, ext_src, ext_dest", [
+    (["-pre", "test_", "-ext", ""], ["file.txt"], ["test_file"]),
+    (["-pre", "test_", "-ext", "mp4"], ["file.txt"], ["test_file.mp4"]),
+    (["-pre", "test_", "-ext", "gz"], ["file.tar.sav"], ["test_file.tar.gz"]),
+    (["-post", "bla", "-ext", "gz"], ["file.tar.sav"], ["file.tarbla.gz"]),
+])
+def test_filter_extension(ext_arg, ext_src, ext_dest):
+    """Tests for extension argument. Remove/replace extensions in file """
+    args = parser.parse_args([*ext_arg])
+    filters = renamer.initfilters(args)
+    dest = renamer.get_renames(ext_src, filters, args.extension, args.raw)
+    assert dest == ext_dest
+
+
+def test_filter_raw():
+    pass
+
+
+def test_renamer_files():
+    pass
+
+
+def test_renamer_cycle():
+    pass
