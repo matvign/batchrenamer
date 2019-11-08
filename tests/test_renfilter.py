@@ -202,39 +202,33 @@ def test_filter_bracr(bracr_arg, bracr_src, bracr_dest):
     assert dest == bracr_dest
 
 
-"""
-@pytest.mark.parametrize("bracr_rec_arg, bracr_type", [
-    ('((file))file', 'round'),
-    ('[[file]]file', 'square'),
-    ('{{file}}file', 'curly')
+@pytest.mark.parametrize("bracr_type, bracr_src", [
+    ("round", ["((file))file"]),
+    ("square", ["[[file]]file"]),
+    ("curly", ["{{file}}file"])
 ])
-def test_filter_bracr_extra(bracr_rec_arg, bracr_type):
+def test_filter_bracr_extra(bracr_src, bracr_type):
+    """Extra test for bracket remove. Bracket remove can't handle nested brackets """
     args = parser.parse_args(['-bracr', bracr_type])
     filters = renamer.initfilters(args)
-    newname = renamer.runfilters(filters, '', '', bracr_rec_arg)
-    assert newname != 'file'
+    dest = renamer.get_renames(bracr_src, filters, args.extension, args.raw)
+    for f in dest:
+        assert f != "file"
 
 
-@pytest.mark.parametrize("re_arg, re_origpath, re_dirpath, re_fname, re_res", [
-    # tests for regex
-    # arg, origpath, dirpath, filename, expected result
-    (['f', 'p'], '', '', 'file', 'pile'),
-    (['fi', 'pa'], '', '', 'file', 'pale'),
-    (['d', 'e'], '', '', 'fiddle', 'fieele'),
-    (['d'], '', '', 'fiddle', 'file'),                # remove all 'd'
-    (['d', 'l'], '', '', 'fiddle', 'fillle'),         # replace all 'd' with 'l'
-    (['d', 'l', '1'], '', '', 'fiddle', 'fildle'),    # replace 1st 'd' with 'l'
-    (['d', '', '1'], '', '', 'diddily', 'iddily'),
-    (['d', '', '4'], '', '', 'diddily do', 'diddily o'),
+@pytest.mark.parametrize("re_arg, re_src, re_dest", [
+    (['f', 'p'], ["file"], ["pile"]),
+    (["fi", "pa"], ["file"], ["pale"]),
+    (["d"], ["fiddle"], ["file"]),
+    (["d", "", "1"], ["diddily"], ["iddily"]),
+    (["d", "l", "1"], ["fiddle"], ["fildle"]),
+    (["d", "", "4"], ["diddily do"], ["diddily o"]),
     # replace 5th 'd', which doesn't exist, so do nothing
-    (['d', '', '5'], '', '', 'diddily do', 'diddily do'),
-    (['\\d+', 'no.2'], '', '', '02bla', 'no.2bla')
+    (["d", "", "5"], ["diddily do"], ["diddily do"]),
+    (["\\d+", "no.2"], ["02bla"], ["no.2bla"])
 ])
-def test_filter_regex(re_arg, re_origpath, re_dirpath, re_fname, re_res):
+def test_filter_regex(re_arg, re_src, re_dest):
     args = parser.parse_args(['-re', *re_arg])
     filters = renamer.initfilters(args)
-    newname = renamer.runfilters(filters, re_origpath, re_dirpath, re_fname)
-    print('oldname: {} --> newname: {}'.format(re_fname, newname))
-    print('expected:', re_res)
-    assert newname == re_res
-"""
+    dest = renamer.get_renames(re_src, filters, args.extension, args.raw)
+    assert dest == re_dest
