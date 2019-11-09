@@ -288,7 +288,9 @@ def test_filter_sequence(seq_arg, seq_src, seq_dest):
 @pytest.mark.parametrize("ext_arg, ext_src, ext_dest", [
     (["-pre", "f", "-ext", ""], ["file.txt"], ["ffile"]),
     (["-pre", "f", "-ext", "mp4"], ["file.txt"], ["ffile.mp4"]),
+    (["-pre", "f", "-ext", ".mp4"], ["file.txt"], ["ffile.mp4"]),
     (["-pre", "f", "-ext", "gz"], ["file.tar.sav"], ["ffile.tar.gz"]),
+    (["-pre", "f", "-ext", ".gz"], ["file.tar.sav"], ["ffile.tar.gz"]),
     (["-post", "bla", "-ext", "gz"], ["file.tar.sav"], ["file.tarbla.gz"]),
 ])
 def test_filter_extension(ext_arg, ext_src, ext_dest):
@@ -299,8 +301,17 @@ def test_filter_extension(ext_arg, ext_src, ext_dest):
     assert dest == ext_dest
 
 
-def test_filter_raw():
-    pass
+@pytest.mark.parametrize("raw_arg, raw_src, raw_dest", [
+    (["-ext", "txt", "--raw"], ["files", "files.txt"], ["files.txt", "files.txt.txt"]),
+    (["-post", "bla", "--raw"], ["files.txt"], ["files.txtbla"]),
+    (["-post", "bla", "-ext", ".txt", "--raw"], ["files.txt"], ["files.txtbla.txt"])
+])
+def test_filter_raw(raw_arg, raw_src, raw_dest):
+    """Tests for raw argument. Treat extensions as part of filename """
+    args = parser.parse_args([*raw_arg])
+    filters = renamer.initfilters(args)
+    dest = renamer.get_renames(raw_src, filters, args.extension, args.raw)
+    assert dest == raw_dest
 
 
 def test_renamer_files():
