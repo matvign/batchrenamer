@@ -82,7 +82,7 @@ class TranslateAction(argparse.Action):
         err0 = "argument values are empty"
         err1 = "arguments must be equal length"
         # argparse handles arguments errors for argument length != 2
-        if sum(1 for n in values if not n):
+        if not all(values):
             parser.error(argtype + err0)
         if len(values[0]) != len(values[1]):
             parser.error(argtype + err1)
@@ -144,11 +144,11 @@ class ShaveAction(argparse.Action):
         elif len(sl) == 1:
             sl.append(None)
 
-        if sum(1 for x in sl if x is not None and x < 0):
-            # check for negative values
+        if any(x is not None and x < 0 for x in sl):
+            # check for any negative values
             parser.error(argtype + err4)
-        if not sum(1 for x in sl if x is not None):
-            # check if values are None
+        if all(x is None for x in sl):
+            # check if all values are None
             parser.error(argtype + err3)
         head = slice(sl[0], None, None) if sl[0] is not None else slice(None)
         tail = slice(None, -sl[1], None) if sl[1] is not None else slice(None)

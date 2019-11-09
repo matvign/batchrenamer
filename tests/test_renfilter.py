@@ -219,15 +219,16 @@ def test_filter_bracr_extra(bracr_arg, bracr_src):
 
 
 @pytest.mark.parametrize("re_arg, re_src, re_dest", [
-    (['f', 'p'], ["file"], ["pile"]),
+    (["f", "p"], ["file"], ["pile"]),
     (["fi", "pa"], ["file"], ["pale"]),
     (["d"], ["fiddle"], ["file"]),
     (["d", "", "1"], ["diddily"], ["iddily"]),
     (["d", "l", "1"], ["fiddle"], ["fildle"]),
     (["d", "", "4"], ["diddily do"], ["diddily o"]),
-    # replace 5th 'd', which doesn't exist, so do nothing
+    # replace non-existent 5th 'd', do nothing
     (["d", "", "5"], ["diddily do"], ["diddily do"]),
-    (["\\d+", "no.2"], ["02bla"], ["no.2bla"])
+    (["\\d+", "no.2"], ["02bla"], ["no.2bla"]),
+    # add more regex tests...
 ])
 def test_filter_regex(re_arg, re_src, re_dest):
     """Tests for regex argument. Replace text using regular expressions """
@@ -262,10 +263,19 @@ def test_filter_regex(re_arg, re_src, re_dest):
 
     (["%a"], ["f1", "f2", "f3", "f4"], ["a", "b", "c", "d"]),
     (["%a:b"], ["f1", "f2", "f3", "f4"], ["b", "c", "d", "e"]),
-    (["%a:b:c"], ["f1", "f2", "f3", "f4"], ["b", "c", "b", "c"]),
-    (["%a::b"], ["f1", "f2", "f3", "f4"], ["a", "b", "a", "b"]),
+    (["%a::c"], ["f1", "f2", "f3", "f4"], ["a", "b", "c", "a"]),
+    (["%a:a:c"], ["f1", "f2", "f3", "f4"], ["a", "b", "c", "a"]),
+    (["%a:a:bb"], ["f1", "f2", "f3", "f4"], ["aa", "ab", "ba", "bb"]),
+    (["%a:aa:b"], ["f1", "f2", "f3", "f4"], ["aa", "ba", "aa", "ba"]),
+
     (["%a2"], ["f1", "f2", "f3", "f4"], ["aa", "ab", "ac", "ad"]),
-    (["%a2:a:b"], ["f1", "f2", "f3", "f4"], ["aa", "ab", "ba", "bb"])
+    (["%a2:a:b"], ["f1", "f2", "f3", "f4"], ["aa", "ab", "ba", "bb"]),
+    (["%a2::bb"], ["f1", "f2", "f3", "f4"], ["aaaa", "aaab", "aaba", "aabb"]),
+
+    (["%a:B"], ["f1", "f2", "f3", "f4"], ["B", "C", "D", "E"]),
+    (["%a:A:C"], ["f1", "f2", "f3", "f4"], ["A", "B", "C", "A"]),
+    (["%a:y:B"], ["f1", "f2", "f3", "f4"], ["y", "z", "A", "B"]),
+    (["%a:B:z"], ["f1", "f2", "f3", "f4"], ["B", "B", "B", "B"]),
 ])
 def test_filter_sequence(seq_arg, seq_src, seq_dest):
     """Tests for sequence argument. Create a sequence of text for a file """
@@ -276,9 +286,9 @@ def test_filter_sequence(seq_arg, seq_src, seq_dest):
 
 
 @pytest.mark.parametrize("ext_arg, ext_src, ext_dest", [
-    (["-pre", "test_", "-ext", ""], ["file.txt"], ["test_file"]),
-    (["-pre", "test_", "-ext", "mp4"], ["file.txt"], ["test_file.mp4"]),
-    (["-pre", "test_", "-ext", "gz"], ["file.tar.sav"], ["test_file.tar.gz"]),
+    (["-pre", "f", "-ext", ""], ["file.txt"], ["ffile"]),
+    (["-pre", "f", "-ext", "mp4"], ["file.txt"], ["ffile.mp4"]),
+    (["-pre", "f", "-ext", "gz"], ["file.tar.sav"], ["ffile.tar.gz"]),
     (["-post", "bla", "-ext", "gz"], ["file.tar.sav"], ["file.tarbla.gz"]),
 ])
 def test_filter_extension(ext_arg, ext_src, ext_dest):

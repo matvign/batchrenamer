@@ -69,7 +69,7 @@ class StringSequence:
                 if end and i > end:
                     i = start
 
-    def _alpha_generator(self, depth=1, start="a", end="z"):
+    def _alpha_generator(self, depth=1, start="a", end=None):
         """Generator function for letters given a depth, start, end.
         Start is where sequencing begins. Consists only of letters.
         End is where sequencing ends. Consists only of letters.
@@ -78,7 +78,9 @@ class StringSequence:
         """
         # convert start, end into list of chars
         start = list(start) if start is not None else ["a"]
-        end = list(depth * end) if end is not None else depth * ["z"]
+        f = lambda x: "z" if x.islower() else "Z"
+        end = depth * list(end) if end is not None else depth * list(map(f, start))
+
         if len(start) < len(end):
             # fill start with starting char a
             # a:zzz --> aaa:zzz
@@ -90,22 +92,19 @@ class StringSequence:
 
         def do_increment(ch, start_ch, end_ch):
             """
-            if (a - z) increment or reset when = end
-            if (A - Z) increment or reset when = end
             if (a - Z) increment until z, then switch to uppercase
                 and reset when = end
+            otherwise just increment
             if (A - z) don't increment
-            if (A - None) don't increment (handled externally)
+            if (a - None) don't increment
+            if (A - None) don't increment
             """
-            if start_ch.islower() and end_ch.islower():
-                return chr(ord(ch) + 1) if ch < end_ch else start_ch
-            elif start_ch.isupper() and end_ch.isupper():
-                return chr(ord(ch) + 1) if ch < end_ch else start_ch
-            elif start_ch.islower() and end_ch.isupper():
+            if start_ch.islower() and end_ch.isupper():
                 if ch.islower():
                     return chr(ord(ch) + 1) if ch != "z" else "A"
-                return chr(ord(ch) + 1) if ch < end_ch else start_ch
-            return ch
+            elif start_ch.isupper() and end_ch.islower():
+                return ch
+            return chr(ord(ch) + 1) if ch < end_ch else start_ch
 
         st = list(start)
         while True:
@@ -155,7 +154,8 @@ class StringSequence:
             sl = [int(x.strip()) if x.strip() else None for x in seq_args[1:]]
         except ValueError as err:
             raise ValueError(msg3)
-        if sum(1 for n in sl if n and n < 0):
+
+        if any(n and n < 0 for n in sl):
             # check for negative numbers, skip None values
             raise ValueError(msg3)
         gen = self._num_generator(depth, *sl)

@@ -157,15 +157,12 @@ def test_check_optional(opt_arg, opt_res):
     ("dir", "dir/*"),
     ("dir/subdir", "dir/subdir/*"),
     # not directories, don't change anything
-    ("file.txt", "file.txt"),
-    ("dir/subdir/hello.txt", "dir/subdir/hello.txt")
+    ("dir/filea", "dir/filea"),
+    ("dir/subdir/filea", "dir/subdir/filea")
 ])
-def test_expand_dir(tmpdir, path_arg, path_res):
+def test_expand_dir(directory, path_arg, path_res):
     """Test directory expansion with directories and files """
-    tmpdir.mkdir("dir").mkdir("subdir")
-    tmpdir.chdir()
-    p = tmpdir.join("hello.txt")
-
+    os.chdir(directory)
     res = bren.expand_dir(path_arg)
     print(res)
     assert res == path_res
@@ -272,6 +269,7 @@ def test_parser_shave(sh_arg, sh_res):
 
 @pytest.mark.parametrize("sh_errarg", [
     ([""]),
+    ([":"]),
     (["1:2:"])
 ])
 def test_parser_shave_err(sh_errarg):
