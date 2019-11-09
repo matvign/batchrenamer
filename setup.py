@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="batchren",
-    version="0.6.1",
+    version="0.7.0",
     author="Andrew Au",
     author_email="andrew.ch.au@outlook.com",
     description="A command line batch renamer",
