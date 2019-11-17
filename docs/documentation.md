@@ -1,14 +1,14 @@
 # Documentation - v0.7.0
 Batchren is a python script for batch renaming files.  
-Batchren uses unix style pattern matching to look for files and uses optional 
+Batchren uses pattern matching to look for files and optional 
 arguments to rename the set of files found.  
 
 # 1. Usage
 ## 1.1 Positional arguments
 path: specifies the file pattern to search for.  
 
-Paths that are directories are automatically expanded.  
-If there are special characters in your file, surround the path in quotes.  
+Directory paths are automatically expanded.  
+If there are special characters in your path, surround the path in quotes.  
 See examples for more information.
 
 ## 1.2 Optional arguments  
@@ -43,23 +43,23 @@ See examples for more information.
 By default batchren searches for all files in the current working directory.
 If the file pattern is a directory batchren will expand into the directory.
 
-batchren also supports wild characters **(`[], *, ?`)**. Surround file patterns in quotes when using pattern matching characters.
+batchren has support for wild characters **(`[], *, ?`)**. Surround file patterns in quotes if there are pattern matching characters.
 
 To escape pattern characters use `[]` or the `--esc` option.
 
 Because some arguments take at *least n* arguments, place the `path` argument before optional arguments.  
 
 #### Examples
-`batchren -pre file`: finds all files and prepends 'file'  
-`batchren 'dir/' -pre file`: prepend 'file' to all files in `dir`  
-`batchren 'lecture0*' -pre file`: finds all files starting with lecture0* and prepends 'file'  
-`batchren 'file[*] -pre f`: looks for 'file*'  
-`batchren 'file[?] -pre f`: looks for 'file?'  
-`batchren '[[]720p] file.mp4'`: looks for '[720p] file.mp4'  
+`batchren -pre f`: prepend 'f' to all files in the current working directory  
+`batchren 'dir/' -pre f`: prepend 'f' to all files in `dir`  
+`batchren 'lecture0*' -pre f`: prepend 'f' to all files matching 'lecture0*'  
+`batchren 'file[*] -pre f`: prepend 'f' to the file with name 'file*'  
+`batchren 'file[?] -pre f`: prepend 'f' to the file with name 'file?'  
+`batchren '[[]720p] file.mp4' -pre f`: prepend 'f' to the file with name '[720p] file.mp4'  
 
 
 ### Optional Arguments
-There are optional arguments that do not rename files, but do influence the results.
+There are some optional arguments that influence the results, but do not rename files.
 
 #### Escape
 `batchren --esc [CHARS]`  
@@ -93,12 +93,12 @@ Sort order of files found through file matching and the select option. Useful fo
 Treat extension as part of filename. Use if you want to ignore extensions.
 
 ##### Examples
-`batchren file.mp4 -post bla`: renames file to `filebla.mp4`  
+`batchren file.mp4 -post bla`: postpend 'bla' to 'file.mp4', which becomes 'filebla.mp4'  
 `batchren file.mp4 -post bla --raw`: renames file to `file.mp4bla`
 
 
 ### File Renaming Arguments
-Arguments have an order that they are applied. The general idea is that 
+Arguments are applied in a fixed order. The general idea is that 
 characters are removed/replaced before adding characters.
 
 Renaming arguments are run in the following order:
@@ -115,15 +115,15 @@ Renaming arguments are run in the following order:
 11. strip (remove whitespace from ends of file)
 12. extension (remove whitespace and collapse dots)
 
-The absence of file renaming arguments terminates the program.
+The program ends if no file renaming arguments were specified.
 
 #### Prepend/Postpend
 `batchren -pre TEXT -post TEXT`  
-Prepend/postpend adds text before or after files.
+Prepend/postpend adds text before/after filenames.
 
 ##### Examples
-`batchren -pre 'text'`: add `'text'` before files  
-`batchren -post 'text'`: add `'text'` after files  
+`batchren -pre 'text'`: add `'text'` before filename  
+`batchren -post 'text'`: add `'text'` after filename  
 `batchren -pre 'text' -post 'text'`: add `'text'` before and after files  
 
 
@@ -153,12 +153,12 @@ Change case of files. Accepts one of either upper, lower, cap or swap.
 `batchren -c lower`: make all files lower case  
 `batchren -c upper`: make all files upper case  
 `batchren -c swap`: swap case of all files  
-`batchren -c cap`: capitalise words in the file. Works with `'_-'` separated files  
+`batchren -c cap`: capitalise words in the file. Works with files separated by symbols `'._-'` separated files  
 
 
 #### Slice
 `batchren -sl start:end:step`  
-Slice a portion of files. Accepts python slice format.
+Slice a portion of filenames. Accepts python slice format.
 
 ##### Examples
 `batchren -sl 1:3`: take characters starting from 1st index to 3rd index  
@@ -168,7 +168,7 @@ Slice a portion of files. Accepts python slice format.
 
 #### Shave
 `batchren -sh head:tail`  
-Shave a portion of files. Convenient option that is the same as removing first and last n characters.
+Shave a portion of filenames. Convenient option that is the same as removing first and last n characters.
 
 ##### Examples
 `batchren -sh 3:3`: shave first and last three characters
@@ -190,8 +190,8 @@ Use regex to replace contents. Accepts up to three arguments.
 * If one argument, remove instances of PATTERN
 * If two arguments, replace all instances PATTERN by REPL
 * If three arguments, replace COUNT'th instance of PATTERN by REPL
-  
-Second argument default is "".
+
+Default argument for REPL is `""`.
 
 ##### Examples
 Under construction...
@@ -199,7 +199,7 @@ Under construction...
 
 #### Extension
 `batchren -ext EXT`  
-Change extension of files. Adds extension if it exists, otherwise replaces existing extension.
+Change extension of filenames. Add extension if it doesn't exist, otherwise replace the existing extension.
 
 ##### Examples
 `batchren -ext mp4`: change file extension to `mp4`  
@@ -226,7 +226,7 @@ filename -> rawfilenameraw
 represents a number sequence starting at 1
 with 0 padded by default.
 
-e.g. %n/_/%f
+e.g. %n/_/file
 01_file
 02_file
 ...
@@ -243,7 +243,7 @@ and incrementing by a number >= 0.
 * If end is missing, keep counting up
 * If step is missing, default is 1
 
-e.g. %n3:2:9:2
+e.g. %n3:2:9:2/_/file
 002_file
 004_file
 006_file
