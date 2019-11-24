@@ -17,8 +17,9 @@ issues = {
     2: "name cannot start with '.'",
     3: "name cannot contain '/'",
     4: "name cannot exceed 255 characters",
-    5: "shared name conflict",
-    6: "unresolvable conflict"
+    5: "cannot change file to directory",
+    6: "cannot change location of file",
+    7: "shared name conflict",
 }
 
 
@@ -163,7 +164,7 @@ def start_rename(files, args):
     rentable = generate_rentable(src_files, dest_files)
     q = print_rentable(rentable, args.quiet, args.verbose)
     if q and helper.askQuery():
-        rename_queue(q, args)
+        rename_queue(q, args.dryrun, args.verbose)
 
 
 def get_renames(src_files, filters, ext, raw):
@@ -216,12 +217,10 @@ def generate_rentable(src_files, dest_files):
 
     for src, dest in zip(src_files, dest_files):
         errset = set()
-        _, bname = os.path.split(dest)
-
         if dest in rentable["conflicts"]:
             # this name is already in conflict, add src to conflicts
             rentable["conflicts"][dest]["srcs"].append(src)
-            rentable["conflicts"][dest]["err"].add(5)
+            rentable["conflicts"][dest]["err"].add(7)
             errset = rentable["conflicts"][dest]["err"]
             cascade(rentable, src)
 
@@ -229,7 +228,7 @@ def generate_rentable(src_files, dest_files):
             # this name is taken, invalidate both names
             if dest == src:
                 errset.add(0)
-            errset.add(5)
+            errset.add(7)
 
             temp = rentable["renames"][dest]
             del rentable["renames"][dest]
@@ -239,31 +238,42 @@ def generate_rentable(src_files, dest_files):
 
         elif dest in rentable["unresolvable"]:
             # file won't be renamed, assign to unresolvable
-            errset.add(6)
+            errset.add(7)
             rentable["conflicts"][dest] = {"srcs": [src], "err": errset}
             cascade(rentable, src)
 
         else:
+            src_dir, _ = os.path.split(src)
+            dest_dir, dest_bname = os.path.split(dest)
+
             if dest not in fileset and os.path.exists(dest):
                 # file exists but not in fileset, assign to unresolvable
-                errset.add(6)
+                errset.add(7)
 
             if dest == src:
                 # name hasn't changed, don't rename this
                 errset.add(0)
 
-            if bname == "":
+            if src_dir != dest_dir:
+                if dest and dest[-1] == "/":
+                    # cannot change file to directory
+                    errset.add(5)
+                else:
+                    # cannot change location of file
+                    errset.add(6)
+
+            if dest_bname == "":
                 # name is empty, don't rename this
                 errset.add(1)
-            elif bname[0] == ".":
+            elif dest_bname[0] == ".":
                 # . is reserved in unix
                 errset.add(2)
 
-            if "/" in bname:
+            if "/" in dest_bname:
                 # / usually indicates some kind of directory
                 errset.add(3)
 
-            if len(bname) > 255:
+            if len(dest_bname) > 255:
                 errset.add(4)
 
             if errset:
@@ -288,7 +298,7 @@ def cascade(rentable, target):
         if ndest in rentable["renames"]:
             temp = rentable["renames"][ndest]
             del rentable["renames"][ndest]
-            rentable["conflicts"][ndest] = {"srcs": [temp], "err": {6}}
+            rentable["conflicts"][ndest] = {"srcs": [temp], "err": {7}}
             ndest = temp
             continue
         return
@@ -379,29 +389,29 @@ def name_gen():
         count += 1
 
 
-def rename_queue(queue, args):
+def rename_queue(queue, dryrun, verbose):
     """Rename src to dest from a list of tuples [(dest, src), ...] """
     n = name_gen()
     next(n)
     q = deque(queue)
     msg = "Conflict detected, temporarily renaming"
-    if args.dryrun:
+    if dryrun:
         print("Running with dryrun, files will NOT be renamed")
     while q:
         dest, src = q.popleft()
         if os.path.exists(dest):
             dirpath, _ = os.path.split(dest)
             tmp = n.send(dirpath)
-            if args.verbose or args.dryrun:
+            if verbose or dryrun:
                 print(msg, "'{}' to '{}'".format(src, tmp))
-            if not args.dryrun:
+            if not dryrun:
                 rename_file(src, tmp)
             q.append((dest, tmp))
         else:
             # no conflict, just rename
-            if args.verbose or args.dryrun:
+            if verbose or dryrun:
                 print("rename '{}' to '{}'".format(src, dest))
-            if not args.dryrun:
+            if not dryrun:
                 rename_file(src, dest)
 
     print("Finished renaming...")

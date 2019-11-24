@@ -4,6 +4,7 @@ import os
 import pytest
 
 from batchren import bren, renamer
+from tests.data import file_dirs
 parser = bren.parser
 
 """Tests for batchren.renamer written with pytest.
@@ -289,6 +290,9 @@ def test_filter_sequence(seq_arg, seq_src, seq_dest):
     (["-pre", "f", "-ext", ""], ["file.txt"], ["ffile"]),
     (["-pre", "f", "-ext", "mp4"], ["file.txt"], ["ffile.mp4"]),
     (["-pre", "f", "-ext", ".mp4"], ["file.txt"], ["ffile.mp4"]),
+    (["-pre", "f", "-ext", ".mp4 "], ["file.txt"], ["ffile.mp4"]),
+    (["-pre", "f", "-ext", ".mp4 ."], ["file.txt"], ["ffile.mp4"]),
+    (["-pre", "f", "-ext", "...mp4."], ["file.txt"], ["ffile.mp4"]),
     (["-pre", "f", "-ext", "gz"], ["file.tar.sav"], ["ffile.tar.gz"]),
     (["-pre", "f", "-ext", ".gz"], ["file.tar.sav"], ["ffile.tar.gz"]),
     (["-post", "bla", "-ext", "gz"], ["file.tar.sav"], ["file.tarbla.gz"]),
@@ -314,7 +318,81 @@ def test_filter_raw(raw_arg, raw_src, raw_dest):
     assert dest == raw_dest
 
 
-def test_renamer_files():
+@pytest.fixture
+def fs(tmp_path_factory):
+    """Fixture for fixed tmp_path_factory """
+    dir_ = tmp_path_factory.mktemp("")
+    for key, val in file_dirs.fs1.items():
+        d_ = dir_ / key
+        d_.mkdir()
+        for v in val:
+            f = d_ / v
+            f.write_text(v)
+
+    return dir_
+
+
+@pytest.fixture
+def param_fs(tmp_path_factory, request):
+    """Parametrized tmp_path_factory fixture """
+    dir_ = tmp_path_factory.mktemp("")
+    for key, val in request.param.items():
+        d_ = dir_ / key
+        d_.mkdir()
+        for v in val:
+            f = d_ / v
+            f.write_text(v)
+
+    return dir_
+
+
+@pytest.mark.parametrize("src, dest", [
+    (["dir/filea", "dir/fileb"], ["dir/filee", "dir/filef"]),
+    (["dir/filea", "dir/fileb"], ["dir/fileb", "dir/filea"])
+])
+def test_rentable_valid(fs, src, dest):
+    os.chdir(fs)
+    table = renamer.generate_rentable(src, dest)
+    assert not table["conflicts"]
+    assert not table["unresolvable"]
+    assert len(table["renames"]) == 2
+
+
+@pytest.mark.parametrize("src, dest", [
+    pytest.param(["dir/filea", "dir/fileb"], ["dir/filea"], marks=pytest.mark.xfail),
+    (["dir/filea"], ["dir/filea"]),
+    (["dir/filea"], [""]),
+    (["dir/filea"], ["dir/.filea"]),
+    (["dir/filea"], ["dir/."]),
+    (["dir/filea"], ["dir/.."]),
+    (["dir/filea"], ["dir/.other"]),
+    (["dir/filea"], ["dir/..other"]),
+    (["dir/filea"], ["dir//filea"]),
+    (["dir/filea"], ["dir/filea/"]),
+    (["dir/filea"], ["dir/fil/a"]),
+    (["dir/filea"], ["dir/fileb"]),
+    (["dir/filea"], ["dir/" + "a" * 256])
+])
+def test_rentable_invalid(fs, src, dest):
+    os.chdir(fs)
+    table = renamer.generate_rentable(src, dest)
+    print(table["conflicts"])
+    print(table["unresolvable"])
+    assert table["conflicts"]
+    assert table["unresolvable"]
+    assert not table["renames"]
+
+
+@pytest.mark.parametrize(
+    "param_fs",
+    [file_dirs.fs1, file_dirs.fs2],
+    indirect=["param_fs"]
+)
+def test_renamer_files(param_fs):
+    pass
+
+
+def test_renamer_dryrun():
     pass
 
 

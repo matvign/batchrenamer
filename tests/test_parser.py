@@ -24,7 +24,7 @@ Details here: https://docs.python.org/3/library/pathlib.html
 """
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def directory(tmp_path_factory):
     fs = {
         "dir": ["filea", "fileb", "filec", "file01"],
