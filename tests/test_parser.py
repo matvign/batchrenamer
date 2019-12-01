@@ -63,7 +63,9 @@ def test_escape_path(esc_path, esc_arg, esc_res):
     ".{}"
 ])
 def test_validate_esc_err(esc_errarg):
-    """Validate escape argument only contains '*?[]' """
+    """Validate escape argument only contains '*?[]'.\n
+    Give an error if the characters aren't '*?[]'.
+    """
     with pytest.raises(argparse.ArgumentTypeError) as err:
         esc = bren.validate_esc(esc_errarg)
         print(esc_errarg, "is erroneous")
@@ -145,7 +147,10 @@ def test_parser_defaults():
     (["dir", "--sel"], False),
 ])
 def test_check_optional(opt_arg, opt_res):
-    """Test which arguments have renaming effects on files """
+    """Test which arguments must have accompanying effects
+    dryrun, quiet, verbose, path, sort, sel, esc and raw
+    should be called with an argument with renaming effects
+    """
     args = parser.parse_args(opt_arg)
     chk = bren.check_optional(args)
     assert chk == opt_res
@@ -179,7 +184,7 @@ def test_expand_dir(directory, path_arg, path_res):
     r"\ex\t"
 ])
 def test_validate_ext(ext_errarg):
-    """Validate extension argument does not contain '/' characters """
+    """Validate extension argument does not contain '/' character """
     with pytest.raises(argparse.ArgumentTypeError) as err:
         ext = bren.validate_ext(ext_errarg)
         print(ext_errarg, "is erroneous")
@@ -191,7 +196,7 @@ def test_validate_ext(ext_errarg):
     (["cd", "cd"])
 ])
 def test_parser_translate(tr_arg):
-    """Test translate argument returns a tuple of values """
+    """Test translate argument returns a tuple of values  """
     args = parser.parse_args(["-tr", *tr_arg])
     print(args.translate)
     assert args.translate == tuple(tr_arg)
@@ -204,7 +209,11 @@ def test_parser_translate(tr_arg):
     (["abc", "de"])
 ])
 def test_parser_translate_err(tr_errarg):
-    """Test translate argument errors """
+    """Test translate argument errors\n
+    Give an error if:\n
+    -   both values are empty
+    -   argument lengths must be equal
+    """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-tr", *tr_errarg])
         print(tr_errarg, "is erroneous")
@@ -246,7 +255,12 @@ def test_parser_slice(sl_arg, sl_res):
     (["1:1:a"])
 ])
 def test_parser_slice_err(sl_errarg):
-    """Test slice argument errors """
+    """Test slice argument errors\n
+    Give an error if:\n
+    -   argument value is empty ('')
+    -   cannot convert to slice object (too many arguments)
+    -   value is not integer
+    """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-sl", *sl_errarg])
         print(sl_errarg, "is erroneous")
@@ -273,7 +287,14 @@ def test_parser_shave(sh_arg, sh_res):
     (["1:2:"])
 ])
 def test_parser_shave_err(sh_errarg):
-    """Test shave argument errors """
+    """Test shave argument errors\n
+    Give an error if:\n
+    -   argument value is empty ('')
+    -   more than two values
+    -   non-numeric character
+    -   both values are None
+    -   any values are negative
+    """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-sh", *sh_errarg])
         print(sh_errarg, "is erroneous")
@@ -291,7 +312,13 @@ def test_parser_shave_err(sh_errarg):
     # add more regex tests...
 ])
 def test_parser_regex_err(reg_errarg):
-    """Test regular expression argument errors """
+    """Test regular expression argument errors\n
+    Give an error if:\n
+    -   pattern argument is empty ('')
+    -   no parguments/too many arguments (>3)
+    -   regex/sre compile error
+    -   if value is not an integer >= 0
+    """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-re", *reg_errarg])
         print(reg_errarg, "is erroneous")
@@ -319,7 +346,12 @@ def test_parser_bracket(bracr_arg, bracr_res):
     (["curly", "round", "square"])
 ])
 def test_parser_bracket_err(bracr_errarg):
-    """Test bracket remove argument error """
+    """Test bracket remove argument error\n
+    Give an error if:\n
+    -   no arguments/too many arguments (>2)
+    -   invalid bracket type ('', other...)
+    -   bracket target is not an integer >= 0
+    """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-bracr", *bracr_errarg])
         print(bracr_errarg, "is erroneous")
@@ -339,7 +371,9 @@ def test_parser_bracket_err(bracr_errarg):
     (["%a:%b:1"])
 ])
 def test_parser_sequence_err(seq_errarg):
-    """Test sequence argument errors """
+    """Test sequence argument errors
+    Raise argument if sequence is incorrect
+    """
     with pytest.raises(SystemExit) as err:
         args = parser.parse_args(["-seq", *seq_errarg])
         print(seq_errarg, "is errorneous")

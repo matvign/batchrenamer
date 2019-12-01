@@ -71,11 +71,11 @@ def trim(arg):
 class TranslateAction(argparse.Action):
     """batchren -tr CHARS CHARS\n
     Custom action for translate. Accept two arguments.\n
-    Return argument as a tuple\n
-    Give an error if\n
-        both values are empty\n
-        there aren't two arguments (achieved through nargs=2)\n
-        argument lengths aren't equal
+    Return argument as a tuple.\n
+    Give an error if:\n
+    -   both values are empty
+    -   there aren't two arguments (achieved through nargs=2)
+    -   argument lengths aren't equal
     """
     def __call__(self, parser, namespace, values, option_string=None):
         argtype = "argument -tr/--translate: "
@@ -92,10 +92,10 @@ class TranslateAction(argparse.Action):
 class SliceAction(argparse.Action):
     """batchren -sl start:end:step\n
     Custom action for slices. Accept argument separated by semicolons.\n
-    Give an error if\n
-        argument value is empty ('')\n
-        cannot convert to slice object (too many arguments)\n
-        value is not integer
+    Give an error if:\n
+    -   argument value is empty ('')
+    -   cannot convert to slice object (too many arguments)
+    -   value is not integer
     """
     def __call__(self, parser, namespace, values, option_string=None):
         argtype = "argument -sl/--slice: "
@@ -117,12 +117,12 @@ class ShaveAction(argparse.Action):
     """batchren -sh head:tail\n
     Custom action for shave. Accept one argument separated by semicolon.\n
     Slice values must be positive integers. Create two slice objects from args.\n
-    Give an error if\n
-        argument value is empty ('')\n
-        more than two values\n
-        any non-numeric character\n
-        both values are None\n
-        any values are negative
+    Give an error if:\n
+    -   argument value is empty ('')
+    -   more than two values
+    -   any non-numeric character
+    -   both values are None
+    -   any values are negative
     """
     def __call__(self, parser, namespace, values, option_string=None):
         argtype = "argument -sh/--shave: "
@@ -162,11 +162,11 @@ class RegexAction(argparse.Action):
     If two arguments, replace all instances PATTERN by REPL.\n
     If three arguments, replace COUNT'th instance of PATTERN BY REPL.\n
     Second argument default is '', third argument default is 0.\n
-    Give an error if\n
-        pattern argument is empty ('')\n
-        no arguments/too many arguments (>3)\n
-        regex/sre compile error\n
-        if value is not an integer >= 0
+    Give an error if:\n
+    -   pattern argument is empty ('')\n
+    -   no arguments/too many arguments (>3)\n
+    -   regex/sre compile error\n
+    -   if value is not an integer >= 0
     """
     def __call__(self, parser, namespace, values, option_string=None):
         argtype = "argument -re/--regex: "
@@ -183,9 +183,9 @@ class RegexAction(argparse.Action):
             parser.error(argtype + err0)
 
         try:
-            reg_exp = re.compile(values[0])
-            repl_val = values[1] if len(values) > 1 else ""
-            repl_count = int(values[2].strip()) if len(values) == 3 else 0
+            regexp = re.compile(values[0])
+            val = values[1] if len(values) > 1 else ""
+            count = int(values[2].strip()) if len(values) == 3 else 0
         except re.error as err:
             # error from compiling regex
             parser.error(argtype + err4 + str(err))
@@ -195,7 +195,7 @@ class RegexAction(argparse.Action):
         except ValueError:
             # error from converting count into int
             parser.error(argtype + err3)
-        namespace.regex = (reg_exp, repl_val, repl_count)
+        namespace.regex = (regexp, val, count)
 
 
 class BracketAction(argparse.Action):
@@ -205,10 +205,10 @@ class BracketAction(argparse.Action):
     Create different patterns with regex depending on bracket type.\n
     If one argument, remove instances of bracket type.\n
     If two arguments, remove COUNT'th instance of bracket type.\n
-    Give an error if\n
-        no arguments/too many arguments (>2)\n
-        invalid bracket type ('', other...)\n
-        bracket target is not an integer >= 0
+    Give an error if:\n
+    -   no arguments/too many arguments (>2)
+    -   invalid bracket type ('', other...)
+    -   bracket target is not an integer >= 0
     """
     def __call__(self, parser, namespace, values, option_string=None):
         choices = ["curly", "round", "square"]
@@ -248,10 +248,10 @@ class SequenceAction(argparse.Action):
         argtype = "argument -seq/--sequence: "
         try:
             seq = StringSeq.StringSequence(values)
-        except ValueError as verr:
-            parser.error(argtype + str(verr))
-        except TypeError as terr:
-            parser.error(argtype + str(terr))
+        except ValueError as v_err:
+            parser.error(argtype + str(v_err))
+        except TypeError as t_err:
+            parser.error(argtype + str(t_err))
         else:
             namespace.sequence = seq
 
@@ -330,7 +330,7 @@ parser = argparse.ArgumentParser(
     fromfile_prefix_chars="@",  # allow arguments from file input
 )
 
-exclgroup = parser.add_mutually_exclusive_group()
+verbositygroup = parser.add_mutually_exclusive_group()
 
 parser.add_argument("-sp", "--spaces", nargs="?", const="_",
                     metavar="REPL",
@@ -369,9 +369,9 @@ parser.add_argument("--sel", action="store_true",
                     help="manually select files from pattern match")
 parser.add_argument("--dryrun", action="store_true",
                     help="run without renaming any files")
-exclgroup.add_argument("-q", "--quiet", action="store_true",
+verbositygroup.add_argument("-q", "--quiet", action="store_true",
                     help="skip output, but show confirmations")
-exclgroup.add_argument("-v", "--verbose", action="store_true",
+verbositygroup.add_argument("-v", "--verbose", action="store_true",
                     help="show detailed output")
 parser.add_argument("--version", action="version", version=_version.__version__)
 parser.add_argument("path", nargs="?", default="*", type=expand_dir,

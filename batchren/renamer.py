@@ -15,11 +15,10 @@ issues = {
     0: "name is unchanged",
     1: "name cannot be empty",
     2: "name cannot start with '.'",
-    3: "name cannot contain '/'",
-    4: "name cannot exceed 255 characters",
-    5: "cannot change file to directory",
-    6: "cannot change location of file",
-    7: "shared name conflict",
+    3: "name cannot exceed 255 characters",
+    4: "cannot change file to directory",
+    5: "cannot change location of file",
+    6: "shared name conflict",
 }
 
 
@@ -62,22 +61,22 @@ def initfilters(args):
     filters = []
     if args.regex:
         try:
-            regex_repl = _repl_decorator(*args.regex)
+            repl = _repl_decorator(*args.regex)
         except re.error as re_err:
             sys.exit("A regex compilation error occurred: " + str(re_err))
         except sre_constants.error as sre_err:
             sys.exit("A regex compilation error occurred: " + str(sre_err))
-        filters.append(regex_repl)
+        filters.append(repl)
 
     if args.bracket_remove:
         if args.bracket_remove[0] == "curly":
-            reg_exp = re.compile(r"\{.*?\}")
+            regexp = re.compile(r"\{.*?\}")
         elif args.bracket_remove[0] == "round":
-            reg_exp = re.compile(r"\(.*?\)")
+            regexp = re.compile(r"\(.*?\)")
         elif args.bracket_remove[0] == "square":
-            reg_exp = re.compile(r"\[.*?\]")
+            regexp = re.compile(r"\[.*?\]")
 
-        bracr = _repl_decorator(reg_exp, "", args.bracket_remove[1])
+        bracr = _repl_decorator(regexp, "", args.bracket_remove[1])
         filters.append(bracr)
 
     if args.slice:
@@ -122,18 +121,17 @@ def initfilters(args):
     return filters
 
 
-def _repl_decorator(pattern, repl="", repl_count=0):
+def _repl_decorator(pattern, repl="", count=0):
     """Decorator function for regex replacement\n
     Return one of two functions:\n
-        1. Normal re.sub\n
-        2. re.sub with counter to remove nth instance.\n
-           Uses a function attribute as counter.\n
+        1. Normal re.sub
+        2. re.sub with counter to remove nth instance.
     """
     def repl_all(x):
         return re.sub(pattern, repl, x)
 
     def repl_nth(x):
-        f = re.sub(pattern, replacer, x, repl_count)
+        f = re.sub(pattern, replacer, x, count)
         replacer._count = 1
         return f
 
@@ -142,17 +140,17 @@ def _repl_decorator(pattern, repl="", repl_count=0):
         Replace string match with repl if count = count\n
         Otherwise return the string match\n
         """
-        if matchobj.group() and replacer._count == repl_count:
+        if matchobj.group() and replacer._count == count:
             res = repl
         else:
             res = matchobj.group()
         replacer._count += 1
         return res
 
-    # initialise count of replacer functions to one
+    # initialise function attribute to one for use as a counter
     replacer._count = 1
 
-    return repl_all if not repl_count else repl_nth
+    return repl_all if not count else repl_nth
 
 
 def start_rename(files, args):
@@ -220,7 +218,7 @@ def generate_rentable(src_files, dest_files):
         if dest in rentable["conflicts"]:
             # this name is already in conflict, add src to conflicts
             rentable["conflicts"][dest]["srcs"].append(src)
-            rentable["conflicts"][dest]["err"].add(7)
+            rentable["conflicts"][dest]["err"].add(6)
             errset = rentable["conflicts"][dest]["err"]
             cascade(rentable, src)
 
@@ -228,17 +226,17 @@ def generate_rentable(src_files, dest_files):
             # this name is taken, invalidate both names
             if dest == src:
                 errset.add(0)
-            errset.add(7)
+            errset.add(6)
 
-            temp = rentable["renames"][dest]
+            tmp = rentable["renames"][dest]
             del rentable["renames"][dest]
-            rentable["conflicts"][dest] = {"srcs": [temp, src], "err": errset}
+            rentable["conflicts"][dest] = {"srcs": [tmp, src], "err": errset}
             for n in rentable["conflicts"][dest]["srcs"]:
                 cascade(rentable, n)
 
         elif dest in rentable["unresolvable"]:
             # file won't be renamed, assign to unresolvable
-            errset.add(7)
+            errset.add(6)
             rentable["conflicts"][dest] = {"srcs": [src], "err": errset}
             cascade(rentable, src)
 
@@ -248,7 +246,7 @@ def generate_rentable(src_files, dest_files):
 
             if dest not in fileset and os.path.exists(dest):
                 # file exists but not in fileset, assign to unresolvable
-                errset.add(7)
+                errset.add(6)
 
             if dest == src:
                 # name hasn't changed, don't rename this
@@ -257,10 +255,10 @@ def generate_rentable(src_files, dest_files):
             if src_dir != dest_dir:
                 if dest and dest[-1] == "/":
                     # cannot change file to directory
-                    errset.add(5)
+                    errset.add(4)
                 else:
                     # cannot change location of file
-                    errset.add(6)
+                    errset.add(5)
 
             if dest_bname == "":
                 # name is empty, don't rename this
@@ -269,12 +267,8 @@ def generate_rentable(src_files, dest_files):
                 # . is reserved in unix
                 errset.add(2)
 
-            if "/" in dest_bname:
-                # / usually indicates some kind of directory
-                errset.add(3)
-
             if len(dest_bname) > 255:
-                errset.add(4)
+                errset.add(3)
 
             if errset:
                 rentable["conflicts"][dest] = {"srcs": [src], "err": errset}
@@ -287,30 +281,31 @@ def generate_rentable(src_files, dest_files):
 
 
 def cascade(rentable, target):
-    """
-    If dest has an error, src won't be renamed.
-    Mark src as unresolvable so nothing renames to it.
-    Remove anything else that wants to rename to src.
+    """Search through rename table and cascade file errors.\n
+    If dest has an error then src won't be renamed.\n
+    Mark src as unresolvable and cascade anything else
+    that wants to rename to src.
     """
     ndest = target
     while True:
         rentable["unresolvable"].add(ndest)
         if ndest in rentable["renames"]:
-            temp = rentable["renames"][ndest]
+            tmp = rentable["renames"][ndest]
             del rentable["renames"][ndest]
-            rentable["conflicts"][ndest] = {"srcs": [temp], "err": {7}}
-            ndest = temp
+            rentable["conflicts"][ndest] = {"srcs": [tmp], "err": {6}}
+            ndest = tmp
             continue
         return
 
 
 def print_rentable(rentable, quiet=False, verbose=False):
     """Print contents of table.\n
-    if quiet: don't show errors\n
-    if verbose: show detailed errors\n
-    if verbose and no errors: show message\n
-    if not verbose, no errors: show nothing\n
-    if not verbose, errors: show unrenamable files\n
+    -   quiet: don't show errors
+    -   verbose: show detailed errors
+    -   verbose and no errors: show message
+    -   not verbose and no errors: show nothing
+    -   not verbose and errors: show unrenamable files
+
     Always show output for renames
     """
     ren = rentable["renames"]
@@ -389,7 +384,7 @@ def name_gen():
         count += 1
 
 
-def rename_queue(queue, dryrun, verbose):
+def rename_queue(queue, dryrun=False, verbose=False):
     """Rename src to dest from a list of tuples [(dest, src), ...] """
     n = name_gen()
     next(n)

@@ -52,9 +52,9 @@ class StringSequence:
         return self.rules
 
     def _num_generator(self, depth=2, start=1, end=None, step=1):
-        """Generator function for numbers given a depth, start, end, step
-        Resets are supported. If reset, go back to start.
-        If end > start, or step = 0 values will always be start. NOT a bug!
+        """Generator function for numbers given a depth, start, end, step\n
+        Resets are supported. If reset, go back to start.\n
+        If end > start, or step = 0 values will always be start.
         """
         start = start if start is not None else 1
         step = step if step is not None else 1
@@ -70,11 +70,11 @@ class StringSequence:
                     i = start
 
     def _alpha_generator(self, depth=1, start="a", end=None):
-        """Generator function for letters given a depth, start, end.
-        Start is where sequencing begins. Consists only of letters.
-        End is where sequencing ends. Consists only of letters.
-        Depth determines how much end should repeat.
-        Lowercase increments to uppercase, but NOT vice-versa
+        """Generator function for letters given a depth, start, end.\n
+        Start is where sequencing begins. Consists only of letters.\n
+        End is where sequencing ends. Consists only of letters.\n
+        Depth determines how much end should repeat.\n
+        Lowercase increments to uppercase, but NOT vice-versa.
         """
         # convert start, end into list of chars
         start = list(start) if start is not None else ["a"]
@@ -91,13 +91,13 @@ class StringSequence:
             start, end = zip_longest(*zip_longest(start, end))
 
         def do_increment(ch, start_ch, end_ch):
-            """
+            """Perform character increment depending on start/end character.\n
             if (a - Z) increment until z, then switch to uppercase
                 and reset when = end
-            otherwise just increment
-            if (A - z) don't increment
-            if (a - None) don't increment
-            if (A - None) don't increment
+            otherwise just increment.\n
+            if (A - z) don't increment.\n
+            if (a - None) don't increment.\n
+            if (A - None) don't increment.
             """
             if start_ch.islower() and end_ch.isupper():
                 if ch.islower():
@@ -133,12 +133,12 @@ class StringSequence:
         return datetime.fromtimestamp(tstamp).strftime("%H.%M.%S")
 
     def _parse_num(self, args):
-        """Parse the arguments as a number sequence
-        %n[depth]:start:end:step
-        Raise error if:
-            depth value is not a number
-            too many arguments (>4)
-            argument is not a positive number
+        """Parse the arguments as a number sequence.\n
+        %n[depth]:start:end:step\n
+        Raise error if:\n
+        -   depth value is not a number
+        -   too many arguments (>4)
+        -   argument is not a positive number
         """
         msg1 = "invalid depth for number sequence"
         msg2 = "too many arguments for number sequence"
@@ -162,12 +162,12 @@ class StringSequence:
         self.rules.append((SequenceType.SEQ, gen))
 
     def _parse_alpha(self, args):
-        """Parse the arguments as an alphabetical sequence
-        %a[depth]:start:end
-        Raise error if:
-            depth value is not a number
-            too many arguments (>3)
-            argument contains non-alphabetical character(s)
+        """Parse the arguments as an alphabetical sequence.\n
+        %a[depth]:start:end\n
+        Raise error if:\n
+        -   depth value is not a number
+        -   too many arguments (>3)
+        -   argument contains non-alphabetical character(s)
         """
         msg1 = "invalid depth for alphabetical sequence"
         msg2 = "too many arguments for alphabetical sequence"
@@ -207,8 +207,8 @@ class StringSequence:
             raise ValueError(msg + arg)
 
     def _parse_args(self, args):
-        """Process each part of the sequence and it into a rule
-        txt//%f/%n2/ -> [txt, '', %f, %n2, '']
+        """Process each part of the sequence and it into a sequence rule.\n
+        e.g. txt//%f/%n2/ -> [txt, '', %f, %n2, '']
         """
         for n in args.split("/"):
             if not n:

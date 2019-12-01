@@ -27,8 +27,8 @@ def print_nofiles():
 
 def print_found(files):
     print("{:-^30}".format(BOLD + "files found" + END))
-    for n in files:
-        print(n)
+    for fname in files:
+        print(fname)
     print()
 
 

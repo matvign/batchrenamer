@@ -332,48 +332,57 @@ def fs(tmp_path_factory):
     return dir_
 
 
-@pytest.fixture
-def param_fs(tmp_path_factory, request):
-    """Parametrized tmp_path_factory fixture """
-    dir_ = tmp_path_factory.mktemp("")
-    for key, val in request.param.items():
-        d_ = dir_ / key
-        d_.mkdir()
-        for v in val:
-            f = d_ / v
-            f.write_text(v)
-
-    return dir_
-
-
 @pytest.mark.parametrize("src, dest", [
     (["dir/filea", "dir/fileb"], ["dir/filee", "dir/filef"]),
-    (["dir/filea", "dir/fileb"], ["dir/fileb", "dir/filea"])
+    (["dir/filea", "dir/fileb"], ["dir/fileb", "dir/filea"]),
+    (["dir/filea", "dir/fileb", "dir/filec"], ["dir/fileb", "dir/filec", "dir/filea"]),
+    (["dir/filea", "dir/fileb", "dir/filec"], ["dir/fileb", "dir/filec", "dir/filee"])
 ])
 def test_rentable_valid(fs, src, dest):
+    """Test that the rename table will resolve the following:\n
+    -   No conflict rename
+    -   Sequence of resolvable conflicts
+    """
     os.chdir(fs)
     table = renamer.generate_rentable(src, dest)
+    print(table)
     assert not table["conflicts"]
     assert not table["unresolvable"]
-    assert len(table["renames"]) == 2
+    assert len(table["renames"]) == len(src)
 
 
 @pytest.mark.parametrize("src, dest", [
     pytest.param(["dir/filea", "dir/fileb"], ["dir/filea"], marks=pytest.mark.xfail),
+    # name is unchanged
     (["dir/filea"], ["dir/filea"]),
+    (["dir/filea"], ["dir//filea"]),
+    # name cannot be empty
     (["dir/filea"], [""]),
+    # name cannot start with '.'
     (["dir/filea"], ["dir/.filea"]),
     (["dir/filea"], ["dir/."]),
     (["dir/filea"], ["dir/.."]),
     (["dir/filea"], ["dir/.other"]),
     (["dir/filea"], ["dir/..other"]),
-    (["dir/filea"], ["dir//filea"]),
+    # name cannot exceed 255 characters
+    (["dir/filea"], ["dir/" + "a" * 256]),
+    # cannot change file to directory + empty name
     (["dir/filea"], ["dir/filea/"]),
+    # cannot change location of file
     (["dir/filea"], ["dir/fil/a"]),
+    # shared name conflict
     (["dir/filea"], ["dir/fileb"]),
-    (["dir/filea"], ["dir/" + "a" * 256])
 ])
 def test_rentable_invalid(fs, src, dest):
+    """Test that the rename table will not resolve the following:\n
+    -   name is unchanged
+    -   name cannot be empty
+    -   name cannot start with '.'
+    -   name cannot exceed 255 characters
+    -   cannot change file to directory
+    -   cannot change location of file
+    -   shared name conflict
+    """
     os.chdir(fs)
     table = renamer.generate_rentable(src, dest)
     print(table["conflicts"])
@@ -383,18 +392,52 @@ def test_rentable_invalid(fs, src, dest):
     assert not table["renames"]
 
 
-@pytest.mark.parametrize(
-    "param_fs",
-    [file_dirs.fs1, file_dirs.fs2],
+@pytest.fixture
+def param_fs(tmp_path_factory, request):
+    """Parametrized tmp_path_factory fixture """
+    dir_ = tmp_path_factory.mktemp("")
+    for key, val in request.param.items():
+        d_ = dir_ / key
+        d_.mkdir()
+        for v in val:
+            f = d_ / v
+            print(os.path.join(key, v))
+            f.write_text(os.path.join(key, v))
+
+    return dir_
+
+
+@pytest.mark.parametrize("param_fs, src, dest", [
+    (file_dirs.fs1, ["dir/filea"], ["dir/filez"]),
+    (file_dirs.fs1, ["dir/fileb"], ["dir/filez"]),
+    (file_dirs.fs2, ["dir1/01", "dir1/02", "dir1/03"],
+        ["dir1/02", "dir1/03", "dir1/01"])],
     indirect=["param_fs"]
 )
-def test_renamer_files(param_fs):
-    pass
+def test_renamer_files(monkeypatch, param_fs, src, dest):
+    """Test that files are renamed as expected """
+    monkeypatch.setattr("builtins.input", lambda: "Y")
+    os.chdir(param_fs)
+    table = renamer.generate_rentable(src, dest)
+    queue = renamer.print_rentable(table)
+    renamer.rename_queue(queue)
+    for s, d in zip(src, dest):
+        f = param_fs / d
+        assert f.read_text() == s
 
 
-def test_renamer_dryrun():
-    pass
-
-
-def test_renamer_cycle():
-    pass
+@pytest.mark.parametrize("param_fs, src, dest", [
+    (file_dirs.fs1, ["dir/filea"], ["dir/filez"]),
+    (file_dirs.fs1, ["dir/fileb"], ["dir/filez"])],
+    indirect=["param_fs"]
+)
+def test_renamer_dryrun(monkeypatch, param_fs, src, dest):
+    """Test that there is no change in files """
+    monkeypatch.setattr("builtins.input", lambda: "Y")
+    os.chdir(param_fs)
+    table = renamer.generate_rentable(src, dest)
+    queue = renamer.print_rentable(table)
+    renamer.rename_queue(queue, dryrun=True)
+    for s, d in zip(src, dest):
+        f = param_fs / s
+        assert f.read_text() == s
