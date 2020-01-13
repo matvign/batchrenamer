@@ -157,10 +157,14 @@ def start_rename(files, args):
     src_files = files
     dest_files = files
 
-    filters = initfilters(args)
-    dest_files = get_renames(dest_files, filters, args.extension, args.raw)
-    rentable = generate_rentable(src_files, dest_files)
-    q = print_rentable(rentable, args.quiet, args.verbose)
+    try:
+        filters = initfilters(args)
+        dest_files = get_renames(dest_files, filters, args.extension, args.raw)
+        rentable = generate_rentable(src_files, dest_files)
+        q = print_rentable(rentable, args.quiet, args.verbose)
+    except BaseException as exc:
+        sys.exit(exc)
+
     if q and helper.askQuery():
         rename_queue(q, args.dryrun, args.verbose)
 
@@ -189,7 +193,7 @@ def runfilters(path, filters, extension=None, raw=False):
         except OSError as os_err:
             # except oserror from sequences
             sys.exit("A filesystem error occurred: " + str(os_err))
-        except Exception as exc:
+        except BaseException as exc:
             sys.exit("An unforeseen error occurred: " + str(exc))
 
     # change extension, allow '' as an extension
@@ -282,7 +286,6 @@ def generate_rentable(src_files, dest_files):
 
 def cascade(rentable, target):
     """Search through rename table and cascade file errors.\n
-    If dest has an error then src won't be renamed.\n
     Mark src as unresolvable and cascade anything else
     that wants to rename to src.
     """
@@ -320,13 +323,8 @@ def print_rentable(rentable, quiet=False, verbose=False):
         print("{:-^30}".format(helper.BOLD + "issues/conflicts" + helper.END))
         if unres:
             # show detailed output if there were conflicts
-            print("the following files have conflicts")
-            if "" in conf:
-                # workaround for empty values with ns.PATH
-                conflicts = [("", conf.pop("")), *natsorted(conf.items(), key=lambda x: x[0], alg=ns.PATH)]
-            else:
-                conflicts = natsorted(conf.items(), key=lambda x: x[0], alg=ns.PATH)
-
+            print("the following files have conflicts:")
+            conflicts = natsorted(conf.items(), lambda x: x[0].replace(".", "~"), alg=ns.PATH)
             for dest, obj in conflicts:
                 srcOut = natsorted(obj["srcs"], alg=ns.PATH)
                 print(", ".join([repr(str(e)) for e in srcOut]))
@@ -339,7 +337,7 @@ def print_rentable(rentable, quiet=False, verbose=False):
     elif unres:
         # show files that can't be renamed if not verbose or quiet
         print("{:-^30}".format(helper.BOLD + "issues/conflicts" + helper.END))
-        print("the following files will NOT be renamed")
+        print("the following files will NOT be renamed:")
         print(*["'{}'".format(s) for s in natsorted(unres, alg=ns.PATH)], "", sep="\n")
 
     # always show files that will be renamed
@@ -354,18 +352,8 @@ def print_rentable(rentable, quiet=False, verbose=False):
         print("no files to rename")
     print()
 
-    return renames
-
-
-def getFreeName(dest):
-    dirpath, basename, ext = partfile(dest)
-    count = 1
-    while(True):
-        tmpname = "{}_{}".format(basename, count)
-        ndest = joinparts(dirpath, tmpname, ext)
-        if not os.path.exists(ndest):
-            return ndest
-        count += 1
+    # return renames queue in (src, dest) order
+    return [(r[1], r[0]) for r in renames]
 
 
 def name_gen():
@@ -385,37 +373,65 @@ def name_gen():
 
 
 def rename_queue(queue, dryrun=False, verbose=False):
-    """Rename src to dest from a list of tuples [(dest, src), ...] """
+    """Rename src to dest from a list of tuples [(src, dest), ...] """
+    q = deque(queue)
+    rollback_queue = []
+
     n = name_gen()
     next(n)
-    q = deque(queue)
-    msg = "Conflict detected, temporarily renaming"
+
     if dryrun:
-        print("Running with dryrun, files will NOT be renamed")
-    while q:
-        dest, src = q.popleft()
-        if os.path.exists(dest):
-            dirpath, _ = os.path.split(dest)
-            tmp = n.send(dirpath)
-            if verbose or dryrun:
-                print(msg, "'{}' to '{}'".format(src, tmp))
-            if not dryrun:
-                rename_file(src, tmp)
-            q.append((dest, tmp))
+        print("Running with dryrun, files will NOT be renamed.")
+
+    try:
+        while q:
+            src, dest = q.popleft()
+            if os.path.exists(dest):
+                dirpath, _ = os.path.split(dest)
+                tmp = n.send(dirpath)
+                if verbose or dryrun:
+                    print("Conflict found, temporarily renaming '{}' to '{}'.".format(src, tmp))
+                if not dryrun:
+                    rollback_queue.append((tmp, src))
+                    rename_file(src, tmp)
+                q.append((tmp, dest))
+            else:
+                # no conflict, just rename
+                if verbose or dryrun:
+                    print("rename '{}' to '{}'.".format(src, dest))
+                if not dryrun:
+                    rollback_queue.append((dest, src))
+                    rename_file(src, dest)
+    except BaseException:
+        if dryrun:
+            sys.exit("An error occurred but no files were renamed as the dryrun option is enabled.")
+        elif not rollback_queue:
+            sys.exit("No files were renamed due to an error.")
         else:
-            # no conflict, just rename
-            if verbose or dryrun:
-                print("rename '{}' to '{}'".format(src, dest))
-            if not dryrun:
-                rename_file(src, dest)
+            rollback(rollback_queue)
 
     print("Finished renaming...")
+
+
+def rollback(queue):
+    print("Running file rollback...")
+    while queue:
+        src, dest = queue.pop()
+        print("Rolling back '{}' -> '{}'.".format(dest, src))
+        try:
+            rename_file(src, dest)
+        except BaseException as exc:
+            sys.exit("Cannot perform rollback operation: " + str(exc))
+
+    sys.exit("Rollback completed. Exiting now...")
 
 
 def rename_file(src, dest):
     try:
         os.rename(src, dest)
     except OSError as err:
-        sys.exit("An error occurred while renaming: " + str(err))
-    except Exception as exc:
-        sys.exit("An unforeseen error occurred while renaming: " + str(exc))
+        print("An error occurred while renaming: " + str(err))
+        raise err
+    except BaseException as exc:
+        print("An unforeseen error occurred while renaming: " + str(exc))
+        raise exc

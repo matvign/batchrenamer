@@ -42,7 +42,7 @@ def expand_dir(path):
 
 def validate_ext(ext):
     """Validate extension option\n
-    Give an error if argument contains '/' or '\'
+    Give an error if argument contains '/' or backslash
     """
     err1 = "illegal character in extension"
     if "/" in ext or "\\" in ext:
@@ -93,7 +93,7 @@ class SliceAction(argparse.Action):
     """batchren -sl start:end:step\n
     Custom action for slices. Accept argument separated by semicolons.\n
     Give an error if:\n
-    -   argument value is empty ('')
+    -   argument value is empty
     -   cannot convert to slice object (too many arguments)
     -   value is not integer
     """
@@ -118,7 +118,7 @@ class ShaveAction(argparse.Action):
     Custom action for shave. Accept one argument separated by semicolon.\n
     Slice values must be positive integers. Create two slice objects from args.\n
     Give an error if:\n
-    -   argument value is empty ('')
+    -   argument value is empty
     -   more than two values
     -   any non-numeric character
     -   both values are None
@@ -163,9 +163,9 @@ class RegexAction(argparse.Action):
     If three arguments, replace COUNT'th instance of PATTERN BY REPL.\n
     Second argument default is '', third argument default is 0.\n
     Give an error if:\n
-    -   pattern argument is empty ('')\n
-    -   no arguments/too many arguments (>3)\n
-    -   regex/sre compile error\n
+    -   pattern argument is empty
+    -   no arguments/too many arguments (>3)
+    -   regex/sre compile error
     -   if value is not an integer >= 0
     """
     def __call__(self, parser, namespace, values, option_string=None):
@@ -207,7 +207,7 @@ class BracketAction(argparse.Action):
     If two arguments, remove COUNT'th instance of bracket type.\n
     Give an error if:\n
     -   no arguments/too many arguments (>2)
-    -   invalid bracket type ('', other...)
+    -   invalid bracket type
     -   bracket target is not an integer >= 0
     """
     def __call__(self, parser, namespace, values, option_string=None):
@@ -418,7 +418,4 @@ def main():
     if args.verbose:
         helper.print_found(files)
 
-    try:
-        renamer.start_rename(files, args)
-    except Exception as err:
-        print(err)
+    renamer.start_rename(files, args)

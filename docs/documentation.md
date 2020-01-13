@@ -1,4 +1,4 @@
-# Documentation - v0.7.0
+# Documentation - v0.7.1
 Batchren is a python script for batch renaming files.  
 Batchren uses pattern matching to look for files and optional 
 arguments to rename the set of files found.  
