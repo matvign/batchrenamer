@@ -4,7 +4,7 @@ setup:
 	pip install -r requirements.txt
 
 install:
-	pip install --user dist/batchren-0.6.1-py3-none-any.whl
+	pip install --user dist/batchren-0.7.0-py3-none-any.whl
 
 remove:
 	pip uninstall batchren
