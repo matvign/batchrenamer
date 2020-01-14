@@ -27,7 +27,7 @@ See examples for more information.
 -ext            change extension of file ('' removes the extension)
 
 --esc           escape pattern matching characters
---raw           treat extension as part of filename
+--raw           treat extension as part of filename and do not process whitespace
 
 --sort          after finding files, sort by ascending, descending or manual. useful for sequences
 --sel           after finding files with a file pattern, manually select which files to rename
@@ -90,11 +90,24 @@ Sort order of files found through file matching and the select option. Useful fo
 
 #### Raw
 `batchren --raw`  
-Treat extension as part of filename. Use if you want to ignore extensions.
+Treat extension as part of filename and do not process whitespace.
+Use if you want to ignore extensions or preserve whitespace.
 
 ##### Examples
-`batchren file.mp4 -post bla`: postpend 'bla' to 'file.mp4', which becomes 'filebla.mp4'  
-`batchren file.mp4 -post bla --raw`: renames file to `file.mp4bla`
+```
+# Treat extension as part of filename
+batchren file.txt -post bla: filebla.txt
+batchren file.txt -post bla --raw`: file.txtbla
+```
+```
+# Preserve whitespace
+batchren file.txt -post " ": file.txt
+batchren file.txt -post " " --raw: "file.txt "
+batchren file.txt -pre " " --raw: " file.txt"
+
+batchren " " -pre "bla": bla
+batchren " " -pre "bla": " bla"
+```
 
 
 ### File Renaming Arguments

@@ -362,7 +362,7 @@ parser.add_argument("-ext", "--extension", metavar="EXT", type=validate_ext,
 parser.add_argument("--esc", nargs="?", const="*?[]", type=validate_esc,
                     help="escape literal characters ('*?[]')")
 parser.add_argument("--raw", action="store_true",
-                    help="treat extension as part of filename")
+                    help="treat extension as filename and preserve whitespace")
 parser.add_argument("--sort", choices=["asc", "desc", "man"], default="asc",
                     help="rename files found in specific order")
 parser.add_argument("--sel", action="store_true",

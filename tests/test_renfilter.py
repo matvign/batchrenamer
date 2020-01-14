@@ -68,7 +68,7 @@ def test_misc_partfile(path_arg, path_res):
     (["dir", "file", "...  e  xt?. ext. .."], ("dir/file.ext?.ext")),
 
     (["dir", "file  ", ".txt", True], ("dir/file  .txt")),
-    (["dir", "  file", ".txt", True], ("dir/file.txt"))
+    (["dir", "  file", ".txt", True], ("dir/  file.txt"))
 ])
 def test_misc_joinparts(join_arg, join_res):
     res = renamer.joinparts(*join_arg)

@@ -36,23 +36,26 @@ def partfile(path, raw=False):
 
 
 def joinparts(dirpath, basename, ext, raw=False):
-    """Combine directory path, basename and extension """
     path = basename
     if not raw:
-        # default, process filename before applying extension
+        # default, process whitespace
         path = path.strip()
 
-    if ext:
-        # remove spaces, strip and collapse dots from extension
-        # remove trailing dots from filename before adding extension
-        ext = re.sub(r"\.+", ".", ext.replace(" ", "").strip("."))
-        path = path.rstrip(".") + "." + ext
+        if ext:
+            # remove spaces, strip and then collapse dots from extension
+            # remove trailing dots from filename before adding extension
+            ext = re.sub(r"\.+", ".", ext.replace(" ", "").strip("."))
+            path = path.rstrip(".") + "." + ext
 
-    # raw, process filename after applying extension
-    path = path.strip()
+    else:
+        # raw, don't process any whitespace
+        if ext:
+            # remove trailing dots from ext
+            ext = re.sub(r"\.+", ".", ext.strip("."))
+            path = path.rstrip(".") + "." + ext
+
     if dirpath:
         path = os.path.join(dirpath, path)
-
     return path
 
 
