@@ -441,3 +441,17 @@ def test_renamer_dryrun(monkeypatch, param_fs, src, dest):
     for s, d in zip(src, dest):
         f = param_fs / s
         assert f.read_text() == s
+
+
+@pytest.mark.parametrize("param_fs, queue", [
+    (file_dirs.fs1, [("dir/filea", "dir/filex"), ("dir/fileb", "dir/filey"), ("dir/filec", 10)]),
+    (file_dirs.fs1, [("dir/filea", "dir/fileb"), ("dir/fileb", "dir/filey"), ("dir/filec", 10)])
+], indirect=["param_fs"])
+def test_renamer_rollback(param_fs, queue):
+    os.chdir(param_fs)
+    with pytest.raises(BaseException):
+        renamer.rename_queue(queue)
+        for src in file_dirs.fs1["dir"]:
+            f = param_fs / src
+            assert f.read_text() == src
+    # assert False

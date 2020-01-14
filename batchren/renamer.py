@@ -387,21 +387,22 @@ def rename_queue(queue, dryrun=False, verbose=False):
         while q:
             src, dest = q.popleft()
             if os.path.exists(dest):
+                # rename in two parts
                 dirpath, _ = os.path.split(dest)
                 tmp = n.send(dirpath)
                 if verbose or dryrun:
                     print("Conflict found, temporarily renaming '{}' to '{}'.".format(src, tmp))
                 if not dryrun:
-                    rollback_queue.append((tmp, src))
                     rename_file(src, tmp)
+                rollback_queue.append((tmp, src))
                 q.append((tmp, dest))
             else:
                 # no conflict, just rename
                 if verbose or dryrun:
                     print("rename '{}' to '{}'.".format(src, dest))
                 if not dryrun:
-                    rollback_queue.append((dest, src))
                     rename_file(src, dest)
+                rollback_queue.append((dest, src))
     except BaseException:
         if dryrun:
             sys.exit("An error occurred but no files were renamed as the dryrun option is enabled.")
@@ -417,7 +418,7 @@ def rollback(queue):
     print("Running file rollback...")
     while queue:
         src, dest = queue.pop()
-        print("Rolling back '{}' -> '{}'.".format(dest, src))
+        print("Rolling back '{}' -> '{}'.".format(src, dest))
         try:
             rename_file(src, dest)
         except BaseException as exc:
