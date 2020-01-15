@@ -72,14 +72,7 @@ def initfilters(args):
         filters.append(repl)
 
     if args.bracket_remove:
-        if args.bracket_remove[0] == "curly":
-            regexp = re.compile(r"\{.*?\}")
-        elif args.bracket_remove[0] == "round":
-            regexp = re.compile(r"\(.*?\)")
-        elif args.bracket_remove[0] == "square":
-            regexp = re.compile(r"\[.*?\]")
-
-        bracr = _repl_decorator(regexp, "", args.bracket_remove[1])
+        bracr = lambda x: helper.bracket_remove(x, *args.bracket_remove)
         filters.append(bracr)
 
     if args.slice:

@@ -43,6 +43,75 @@ def print_args(args):
     # print(args, '\n')
 
 
+def bracket_map(expression):
+    bracket_types = ("round", "square", "curly")
+    open_map, close_map = {}, {}
+
+    if "a" in expression:
+        open_map = dict(zip(tuple("([{"), bracket_types))
+        close_map = dict(zip(tuple(")]}"), bracket_types))
+
+    else:
+        for ch in set(expression):
+            if ch == "r":
+                open_map["("] = "round"
+                close_map[")"] = "round"
+            elif ch == "s":
+                open_map["["] = "square"
+                close_map["]"] = "square"
+            elif ch == "c":
+                open_map["{"] = "curly"
+                close_map["}"] = "curly"
+
+    return (open_map, close_map)
+
+
+def bracket_remove(expression, open_map, close_map, count):
+    stack = { "round": [], "square": [], "curly": [] }
+    indices = []
+
+    # find indices of matched/unmatched brackets using three stacks
+    for index, char in enumerate(expression):
+        if char in open_map:
+            stack[open_map[char]].append(index)
+        elif char in close_map:
+            if not stack[open_map[char]]:
+                # move indices of unmatched closed braces
+                indices.append((index, index))
+                continue
+
+            i = stack[close_map[char]].pop()
+            indices.append(i, index)
+
+    # move indices of unmatched open braces left on the stacks
+    for k, v in stack.items():
+        for vi in v:
+            indices.append((vi, vi))
+
+    if not indices:
+        # no indices to remove, just return the expression
+        return expression
+
+    # remove overlapping indices
+    indices = sorted(indices, key=lambda x: x[0])
+    min_start, max_end = indices[0]
+    remove_indices = [indices[0]]
+    for start, end in indices[1:]:
+        if start > max_end:
+            remove_indices.append((start, end))
+            min_start, max_end = start, end
+        elif end > max_end:
+            remove_indices[-1] = (min_start, end)
+            max_end = end
+
+    s = list(expression)
+    while(remove_indices):
+        start, end = remove_indices.pop()
+        del s[start, end]
+
+    return "".join(s)
+
+
 def escape_path(path, args):
     magic_check = re.compile("([%s])" % args)
     magic_check_bytes = re.compile(b"([%a])" % args)

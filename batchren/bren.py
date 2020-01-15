@@ -199,43 +199,45 @@ class RegexAction(argparse.Action):
 
 
 class BracketAction(argparse.Action):
-    """batchren -bracr {curly, round, square} COUNT\n
+    """batchren -bracr {arcs} COUNT\n
     Custom action for a bracket remover.\n
-    Accept at least one argument and at most two arguments.\n
-    Create different patterns with regex depending on bracket type.\n
-    If one argument, remove instances of bracket type.\n
-    If two arguments, remove COUNT'th instance of bracket type.\n
+    Remove specified brackets and content types depending on arguments.\n
+    If no argument, remove all brackets types and their contents.\n
+    If one argument, remove instances of specified bracket type(s).\n
+    If two arguments, remove COUNT'th instance of specified bracket type(s).\n
     Give an error if:\n
-    -   no arguments/too many arguments (>2)
+    -   too many arguments (>2)
     -   invalid bracket type
     -   bracket target is not an integer >= 0
     """
     def __call__(self, parser, namespace, values, option_string=None):
-        choices = ["curly", "round", "square"]
+        choices = re.compile("[arcs]+")
         argtype = "argument -bracr/--bracket_remove: "
-        err1 = "expected at least one argument"
-        err2 = "expected at most two arguments"
-        err3 = "invalid choice for bracket type"
+        err1 = "expected at most two arguments"
+        err2 = "invalid match for bracket type(s)"
+        err3 = "cannot remove negative bracket match"
         err4 = "bracket target is not a number"
-        err5 = "cannot remove negative bracket match"
-        if not len(values):
-            parser.error(argtype + err1)
-        elif len(values) > 2:
-            parser.error(argtype + err2)
 
-        if values[0] not in choices:
-            parser.error(argtype + err3)
+        if len(values) > 2:
+            parser.error(argtype + err1)
+
+        if len(values) > 0:
+            if not re.match(choices, values[0]):
+                parser.error(argtype + err2)
+            bracket_maps = helper.bracket_map(values[0])
+        else:
+            bracket_maps = helper.bracket_map("a")
 
         try:
             repl_count = int(values[1]) if len(values) == 2 else 0
             if repl_count < 0:
                 # don't allow negative bracket match
-                parser.error(argtype + err5)
+                parser.error(argtype + err3)
         except ValueError:
             # values[1] cannot be converted to an int
             parser.error(argtype + err4)
 
-        namespace.bracket_remove = (values[0], repl_count)
+        namespace.bracket_remove = (bracket_maps, repl_count)
 
 
 class SequenceAction(argparse.Action):
