@@ -72,7 +72,9 @@ def initfilters(args):
         filters.append(repl)
 
     if args.bracket_remove:
-        bracr = lambda x: helper.bracket_remove(x, *args.bracket_remove)
+        maps = helper.bracket_map(args.bracket_remove[0])
+        count = args.bracket_remove[1]
+        bracr = lambda x: helper.bracket_remove(x, *maps, count)
         filters.append(bracr)
 
     if args.slice:

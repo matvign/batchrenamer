@@ -211,7 +211,7 @@ class BracketAction(argparse.Action):
     -   bracket target is not an integer >= 0
     """
     def __call__(self, parser, namespace, values, option_string=None):
-        choices = re.compile("[arcs]+")
+        choices = re.compile(r"^[arcs]+$")
         argtype = "argument -bracr/--bracket_remove: "
         err1 = "expected at most two arguments"
         err2 = "invalid match for bracket type(s)"
@@ -224,9 +224,9 @@ class BracketAction(argparse.Action):
         if len(values) > 0:
             if not re.match(choices, values[0]):
                 parser.error(argtype + err2)
-            bracket_maps = helper.bracket_map(values[0])
+            values[0] = "".join(dict.fromkeys(list(values[0])))
         else:
-            bracket_maps = helper.bracket_map("a")
+            values[0] = "a"
 
         try:
             repl_count = int(values[1]) if len(values) == 2 else 0
@@ -237,7 +237,7 @@ class BracketAction(argparse.Action):
             # values[1] cannot be converted to an int
             parser.error(argtype + err4)
 
-        namespace.bracket_remove = (bracket_maps, repl_count)
+        namespace.bracket_remove = (values[0], repl_count)
 
 
 class SequenceAction(argparse.Action):

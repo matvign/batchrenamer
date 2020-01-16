@@ -22,6 +22,7 @@ Details here: https://docs.python.org/3/library/pathlib.html
 
 
 @pytest.mark.parametrize("path_arg, path_res", [
+    # default, extract extensions
     (["file", False], ("", "file", "")),
     (["file.txt", False], ("", "file", ".txt")),
     (["archive.tar.gz", False], ("", "archive.tar", ".gz")),
@@ -29,6 +30,8 @@ Details here: https://docs.python.org/3/library/pathlib.html
     (["dir/file.txt", False], ("dir", "file", ".txt")),
     (["dir/subdir/file", False], ("dir/subdir", "file", "")),
     (["dir/subdir/file.txt", False], ("dir/subdir", "file", ".txt")),
+
+    # raw, don't extract extension
     (["file", True], ("", "file", "")),
     (["file.txt", True], ("", "file.txt", "")),
     (["archive.tar.gz", True], ("", "archive.tar.gz", "")),
@@ -46,6 +49,7 @@ def test_misc_partfile(path_arg, path_res):
     (["", "file", "", False], ("file")),
     (["", " file", "", False], ("file")),
     (["", "  file  ", "", False], ("file")),
+
     (["", ".file", "", False], (".file")),
     (["", " .file", "", False], (".file")),
     (["", ". file", "", False], (". file")),
@@ -65,8 +69,9 @@ def test_misc_partfile(path_arg, path_res):
     (["", ". file", ".txt", False], (". file.txt")),
 
     (["dir", "file", ".txt.sav", False], ("dir/file.txt.sav")),
-    (["dir", "file", "...  e  xt?. ext. .."], ("dir/file.ext?.ext")),
+    (["dir", "file", "...  e  xt?. ext. ..", False], ("dir/file.ext?.ext")),
 
+    # raw, don't process whitespace
     (["dir", "file  ", ".txt", True], ("dir/file  .txt")),
     (["dir", "  file", ".txt", True], ("dir/  file.txt"))
 ])
@@ -184,39 +189,124 @@ def test_filter_shave(sh_arg, sh_src, sh_dest):
 
 
 @pytest.mark.parametrize("bracr_arg, bracr_src, bracr_dest", [
-    (["round "], ["filea"], ["filea"]),
-    (["round"], ["(filea)file(file)", "(file)(file)(file)file"], ["file", "file"]),
-    (["round", "0"], ["(file)(file)(file)file"], ["file"]),
-    (["round", "1"], ["(file)file(file)"], ["file(file)"]),
-    (["round", "2"], ["(file)file(file)"], ["(file)file"]),
-    (["round", "3"], ["(file)file(file)"], ["(file)file(file)"]),
-    (["square", "1"], ["[file]file[file]"], ["file[file]"]),
-    (["square", "2"], ["[file]file[file]"], ["[file]file"]),
-    (["square", "3"], ["[file]file[file]"], ["[file]file[file]"]),
-    (["curly", "1"], ["{file}file{file}"], ["file{file}"]),
-    (["curly", "2"], ["{file}file{file}"], ["{file}file"]),
-    (["curly", "3"], ["{file}file{file}"], ["{file}file{file}"]),
+    # nothing removed when no brackets
+    ("r", ["file"], ["file"]),
+    ("s", ["file"], ["file"]),
+    ("c", ["file"], ["file"]),
+
+    # unmatched brackets are removed
+    ("r", ["file("], ["file"]),
+    ("r", ["file)"], ["file"]),
+    ("s", ["file["], ["file"]),
+    ("s", ["file]"], ["file"]),
+    ("c", ["file{"], ["file"]),
+    ("c", ["file}"], ["file"]),
+
+    # matched brackets are removed
+    ("r", ["(file)file(file)"], ["file"]),
+    ("r", ["(file)file(file)(file)"], ["file"]),
+    ("s", ["[file]file[file]"], ["file"]),
+    ("s", ["[file]file[file][file]"], ["file"]),
+    ("c", ["{file}file{file}"], ["file"]),
+    ("c", ["{file}file{file}{file}"], ["file"]),
+
+    # matched and unmatched brackets are removed
+    ("r", ["(file)(file)(("], [""]),
+    ("r", ["(file)(file)))"], [""]),
+    ("r", ["(file)(file))())"], [""]),
+    ("s", ["[file][file][["], [""]),
+    ("s", ["[file][file]]]"], [""]),
+    ("s", ["[file][file]][]]"], [""]),
+    ("c", ["{file}{file}{{"], [""]),
+    ("c", ["{file}{file}}}"], [""]),
+    ("c", ["{file}{file}}{}}"], [""]),
+
+    # remove all brackets
+    ("a", ["(file)[file]{file}file"], ["file"])
 ])
 def test_filter_bracr(bracr_arg, bracr_src, bracr_dest):
     """Tests for bracket remove argument. Remove specified bracket type """
+    args = parser.parse_args(["-bracr", bracr_arg])
+    filters = renamer.initfilters(args)
+    dest = renamer.get_renames(bracr_src, filters, args.extension, args.raw)
+    assert dest == bracr_dest
+
+
+@pytest.mark.parametrize("bracr_arg, bracr_src, bracr_dest", [
+    # simple case
+    (["r", "1"], ["file()()"], ["file()"]),
+    (["s", "1"], ["file[][]"], ["file[]"]),
+    (["c", "1"], ["file{}{}"], ["file{}"]),
+
+    # remove non-existant
+    (["r", "10"], ["file()()"], ["file()()"]),
+    (["s", "10"], ["file[][]"], ["file[][]"]),
+    (["c", "10"], ["file{}{}"], ["file{}{}"]),
+
+    # order sensitive
+    (["r", "1"], ["()file()"], ["file()"]),
+    (["s", "1"], ["[]file[]"], ["file[]"]),
+    (["c", "1"], ["{}file{}"], ["file{}"]),
+
+    # remove second
+    (["r", "2"], ["()file()(file)"], ["()file(file)"]),
+    (["s", "2"], ["[]file[][file]"], ["[]file[file]"]),
+    (["c", "2"], ["{}file{}{file}"], ["{}file{file}"]),
+
+    # remove all
+    (["a", "1"], ["()file[]file{}"], ["file[]file{}"]),
+    (["a", "2"], ["()file[]file{}"], ["()filefile{}"]),
+    (["a", "3"], ["()file[]file{}"], ["()file[]file"]),
+
+    # only matched brackets are removed
+    (["r", "3"], ["()file())"], ["()file())"]),
+    (["r", "2"], ["()file())"], ["()file)"]),
+    (["s", "3"], ["[]file[]]"], ["[]file[]]"]),
+    (["s", "2"], ["[]file[]]"], ["[]file]"]),
+    (["c", "3"], ["{}file{}}"], ["{}file{}}"]),
+    (["c", "2"], ["{}file{}}"], ["{}file}"]),
+])
+def test_filter_bracr_count(bracr_arg, bracr_src, bracr_dest):
+    """ Extra tests for bracket remove with counts.
+    Test for:
+    -   non-existant
+    -   remove all
+    -   matched brackets
+    """
     args = parser.parse_args(["-bracr", *bracr_arg])
     filters = renamer.initfilters(args)
     dest = renamer.get_renames(bracr_src, filters, args.extension, args.raw)
     assert dest == bracr_dest
 
 
-@pytest.mark.parametrize("bracr_arg, bracr_src", [
-    ("round", ["((file))file"]),
-    ("square", ["[[file]]file"]),
-    ("curly", ["{{file}}file"])
+@pytest.mark.parametrize("bracr_arg, bracr_src, bracr_dest", [
+    # nested brackets
+    (["r"], ["((file))file"], ["file"]),
+    (["s"], ["[[file]]file"], ["file"]),
+    (["c"], ["{{file}}file"], ["file"]),
+    (["r"], ["(some(thing)nasty)file"], ["file"]),
+
+    # nested bracket with unmatched bracket
+    (["r"], ["(something(nothing)))"], [""]),
+
+    # nested bracket w/count
+    (["r", "2"], ["(something(here))"], ["(something)"]),
+    (["r", "2"], ["(something(here)))"], ["(something))"]),
+
+    # multiple brackets
+    (["rs"], ["(something [quite)nasty]"], [""]),
+    (["rs", "2"], ["(something [quite)nasty]"], ["(something"])
 ])
-def test_filter_bracr_extra(bracr_arg, bracr_src):
-    """Extra test for bracket remove. Bracket remove can't handle nested brackets (yet!) """
-    args = parser.parse_args(['-bracr', bracr_arg])
+def test_filter_bracr_extra(bracr_arg, bracr_src, bracr_dest):
+    """ Extra tests for bracket remove.
+    Test for:
+    -   Nested brackets
+    -   Multiple bracket combinations ("arcs")
+    """
+    args = parser.parse_args(['-bracr', *bracr_arg])
     filters = renamer.initfilters(args)
     dest = renamer.get_renames(bracr_src, filters, args.extension, args.raw)
-    for f in dest:
-        assert f != "file"
+    assert dest == bracr_dest
 
 
 @pytest.mark.parametrize("re_arg, re_src, re_dest", [

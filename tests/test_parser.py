@@ -126,7 +126,7 @@ def test_parser_defaults():
     (["dir", "-c", "lower"], True),
     (["dir", "-sl", "0:1"], True),
     (["dir", "-sh", "1:1"], True),
-    (["dir", "-bracr", "curly"], True),
+    (["dir", "-bracr", "c"], True),
     (["dir", "-re", "bla"], True),
     (["dir", "-seq", "%f"], True),
     (["dir", "--sort", "man", "-pre", "bla"], True),
@@ -326,10 +326,16 @@ def test_parser_regex_err(reg_errarg):
 
 
 @pytest.mark.parametrize("bracr_arg, bracr_res", [
-    (["curly"], ("curly", 0)),
-    (["round"], ("round", 0)),
-    (["square"], ("square", 0)),
-    (["curly", "2"], ("curly", 2))
+    (["a"], ("a", 0)),
+    (["r"], ("r", 0)),
+    (["s"], ("s", 0)),
+    (["c"], ("c", 0)),
+    (["c", "2"], ("c", 2)),
+    (["arcs"], ("arcs", 0)),
+    (["arcs", "2"], ("arcs", 2)),
+    (["aarcs"], ("arcs", 0)),
+    (["rrcs"], ("rcs", 0)),
+    (["csscsrrr"], ("csr", 0))
 ])
 def test_parser_bracket(bracr_arg, bracr_res):
     """Test bracket remove argument returns appropriate tuple """
@@ -339,16 +345,18 @@ def test_parser_bracket(bracr_arg, bracr_res):
 
 
 @pytest.mark.parametrize("bracr_errarg", [
-    ([""]),
     (["squiggle"]),
     (["bracket"]),
-    (["curly", "round"]),
+    (["c", "curly"]),
+    (["arcz", "0"]),
+    (["curly", "1"]),
+    (["arc", "round"]),
     (["curly", "round", "square"])
 ])
 def test_parser_bracket_err(bracr_errarg):
     """Test bracket remove argument error\n
     Give an error if:\n
-    -   no arguments/too many arguments (>2)
+    -   too many arguments (>2)
     -   invalid bracket type ('', other...)
     -   bracket target is not an integer >= 0
     """

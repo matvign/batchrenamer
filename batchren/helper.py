@@ -52,7 +52,7 @@ def bracket_map(expression):
         close_map = dict(zip(tuple(")]}"), bracket_types))
 
     else:
-        for ch in set(expression):
+        for ch in expression:
             if ch == "r":
                 open_map["("] = "round"
                 close_map[")"] = "round"
@@ -75,15 +75,15 @@ def bracket_remove(expression, open_map, close_map, count):
         if char in open_map:
             stack[open_map[char]].append(index)
         elif char in close_map:
-            if not stack[open_map[char]]:
+            if not stack[close_map[char]]:
                 # move indices of unmatched closed braces
                 indices.append((index, index))
                 continue
 
             i = stack[close_map[char]].pop()
-            indices.append(i, index)
+            indices.append((i, index))
 
-    # move indices of unmatched open braces left on the stacks
+    # move indices of unmatched open braces to stack
     for k, v in stack.items():
         for vi in v:
             indices.append((vi, vi))
@@ -92,9 +92,31 @@ def bracket_remove(expression, open_map, close_map, count):
         # no indices to remove, just return the expression
         return expression
 
-    # remove overlapping indices
+    indices = sorted(indices, key=lambda x: x[0])
+    if not count:
+        indices = fold_indices(indices)
+
+    s = list(expression)
+    cur = len(indices)
+    print(cur, count)
+    while(indices):
+        start, end = indices.pop()
+
+        if not count:
+            del s[start:end+1]
+        elif count and cur == count:
+            if start != end:
+                del s[start:end + 1]
+        cur -= 1
+
+    return "".join(s)
+
+
+def fold_indices(indices):
+    # join overlapping indices
     indices = sorted(indices, key=lambda x: x[0])
     min_start, max_end = indices[0]
+
     remove_indices = [indices[0]]
     for start, end in indices[1:]:
         if start > max_end:
@@ -104,12 +126,7 @@ def bracket_remove(expression, open_map, close_map, count):
             remove_indices[-1] = (min_start, end)
             max_end = end
 
-    s = list(expression)
-    while(remove_indices):
-        start, end = remove_indices.pop()
-        del s[start, end]
-
-    return "".join(s)
+    return remove_indices
 
 
 def escape_path(path, args):
