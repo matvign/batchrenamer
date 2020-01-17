@@ -216,13 +216,24 @@ Shave a portion of filenames. Convenient option that is the same as removing fir
 
 
 #### Bracket Remove
-`batchren -bracr {curly, round, square} [COUNT]`  
-Remove brackets and their contents. Bracket remover accepts one of either curly, round or square.  
-An optional argument can be specified to remove the nth bracket group.  
+`batchren -bracr {arsc} [COUNT]`  
+Remove bracket type and their contents. Bracket remover accepts a keyword to control
+which brackets should be removed. 
+```
+a: all
+r: round    ()
+s: square   []
+c: curly    {}
+```
+If no arguments, all brackets are removed.  
+If one argument, all brackets of the specified type are removed.  
+If two arguments, only the nth matched bracket is removed.
 
 ##### Examples
-`batchren -bracr square`: removes all square brackets and their contents  
-`batchren -bracr square 1`: remove first square bracket and its contents
+`batchren -brarc`: removes all matched/unmatched brackets and their contents.  
+`batchren -bracr r`: remove all round matched/unmatched brackets and their contents.  
+`batchren -bracr rs`: remove all round or square matched/unmatched brackets and their contents.  
+`batchren -bracr rs 1`: remove the first pair of matched round/square brackets and its contents.
 
 
 #### Regex

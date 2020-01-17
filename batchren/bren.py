@@ -199,7 +199,7 @@ class RegexAction(argparse.Action):
 
 
 class BracketAction(argparse.Action):
-    """batchren -bracr {arcs} COUNT\n
+    """batchren -bracr {arsc} COUNT\n
     Custom action for a bracket remover.\n
     Remove specified brackets and content types depending on arguments.\n
     If no argument, remove all brackets types and their contents.\n
@@ -211,7 +211,7 @@ class BracketAction(argparse.Action):
     -   bracket target is not an integer >= 0
     """
     def __call__(self, parser, namespace, values, option_string=None):
-        choices = re.compile(r"^[arcs]+$")
+        choices = re.compile(r"^[arsc]+$")
         argtype = "argument -bracr/--bracket_remove: "
         err1 = "expected at most two arguments"
         err2 = "invalid match for bracket type(s)"
@@ -271,7 +271,7 @@ class CustomFormatter(argparse.RawTextHelpFormatter):
         elif option_string == "--regex":
             return "PATTERN [REPL] [COUNT]"
         elif option_string == "--bracket_remove":
-            return "{curly,round,square} [COUNT]"
+            return "{arsc} [COUNT]"
         else:
             return args_string
 
