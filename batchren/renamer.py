@@ -160,7 +160,7 @@ def start_rename(files, args):
         dest_files = get_renames(dest_files, filters, args.extension, args.raw)
         rentable = generate_rentable(src_files, dest_files)
         q = print_rentable(rentable, args.quiet, args.verbose)
-    except BaseException as exc:
+    except Exception as exc:
         sys.exit(exc)
 
     if q and helper.askQuery():
@@ -191,7 +191,7 @@ def runfilters(path, filters, extension=None, raw=False):
         except OSError as os_err:
             # except oserror from sequences
             sys.exit("A filesystem error occurred: " + str(os_err))
-        except BaseException as exc:
+        except Exception as exc:
             sys.exit("An unforeseen error occurred: " + str(exc))
 
     # change extension, allow '' as an extension
@@ -401,7 +401,7 @@ def rename_queue(queue, dryrun=False, verbose=False):
                 if not dryrun:
                     rename_file(src, dest)
                 rollback_queue.append((dest, src))
-    except BaseException:
+    except Exception:
         if dryrun:
             sys.exit("An error occurred but no files were renamed as the dryrun option is enabled.")
         elif not rollback_queue:
@@ -419,7 +419,7 @@ def rollback(queue):
         print("Rolling back '{}' -> '{}'.".format(src, dest))
         try:
             rename_file(src, dest)
-        except BaseException as exc:
+        except Exception as exc:
             sys.exit("Cannot perform rollback operation: " + str(exc))
 
     sys.exit("Rollback completed. Exiting now...")
@@ -431,6 +431,6 @@ def rename_file(src, dest):
     except OSError as err:
         print("An error occurred while renaming: " + str(err))
         raise err
-    except BaseException as exc:
+    except Exception as exc:
         print("An unforeseen error occurred while renaming: " + str(exc))
         raise exc
