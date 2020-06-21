@@ -76,14 +76,15 @@ def bracket_remove(expression, open_map, close_map, count):
             stack[open_map[char]].append(index)
         elif char in close_map:
             if not stack[close_map[char]]:
-                # move indices of unmatched closed braces
+                # unmatched closing bracket, move index of closing bracket from stack
                 indices.append((index, index))
                 continue
 
+            # matched closing bracket, remove index of closing bracket from stack
             i = stack[close_map[char]].pop()
             indices.append((i, index))
 
-    # move indices of unmatched open braces to stack
+    # move indices of any remaining unmatched open braces
     for k, v in stack.items():
         for vi in v:
             indices.append((vi, vi))
@@ -94,24 +95,25 @@ def bracket_remove(expression, open_map, close_map, count):
 
     indices = sorted(indices, key=lambda x: x[0])
     if not count:
-        indices = fold_indices(indices)
+        indices = join_indices(indices)
 
+    # remove indices matching matched/unmatched indices
     s = list(expression)
-    cur = len(indices)
+    cur_index = len(indices)
     while(indices):
         start, end = indices.pop()
 
         if not count:
             del s[start:end+1]
-        elif count and cur == count:
+        elif count and cur_index == count:
             if start != end:
                 del s[start:end + 1]
-        cur -= 1
+        cur_index -= 1
 
     return "".join(s)
 
 
-def fold_indices(indices):
+def join_indices(indices):
     # join overlapping indices
     indices = sorted(indices, key=lambda x: x[0])
     min_start, max_end = indices[0]

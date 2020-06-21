@@ -25,19 +25,25 @@ issues = {
 def partfile(path, raw=False):
     """Split directory into directory, basename and/or extension """
     dirpath, filename = os.path.split(path)
-    if not raw:
-        # default, extract extensions
-        basename, ext = os.path.splitext(filename)
-    else:
+    if raw:
         # raw, don't extract extension
         basename, ext = filename, ""
+    else:
+        # default, extract extensions
+        basename, ext = os.path.splitext(filename)
 
     return (dirpath, basename, ext)
 
 
 def joinparts(dirpath, basename, ext, raw=False):
     path = basename
-    if not raw:
+    if raw:
+        # raw, don't process any whitespace
+        if ext:
+            # remove trailing dots from ext
+            ext = re.sub(r"\.+", ".", ext.strip("."))
+            path = path.rstrip(".") + "." + ext
+    else:
         # default, process whitespace
         path = path.strip()
 
@@ -45,13 +51,6 @@ def joinparts(dirpath, basename, ext, raw=False):
             # remove spaces, strip and then collapse dots from extension
             # remove trailing dots from filename before adding extension
             ext = re.sub(r"\.+", ".", ext.replace(" ", "").strip("."))
-            path = path.rstrip(".") + "." + ext
-
-    else:
-        # raw, don't process any whitespace
-        if ext:
-            # remove trailing dots from ext
-            ext = re.sub(r"\.+", ".", ext.strip("."))
             path = path.rstrip(".") + "." + ext
 
     if dirpath:
@@ -145,7 +144,7 @@ def _repl_decorator(pattern, repl="", count=0):
         replacer._count += 1
         return res
 
-    # initialise function attribute to one for use as a counter
+    # initialise function attribute to 1 for use as a counter
     replacer._count = 1
 
     return repl_all if not count else repl_nth
@@ -179,13 +178,13 @@ def get_renames(src_files, filters, ext, raw):
 
 def runfilters(path, filters, extension=None, raw=False):
     """Rename file with a list of functions """
-    dirpath, bname, ext = partfile(path, raw)
+    dirpath, basename, ext = partfile(path, raw)
     for runf in filters:
         try:
             if isinstance(runf, StringSeq.StringSequence):
-                bname = runf(path, dirpath, bname)
+                basename = runf(path, dirpath, basename)
             else:
-                bname = runf(bname)
+                basename = runf(basename)
         except re.error as re_err:
             sys.exit("A regex error occurred: " + str(re_err))
         except OSError as os_err:
@@ -199,8 +198,8 @@ def runfilters(path, filters, extension=None, raw=False):
         ext = extension
 
     # recombine as basename+ext, path+basename+ext
-    res = joinparts(dirpath, bname, ext, raw)
-    return res
+    newname = joinparts(dirpath, basename, ext, raw)
+    return newname
 
 
 def generate_rentable(src_files, dest_files):
