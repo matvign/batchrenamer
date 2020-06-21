@@ -193,6 +193,7 @@ def test_filter_shave(sh_arg, sh_src, sh_dest):
     ("r", ["file"], ["file"]),
     ("s", ["file"], ["file"]),
     ("c", ["file"], ["file"]),
+    ("a", ["file"], ["file"]),
 
     # unmatched brackets are removed
     ("r", ["file("], ["file"]),
@@ -201,6 +202,7 @@ def test_filter_shave(sh_arg, sh_src, sh_dest):
     ("s", ["file]"], ["file"]),
     ("c", ["file{"], ["file"]),
     ("c", ["file}"], ["file"]),
+    ("a", ["file)(}{]["], ["file"]),
 
     # matched brackets are removed
     ("r", ["(file)file(file)"], ["file"]),
@@ -259,12 +261,12 @@ def test_filter_bracr(bracr_arg, bracr_src, bracr_dest):
     (["a", "3"], ["()file[]file{}"], ["()file[]file"]),
 
     # only matched brackets are removed
-    (["r", "3"], ["()file())"], ["()file())"]),
     (["r", "2"], ["()file())"], ["()file)"]),
-    (["s", "3"], ["[]file[]]"], ["[]file[]]"]),
+    (["r", "3"], ["()file())"], ["()file())"]),
     (["s", "2"], ["[]file[]]"], ["[]file]"]),
-    (["c", "3"], ["{}file{}}"], ["{}file{}}"]),
+    (["s", "3"], ["[]file[]]"], ["[]file[]]"]),
     (["c", "2"], ["{}file{}}"], ["{}file}"]),
+    (["c", "3"], ["{}file{}}"], ["{}file{}}"])
 ])
 def test_filter_bracr_count(bracr_arg, bracr_src, bracr_dest):
     """ Extra tests for bracket remove with counts.

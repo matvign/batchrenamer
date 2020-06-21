@@ -98,7 +98,6 @@ def bracket_remove(expression, open_map, close_map, count):
 
     s = list(expression)
     cur = len(indices)
-    print(cur, count)
     while(indices):
         start, end = indices.pop()
 
