@@ -6,7 +6,7 @@ setup:
 install:
 	pip install --user dist/batchren-0.7.1-py3-none-any.whl
 
-remove:
+uninstall:
 	pip uninstall batchren
 
 build:
