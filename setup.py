@@ -19,7 +19,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
     ],
-    install_requires=["natsort==7.0.0", "urwid==2.1.0"],
+    install_requires=["natsort==7.0.0", "urwid==4.0.7"],
     python_requires="~=3.5",
     scripts=["bin/batchren"]
 )
